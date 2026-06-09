@@ -1,6 +1,14 @@
+
 import { useState } from "react";
-import { Instagram, Facebook, Youtube, Music2, Calendar, Plus } from "lucide-react";
-import { Bell } from "lucide-react";
+import {
+  Instagram,
+  Facebook,
+  Youtube,
+  Music2,
+  Calendar,
+  Plus,
+  Bell,
+} from "lucide-react";
 import Logo from "../components/Logo";
 import Chip from "../components/Chip";
 import GradientButton from "../components/GradientButton";
@@ -14,6 +22,7 @@ const platforms = [
 
 const times = ["7:30 PM", "8:00 PM", "9:00 PM", "10:00 PM"];
 const dates = ["Today", "Tomorrow", "Sat 06/14", "Sun 06/15", "Mon 06/16"];
+
 export default function Schedule() {
   const [platform, setPlatform] = useState("ig");
   const [date, setDate] = useState("");
@@ -22,7 +31,8 @@ export default function Schedule() {
   const [title, setTitle] = useState("Glow Friday Mega Sale");
 
   return (
-    <div>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Mobile Header */}
       <div className="flex items-center justify-between md:hidden">
         <Logo />
 
@@ -30,15 +40,22 @@ export default function Schedule() {
           <Bell className="h-5 w-5" />
         </button>
       </div>
-      <h1 className="mt-6 text-4xl font-black tracking-tight">Schedule Live</h1>
 
-      <p className="mt-2 text-base text-muted-foreground">
-        Pick a platform, date and time — your AI twin will go live & sell automatically.
+      {/* Heading */}
+      <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight md:text-5xl">
+        Schedule Live
+      </h1>
+
+      <p className="mt-4 text-base leading-7 text-muted-foreground">
+        Pick a platform, date and time — your AI twin will go live &
+        sell automatically.
       </p>
 
       <section className="mt-8 rounded-3xl border border-border bg-white p-6">
         {/* Platform */}
-        <p className="text-xs font-extrabold tracking-widest text-foreground/80">CHOOSE PLATFORM</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-foreground/80">
+          CHOOSE PLATFORM
+        </p>
 
         <div className="-mx-5 mt-3 flex gap-3 overflow-x-auto px-5 pb-2 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
           {platforms.map(({ id, label, Icon }) => (
@@ -53,25 +70,23 @@ export default function Schedule() {
           ))}
         </div>
 
-        {/* MOBILE UI */}
-        {/* MOBILE UI */}
+        {/* Mobile UI */}
         <div className="mt-8 space-y-5 md:hidden">
-          {/* Title */}
           <div>
-            <label className="mb-2 block text-xs font-extrabold tracking-widest text-foreground/80">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-foreground/80">
               TITLE
             </label>
+
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter live stream title"
-              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm font-semibold"
+              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm"
             />
           </div>
 
-          {/* Date Buttons */}
           <div>
-            <label className="mb-2 block text-xs font-extrabold tracking-widest text-foreground/80">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-foreground/80">
               DATE
             </label>
 
@@ -84,9 +99,8 @@ export default function Schedule() {
             </div>
           </div>
 
-          {/* Time Buttons */}
           <div>
-            <label className="mb-2 block text-xs font-extrabold tracking-widest text-foreground/80">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-foreground/80">
               TIME
             </label>
 
@@ -99,9 +113,8 @@ export default function Schedule() {
             </div>
           </div>
 
-          {/* Duration */}
           <div>
-            <label className="mb-2 block text-xs font-extrabold tracking-widest text-foreground/80">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-foreground/80">
               DURATION
             </label>
 
@@ -110,45 +123,48 @@ export default function Schedule() {
               value={dur}
               onChange={(e) => setDur(e.target.value)}
               placeholder="2h"
-              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm font-semibold"
+              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm"
             />
           </div>
         </div>
 
-        {/* DESKTOP UI */}
+        {/* Desktop UI */}
         <div className="mt-8 hidden md:grid md:grid-cols-5 md:gap-4">
           <div className="md:col-span-2">
-            <label className="mb-2 block text-xs font-extrabold tracking-widest text-foreground/80">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-foreground/80">
               TITLE
             </label>
+
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter live stream title"
-              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/40"
+              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/40"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-extrabold tracking-widest text-foreground/80">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-foreground/80">
               DATE
             </label>
+
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/40"
+              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/40"
             />
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-extrabold tracking-widest text-foreground/80">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-foreground/80">
               TIME
             </label>
+
             <select
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/40"
+              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/40"
             >
               {times.map((t) => (
                 <option key={t} value={t}>
@@ -159,22 +175,25 @@ export default function Schedule() {
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-extrabold tracking-widest text-foreground/80">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-foreground/80">
               DURATION
             </label>
+
             <input
               type="text"
               value={dur}
               onChange={(e) => setDur(e.target.value)}
               placeholder="2h"
-              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/40"
+              className="w-full rounded-[5px] border border-border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/40"
             />
           </div>
         </div>
       </section>
 
       <div className="mt-8">
-        <GradientButton icon={<Plus className="h-5 w-5" strokeWidth={2.5} />}>
+        <GradientButton
+          icon={<Plus className="h-5 w-5" strokeWidth={2.5} />}
+        >
           Schedule Live
         </GradientButton>
       </div>
@@ -185,8 +204,11 @@ export default function Schedule() {
           Upcoming Streams
         </p>
 
-        <p className="mt-2 text-sm text-muted-foreground">No streams scheduled yet.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          No streams scheduled yet.
+        </p>
       </section>
     </div>
   );
 }
+

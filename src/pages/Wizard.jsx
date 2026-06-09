@@ -4,29 +4,35 @@ import Logo from "../components/Logo";
 
 function StepCard({ n, title, desc, completed }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+    <div className="flex items-center gap-5 rounded-2xl border border-border bg-card p-6 shadow-sm">
+      {/* Left Icon */}
       <div
-        className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-white ${
+        className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-white ${
           completed ? "bg-emerald-500" : "bg-gray-300"
         }`}
       >
         <Check className="h-6 w-6" strokeWidth={3} />
       </div>
 
-      <div className="flex-1">
-        <p className="text-base font-extrabold">
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <p className="text-base font-bold leading-6">
           Step {n} · {title}
         </p>
-        <p className="text-sm text-muted-foreground">{desc}</p>
+
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          {desc}
+        </p>
       </div>
 
-      <span
-        className={`grid h-6 w-6 place-items-center rounded-full text-white ${
+      {/* Status */}
+      <div
+        className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-white ${
           completed ? "bg-emerald-500" : "bg-gray-300"
         }`}
       >
-        <Check className="h-3.5 w-3.5" strokeWidth={3.5} />
-      </span>
+        <Check className="h-4 w-4" strokeWidth={3.5} />
+      </div>
     </div>
   );
 }
@@ -78,97 +84,116 @@ export default function Wizard() {
   const progress = Math.round((completedSteps / steps.length) * 100);
 
   return (
-    <>
-      <div>
-        {/* Mobile Header */}
-        <div className="flex items-center justify-between md:hidden">
-          <Logo />
+  <>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Mobile Header */}
+      <div className="flex items-center justify-between md:hidden">
+        <Logo />
 
-          <button className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-card shadow-sm">
-            <Bell className="h-5 w-5" />
-          </button>
-        </div>
+        <button className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-card shadow-sm">
+          <Bell className="h-5 w-5" />
+        </button>
+      </div>
 
-        {/* Heading */}
-        <h1 className="mt-6 text-4xl font-black tracking-tight md:mt-0">Avatar Wizard</h1>
+      {/* Heading */}
+      <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight md:mt-0 md:text-5xl">
+        Avatar Wizard
+      </h1>
 
-        <p className="mt-3 text-base text-muted-foreground">
-          Create your AI sales twin that goes live, talks, answers questions and sells 24/7.
+      <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
+        Create your AI sales twin that goes live, talks, answers questions and
+        sells 24/7 while you focus on growing your brand.
+      </p>
+
+      {/* Banner */}
+      <div className="brand-gradient relative mt-8 overflow-hidden rounded-3xl p-8 text-white shadow-xl">
+        <p className="text-xs font-semibold tracking-[0.2em] opacity-90">
+          AI LIVE COMMERCE
         </p>
 
-        {/* Banner */}
-        <div className="brand-gradient relative mt-6 overflow-hidden rounded-3xl p-6 text-white shadow-xl">
-          <p className="text-xs font-extrabold tracking-widest opacity-90">AI LIVE COMMERCE</p>
+        <h2 className="mt-3 text-3xl font-black leading-tight md:text-4xl">
+          Your AI Twin
+          <br />
+          Sells for You.
+        </h2>
 
-          <h2 className="mt-2 text-3xl font-black leading-tight">
-            Your AI Twin
-            <br />
-            Sells for You.
-          </h2>
+        <span className="mt-5 inline-block rounded-full bg-white/20 px-4 py-2 text-sm font-semibold">
+          {completedSteps}/{steps.length} steps done
+        </span>
 
-          <span className="mt-4 inline-block rounded-full bg-white/25 px-3 py-1 text-xs font-bold">
-            {completedSteps}/{steps.length} steps done
-          </span>
+        <img
+          src="/images/bbb.png"
+          alt="AI Twin"
+          className="absolute right-6 top-6 hidden h-32 w-32 rounded-3xl object-cover ring-4 ring-white/30 shadow-xl md:block"
+        />
+      </div>
 
-          <img
-            src="/images/bbb.png"
-            alt="AI Twin"
-            className="absolute right-4 top-4 h-28 w-28 rounded-2xl object-cover ring-4 ring-white/30 shadow-lg"
+      {/* Progress */}
+      <div className="mt-8">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-pink-100">
+          <div
+            className="brand-gradient h-full transition-all duration-500"
+            style={{
+              width: `${progress}%`,
+            }}
           />
         </div>
 
-        {/* Progress */}
-        <div className="mt-6">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-pink-100">
-            <div
-              className="brand-gradient h-full transition-all duration-500"
-              style={{
-                width: `${progress}%`,
-              }}
-            />
-          </div>
-
-          <p className="mt-2 text-sm font-extrabold">{progress}% trained</p>
-        </div>
-
-        {/* Dynamic Steps */}
-        <div className="mt-6 space-y-3">
-          {steps.map((step, index) => (
-            <StepCard
-              key={index}
-              n={index + 1}
-              title={step.title}
-              desc={step.desc}
-              completed={step.completed}
-            />
-          ))}
-        </div>
-
-        {/* Button */}
+        <p className="mt-3 text-sm font-semibold">
+          {progress}% trained
+        </p>
       </div>
 
-      {/* Perfect For */}
-      <section id="cases" className="mx-auto max-w-7xl px-4 py-8">
-        <h2 className="text-center text-3xl font-black brand-text">Perfect For</h2>
+      {/* Steps */}
+      <div className="mt-8 space-y-4">
+        {steps.map((step, index) => (
+          <StepCard
+            key={index}
+            n={index + 1}
+            title={step.title}
+            desc={step.desc}
+            completed={step.completed}
+          />
+        ))}
+      </div>
+    </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-          {items.map(({ Icon, t }) => (
-            <div key={t} className="rounded-2xl border border-border bg-card p-5 text-center">
-              <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
-                <Icon className="h-6 w-6" />
-              </div>
+    {/* Perfect For */}
+    <section
+      id="cases"
+      className="mx-auto mt-20 max-w-7xl px-4 py-16 sm:px-6 lg:px-8"
+    >
+      <h2 className="text-center text-3xl font-black brand-text md:text-4xl">
+        Perfect For
+      </h2>
 
-              <p className="mt-3 text-sm font-extrabold">{t}</p>
+      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+        {items.map(({ Icon, t }) => (
+          <div
+            key={t}
+            className="flex h-full flex-col items-center rounded-2xl border border-border bg-card p-6 text-center transition hover:-translate-y-1 hover:shadow-lg"
+          >
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
+              <Icon className="h-6 w-6" />
             </div>
-          ))}
-        </div>
-      </section>
+
+            <p className="mt-5 text-base font-bold">
+              {t}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    {/* Button */}
+    <div className="mx-auto mb-10 mt-2 max-w-md px-4">
       <Link
         to="/app/portrait"
-        className="brand-gradient glow-pink mt-6 flex items-center justify-center gap-2 rounded-full py-4 font-bold text-white"
+        className="brand-gradient glow-pink flex h-14 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-semibold text-white shadow-lg transition hover:opacity-90"
       >
         Generate Twin Portrait →
       </Link>
-    </>
-  );
+    </div>
+  </>
+);
 }

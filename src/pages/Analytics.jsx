@@ -1,3 +1,4 @@
+
 import {
   Bell,
   Eye,
@@ -6,8 +7,6 @@ import {
   Heart,
   Package,
   CalendarDays,
-  TrendingUp,
-  BarChart3,
 } from "lucide-react";
 import Logo from "../components/Logo";
 import {
@@ -21,6 +20,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+
 export default function Analytics() {
   const stats = [
     {
@@ -61,29 +61,28 @@ export default function Analytics() {
     },
   ];
 
-const viewerData = [
-  { day: "Mon", viewers: 1200 },
-  { day: "Tue", viewers: 1800 },
-  { day: "Wed", viewers: 2400 },
-  { day: "Thu", viewers: 3200 },
-  { day: "Fri", viewers: 2900 },
-  { day: "Sat", viewers: 4100 },
-  { day: "Sun", viewers: 5200 },
-];
+  const viewerData = [
+    { day: "Mon", viewers: 1200 },
+    { day: "Tue", viewers: 1800 },
+    { day: "Wed", viewers: 2400 },
+    { day: "Thu", viewers: 3200 },
+    { day: "Fri", viewers: 2900 },
+    { day: "Sat", viewers: 4100 },
+    { day: "Sun", viewers: 5200 },
+  ];
 
-const salesData = [
-  { day: "Mon", sales: 45 },
-  { day: "Tue", sales: 72 },
-  { day: "Wed", sales: 58 },
-  { day: "Thu", sales: 95 },
-  { day: "Fri", sales: 84 },
-  { day: "Sat", sales: 120 },
-  { day: "Sun", sales: 105 },
-];
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const salesData = [
+    { day: "Mon", sales: 45 },
+    { day: "Tue", sales: 72 },
+    { day: "Wed", sales: 58 },
+    { day: "Thu", sales: 95 },
+    { day: "Fri", sales: 84 },
+    { day: "Sat", sales: 120 },
+    { day: "Sun", sales: 105 },
+  ];
 
   return (
-    <div>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       {/* Mobile Header */}
       <div className="flex items-center justify-between md:hidden">
         <Logo />
@@ -93,18 +92,16 @@ const salesData = [
         </button>
       </div>
 
-      {/* Page Header */}
-      <h1 className="mt-6 text-4xl font-black tracking-tight">
+      {/* Header */}
+      <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight md:text-5xl">
         Analytics
       </h1>
 
-      <p className="mt-2 text-base text-muted-foreground">
-        Track your AI twin performance, engagement, sales,
-        and revenue in real time.
+      <p className="mt-4 text-base leading-7 text-muted-foreground">
+        Track your AI twin performance, engagement, sales, and revenue in real
+        time.
       </p>
 
-      {/* Hero Analytics Banner */}
-     
       {/* KPI Cards */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((item) => {
@@ -125,76 +122,73 @@ const salesData = [
                 </span>
               </div>
 
-              <p className="mt-4 text-sm font-semibold text-muted-foreground">
+              <p className="mt-4 text-sm text-muted-foreground">
                 {item.label}
               </p>
 
-              <p className="mt-1 text-3xl font-black">
-                {item.value}
-              </p>
+              <p className="mt-1 text-3xl font-black">{item.value}</p>
             </div>
           );
         })}
       </div>
 
       {/* Viewers Graph */}
-   <div className="mt-6 rounded-3xl border border-border bg-card p-6">
-  <h3 className="mb-4 text-lg font-black">
-    Viewers Trend (Last 7 Days)
-  </h3>
+      <div className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <h3 className="mb-4 text-lg font-black">
+          Viewers Trend (Last 7 Days)
+        </h3>
 
-  <div className="h-72">
-    <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={viewerData}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="day" />
-        <YAxis />
-        <Tooltip />
-        <Line
-          type="monotone"
-          dataKey="viewers"
-          stroke="#ec4899"
-          strokeWidth={4}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  </div>
-</div>
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={viewerData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="day" />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="viewers"
+                stroke="#ec4899"
+                strokeWidth={4}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
       {/* Sales Graph */}
-     <div className="mt-6 rounded-3xl border border-border bg-card p-6">
-  <h3 className="mb-4 text-lg font-black">
-    Sales Trend (Last 7 Days)
-  </h3>
-
-  <div className="h-72">
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={salesData}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="day" />
-        <YAxis />
-        <Tooltip />
-        <Bar
-          dataKey="sales"
-          fill="#ec4899"
-          radius={[10, 10, 0, 0]}
-        />
-      </BarChart>
-    </ResponsiveContainer>
-  </div>
-</div>
-
-      {/* Summary Card */}
       <div className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <h3 className="text-lg font-black">
-          Performance Summary
+        <h3 className="mb-4 text-lg font-black">
+          Sales Trend (Last 7 Days)
         </h3>
+
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={salesData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="day" />
+              <YAxis />
+              <Tooltip />
+              <Bar
+                dataKey="sales"
+                fill="#ec4899"
+                radius={[10, 10, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Performance Summary */}
+      <div className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <h3 className="text-lg font-black">Performance Summary</h3>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl bg-muted/40 p-4">
             <p className="text-sm text-muted-foreground">
               Best Day
             </p>
+
             <p className="mt-1 text-xl font-black">
               Saturday
             </p>
@@ -204,6 +198,7 @@ const salesData = [
             <p className="text-sm text-muted-foreground">
               Top Product
             </p>
+
             <p className="mt-1 text-xl font-black">
               AI Beauty Kit
             </p>
@@ -213,6 +208,7 @@ const salesData = [
             <p className="text-sm text-muted-foreground">
               Conversion Rate
             </p>
+
             <p className="mt-1 text-xl font-black">
               8.4%
             </p>
@@ -222,3 +218,4 @@ const salesData = [
     </div>
   );
 }
+

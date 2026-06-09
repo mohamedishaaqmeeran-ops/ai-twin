@@ -4,8 +4,7 @@ import { Bell } from "lucide-react";
 import Logo from "../components/Logo";
 export default function GoLive() {
   return (
-    <div>
-      {" "}
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between md:hidden">
         <Logo />
 
