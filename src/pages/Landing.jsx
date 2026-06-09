@@ -227,7 +227,7 @@ function Nav() {
           {/* Mobile Toggle Button */}
           <button
             onClick={() => setOpen(!open)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border lg:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border md:hidden"
           >
             {open ? (
               <X className="h-5 w-5" />
@@ -239,7 +239,7 @@ function Nav() {
 
         {/* Mobile Menu */}
         {open && (
-          <div className="mt-4 space-y-4 rounded-2xl border border-border bg-background p-5 lg:hidden">
+          <div className="mt-4 space-y-4 rounded-2xl border border-border bg-background p-5 md:hidden">
             <a
               href="#features"
               className="block font-medium hover:text-[var(--brand-pink)]"
