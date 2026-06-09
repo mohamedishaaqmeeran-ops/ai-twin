@@ -26,6 +26,7 @@ import {
   Home,
   Sparkles,
   ChevronDown,
+  Linkedin
 } from "lucide-react";
 import Logo from "../components/Logo";
 import { useState } from "react";
@@ -1015,6 +1016,8 @@ function Footer() {
             <Youtube className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
 
             <Music2 className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+
+            <Linkedin className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
           </div>
         </div>
 
