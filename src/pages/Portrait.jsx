@@ -54,22 +54,22 @@ export default function Portrait() {
           <Palette className="h-5 w-5" /> Style
         </p>
 
-        <div className="mt-4 grid grid-cols-5 gap-3">
-          {styles.map(({ label, Icon }) => (
-            <button
-              key={label}
-              onClick={() => setStyle(label)}
-              className={`flex items-center gap-2 rounded-2xl border-2 px-3 py-3 text-base cursor-pointer font-semibold transition ${
-                style === label
-                  ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)]"
-                  : "border-border bg-card text-foreground hover:border-foreground/20"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </div>
+       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+  {styles.map(({ label, Icon }) => (
+    <button
+      key={label}
+      onClick={() => setStyle(label)}
+      className={`flex items-center justify-center sm:justify-start gap-2 rounded-2xl border-2 px-3 py-3 text-base cursor-pointer font-semibold transition ${
+        style === label
+          ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)]"
+          : "border-border bg-card text-foreground hover:border-foreground/20"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+      <span className="text-sm sm:text-base">{label}</span>
+    </button>
+  ))}
+</div>
 
         {/* VOICE */}
         <p className="mt-6 flex items-center gap-2 text-base font-extrabold">
