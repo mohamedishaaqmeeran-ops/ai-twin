@@ -114,9 +114,12 @@ function TopBanner() {
         {/* Right Group (CTA + Close together on desktop) */}
         <div className="flex items-center gap-2 shrink-0">
 
-          <button className="brand-gradient rounded-[5px] px-3 py-1 text-xs sm:text-sm font-semibold hover:opacity-90">
-            Join Waitlist
-          </button>
+        <Link
+  to="/waitlist"
+  className="brand-gradient rounded-[5px] px-3 py-1.5 text-xs sm:text-sm font-semibold hover:opacity-90 inline-flex items-center justify-center"
+>
+  Join Waitlist
+</Link>
 
           <button
             onClick={() => setOpen(false)}
@@ -342,7 +345,7 @@ function Hero() {
       {/* Left Side */}
       <div className="text-center lg:text-left">
         {/* Badge */}
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-semibold text-foreground">
+        <span className="inline-flex items-center gap-2 rounded-full border-3 border-pink-500 bg-card px-4 py-2 text-xs font-semibold text-foreground">
           <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
           LIVE
           <span className="brand-text font-bold">
@@ -358,7 +361,7 @@ function Hero() {
         </h1>
 
         {/* Description */}
-        <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-muted-foreground lg:mx-0">
+        <p className="mx-auto mt-5 max-w-xl text-base leading-6 text-muted-foreground lg:mx-0">
           Create your AI sales twin that goes live, talks, answers questions
           and sells 24/7 while you focus on growing your brand.
         </p>
@@ -528,9 +531,12 @@ function ToolCards() {
                 </p>
               </div>
 
-              <span className="text-sm font-bold text-red-500">
-                Connect
-              </span>
+              <button
+  onClick={() => navigate("/app/connect")}
+  className="text-sm font-bold text-[var(--brand-pink)] hover:underline"
+>
+  Connect
+</button>
             </li>
           ))}
         </ul>
@@ -763,7 +769,7 @@ function HowItWorks() {
 
             {/* Arrow */}
             {i < steps.length - 1 && (
-              <ArrowRight className="absolute -right-3 top-1/2 hidden h-5 w-5 -translate-y-1/2 text-[var(--brand-pink)] xl:block" />
+              <ArrowRight className="absolute -right-6 top-1/2 hidden h-5 w-5 -translate-y-1/2 text-[var(--brand-pink)] xl:block" />
             )}
           </div>
         ))}
@@ -1019,7 +1025,7 @@ function Footer() {
       "Company",
       ["About Us", "Careers", "Privacy Policy", "Terms of Service"],
     ],
-    [Mail, "Contact", ["hello@twin.live", "+91 123 456 7890", "Bangalore, India"]],
+    [Mail, "Contact", ["hello2twinn.live","www.twinn.live", "+91 84285 27015", "Chennai, India"]],
   ];
 
   return (
