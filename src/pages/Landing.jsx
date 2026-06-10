@@ -82,18 +82,23 @@ const stats = [
   },
 ];
 
+
 function TopBanner() {
+  const [open, setOpen] = useState(true);
+
+  if (!open) return null;
+
   return (
     <div className="bg-[#0d0d12] text-white">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 px-4 py-3 sm:gap-5 lg:gap-7">
-        {/* Icon */}
-        <div className="brand-gradient flex h-9 w-9 shrink-0 items-center justify-center rounded-[5px]">
-          <Activity className="h-4 w-4" />
-        </div>
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2">
 
-        {/* Main Text */}
-        <div className="text-center sm:text-left">
-          <p className="text-sm font-bold leading-tight">
+        {/* Left */}
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="brand-gradient flex h-8 w-8 shrink-0 items-center justify-center rounded-[5px]">
+            <Activity className="h-4 w-4" />
+          </div>
+
+          <p className="text-xs sm:text-sm font-bold truncate">
             Never sleep.{" "}
             <span className="brand-text font-black">
               Never stop selling.
@@ -101,35 +106,33 @@ function TopBanner() {
           </p>
         </div>
 
-        {/* Divider */}
-        <span className="hidden text-gray-500 lg:block">|</span>
+        {/* Middle */}
+        <p className="hidden sm:block text-xs text-gray-300 whitespace-nowrap">
+          24/7 AI digital self
+        </p>
 
-        {/* Subtitle */}
-        <div className="hidden text-center md:block md:text-left">
-          <p className="text-sm font-medium text-white">
-            Your digital self works 24/7
-          </p>
-          <p className="text-xs text-gray-400">
-            so you can grow without limits.
-          </p>
+        {/* Right Group (CTA + Close together on desktop) */}
+        <div className="flex items-center gap-2 shrink-0">
+
+          <button className="brand-gradient rounded-[5px] px-3 py-1 text-xs sm:text-sm font-semibold hover:opacity-90">
+            Join Waitlist
+          </button>
+
+          <button
+            onClick={() => setOpen(false)}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-white/60 hover:bg-white/10 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+
         </div>
 
-        {/* CTA Button */}
-        <button className="brand-gradient flex h-10 items-center justify-center rounded-[5px] px-5 text-sm font-semibold text-white shadow-md transition hover:opacity-90">
-          Join Waitlist
-        </button>
-
-        {/* Close Button */}
-        <button
-          aria-label="dismiss"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-white/60 transition hover:bg-white/10 hover:text-white"
-        >
-          <X className="h-4 w-4" />
-        </button>
       </div>
     </div>
   );
 }
+
+
 
 function Nav() {
   const [open, setOpen] = useState(false);
@@ -328,6 +331,12 @@ function Nav() {
 }
 
 function Hero() {
+     const avatars = [
+  "/images/1.jpeg",
+  "/images/2.jpeg",
+  "/images/3.jpeg",
+  "/images/4.jpeg",
+];
   return (
     <section className="mx-auto grid max-w-7xl gap-14 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-20">
       {/* Left Side */}
@@ -373,16 +382,18 @@ function Hero() {
         {/* Social Proof */}
         <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
           {/* Avatars */}
-          <div className="flex -space-x-3">
-            {[1, 2, 3, 4].map((i) => (
-              <img
-                key={i}
-                src="/images/girl.png"
-                alt="User"
-                className="h-10 w-10 rounded-full object-cover ring-2 ring-background bg-pink-200"
-              />
-            ))}
-          </div>
+       
+
+<div className="flex -space-x-3">
+  {avatars.map((src, i) => (
+    <img
+      key={i}
+      src={src}
+      alt={`User ${i + 1}`}
+      className="h-10 w-10 rounded-full object-cover ring-2 ring-background bg-pink-200"
+    />
+  ))}
+</div>
 
           {/* Stars */}
           <div className="flex items-center gap-1 text-amber-500">
@@ -875,20 +886,32 @@ function Tools() {
 }
 
 function SocialProof() {
-  const testimonials = [
-    {
-      q: "My AI twin goes live every day while I focus on creating content. Sales have increased by 33%",
-      a: "Aansha M., Fashion Creator",
-    },
-    {
-      q: "Setting up was so easy. Now my AI twin handles customer questions and closes sales beautifully.",
-      a: "Rohit S., D2C Brand Owner",
-    },
-    {
-      q: "We launched our AI twin and our conversions jumped by 40% in just two weeks.",
-      a: "Priya K., Skincare Brand Founder",
-    },
-  ];
+ const testimonials = [
+  {
+    q: "This AI twin helped me double my engagement in 2 weeks!",
+    a: "Ananya",
+    role: "Fashion Creator",
+    img: "/images/2.jpeg",
+  },
+  {
+    q: "I started getting clients even while I was offline.",
+    a: "Rahul",
+    role: "Digital Marketer",
+    img: "/images/1.jpeg",
+  },
+  {
+    q: "Feels like I have a 24/7 assistant selling for me.",
+    a: "Meera",
+    role: "Influencer",
+    img: "/images/4.jpeg",
+  },
+  {
+    q: "My personal brand became active even when I sleep.",
+    a: "Arjun",
+    role: "Content Creator",
+    img: "/images/3.jpeg",
+  },
+];
 
   const stats = [
     ["10K+", "Creators & Brands", "Using Twin"],
@@ -901,31 +924,34 @@ function SocialProof() {
     <section className="mx-auto max-w-7xl px-4 py-10">
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr_1fr]">
         {/* Testimonials */}
-        <div className="brand-gradient rounded-2xl p-6 text-white">
-          <div className="space-y-5">
-            {testimonials.map((t) => (
-              <div key={t.a} className="flex gap-3">
-                <span className="text-3xl font-black leading-none opacity-80">❝</span>
+       <div className="brand-gradient rounded-2xl p-6 text-white">
+  <div className="space-y-5">
+    {testimonials.map((t) => (
+      <div key={t.a} className="flex gap-3">
+        <span className="text-3xl font-black leading-none opacity-80">
+          ❝
+        </span>
 
-                <div>
-                  <p className="text-sm leading-relaxed">{t.q}</p>
-                  <div className="mt-3 flex items-center gap-3">
-                    <img
-                      src="/images/girl.png"
-                      alt="Profile"
-                      className="h-10 w-10 rounded-full object-cover border border-white/20 bg-pink-200"
-                    />
+        <div>
+          <p className="text-sm leading-relaxed">{t.q}</p>
 
-                    <div>
-                      <p className="text-xs font-semibold">{t.a}</p>
-                      <p className="text-[10px] opacity-70">Fashion Creator</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="mt-3 flex items-center gap-3">
+            <img
+              src={t.img}
+              alt={t.a}
+              className="h-10 w-10 rounded-full object-cover border border-white/20 bg-pink-200"
+            />
+
+            <div>
+              <p className="text-xs font-semibold">{t.a}</p>
+              <p className="text-[10px] opacity-70">{t.role}</p>
+            </div>
           </div>
         </div>
+      </div>
+    ))}
+  </div>
+</div>
 
         {/* Stats */}
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
@@ -965,7 +991,7 @@ function SocialProof() {
 
             <Link
               to="/signin"
-              className="mt-5 inline-flex items-center gap-2 rounded-[5px] bg-white px-5 py-2.5 text-sm font-bold text-gray-900 shadow"
+              className="mt-5 md:mt-18 inline-flex items-center gap-2 rounded-[5px] bg-white px-5 py-2.5 text-sm font-bold text-gray-900 shadow"
             >
               Get Started Free
               <ArrowRight className="h-4 w-4 text-[var(--brand-pink)]" />
@@ -976,7 +1002,7 @@ function SocialProof() {
           <img
             src="/images/girl.png"
             alt="AI Twin"
-            className="absolute top-23 left-12 h-[90%] object-contain hidden xl:block"
+            className="absolute top-28 left-12 h-[90%] object-contain hidden xl:block"
           />
         </div>
       </div>
@@ -1008,17 +1034,29 @@ function Footer() {
             engages, and sells while you grow your brand.
           </p>
 
-          <div className="mt-6 flex items-center gap-5">
-            <Instagram className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+       <div className="mt-6 flex items-center gap-5">
 
-            <Facebook className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+  <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer">
+    <Instagram className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+  </a>
 
-            <Youtube className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+  <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer">
+    <Facebook className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+  </a>
 
-            <Music2 className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+  <a href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">
+    <Youtube className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+  </a>
 
-            <Linkedin className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
-          </div>
+  <a href="https://www.tiktok.com" target="_blank" rel="noopener noreferrer">
+    <Music2 className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+  </a>
+
+  <a href="https://www.linkedin.com/company/twinlive/" target="_blank" rel="noopener noreferrer">
+    <Linkedin className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+  </a>
+
+</div>
         </div>
 
         {/* Footer Columns */}

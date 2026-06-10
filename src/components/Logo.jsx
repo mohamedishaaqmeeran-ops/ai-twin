@@ -25,7 +25,7 @@ export default function Logo({ size = "md", showText = true }) {
             twin
           </span>
 
-          <span className="text-[11px] font-medium text-muted-foreground leading-none ">
+          <span className="text-[10px] font-medium text-muted-foreground leading-none ">
             Never sleep. <span className="brand-text">Never stop selling.</span>
           </span>
         </div>
