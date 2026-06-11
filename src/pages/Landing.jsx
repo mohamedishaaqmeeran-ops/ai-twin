@@ -26,7 +26,10 @@ import {
   Home,
   Sparkles,
   ChevronDown,
-  Linkedin
+  Linkedin, Mail,
+  
+  Phone,
+  MapPin,
 } from "lucide-react";
 import Logo from "../components/Logo";
 import { useState } from "react";
@@ -40,7 +43,7 @@ import {
   Box,
   BookOpen,
   Building2,
-  Mail,
+
 } from "lucide-react";
 
 import shopifyLogo from "/images/eee.png";
@@ -90,7 +93,7 @@ function TopBanner() {
 
   return (
     <div className="bg-[#0d0d12] text-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2">
+   <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-2 sm:px-6 lg:px-8">
 
         {/* Left */}
         <div className="flex items-center gap-2 min-w-0">
@@ -142,7 +145,7 @@ function Nav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 ">
         {/* Top Row */}
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -499,15 +502,14 @@ function ToolCards() {
   const navigate = useNavigate();
 
   return (
-    <section className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-4 py-6 md:grid-cols-2 lg:grid-cols-3">
+    <section className="mx-auto grid max-w-7xl auto-rows-fr grid-cols-1 gap-6 px-4 py-6 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
       {/* Connect Social Accounts */}
-      <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-6 shadow-sm">
+      <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
           <p className="flex items-center gap-2 text-base font-black">
             <Wifi className="h-5 w-5 text-[var(--brand-pink)]" />
             Connect Social Accounts
           </p>
-
           <p className="mt-2 text-sm text-muted-foreground">
             Auto-post & go live across platforms
           </p>
@@ -521,87 +523,81 @@ function ToolCards() {
             { Icon: Youtube, n: "YouTube", h: "Your Channel" },
           ].map(({ Icon, n, h }) => (
             <li key={n} className="flex items-center gap-3">
-              <Icon className="h-5 w-5 text-[var(--brand-pink)]" />
+              <Icon className="h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
 
               <div className="min-w-0 flex-1">
                 <p className="font-bold">{n}</p>
-
-                <p className="text-sm text-muted-foreground truncate">
-                  {h}
-                </p>
+                <p className="truncate text-sm text-muted-foreground">{h}</p>
               </div>
 
               <button
-  onClick={() => navigate("/app/connect")}
-  className="text-sm font-bold text-[var(--brand-pink)] hover:underline"
->
-  Connect
-</button>
+                onClick={() => navigate("/app/connect")}
+                className="shrink-0 cursor-pointer text-sm font-bold text-[var(--brand-pink)] hover:underline cursor-pointer"
+              >
+                Connect
+              </button>
             </li>
           ))}
         </ul>
 
         <button
           onClick={() => navigate("/")}
-          className=" border-2 border-[var(--brand-pink)]  mt-6 md:mt-auto rounded-[5px] py-3 text-sm font-bold text-[var(--brand-pink)]"
+          className="mt-auto rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold text-[var(--brand-pink)] cursor-pointer"
         >
           Manage Accounts
         </button>
       </div>
 
       {/* Schedule Live */}
-      <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-6 shadow-sm">
+      <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
           <p className="flex items-center gap-2 text-base font-black">
             <Calendar className="h-5 w-5 text-[var(--brand-pink)]" />
             Schedule Live
           </p>
-
           <p className="mt-2 text-sm text-muted-foreground">
             Plan your live sessions
           </p>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <input
-            className="rounded-[5px] border border-border px-3 py-2 text-sm"
+            className="w-full rounded-[5px] border border-border px-3 py-2 text-sm"
             defaultValue="May 25, 2025"
           />
-
           <input
-            className="rounded-[5px] border border-border px-3 py-2 text-sm"
+            className="w-full rounded-[5px] border border-border px-3 py-2 text-sm"
             defaultValue="07:30 PM"
           />
         </div>
 
         <p className="mt-5 text-sm font-bold">Repeat</p>
 
-        <select className="mt-2 rounded-[5px] border border-border px-3 py-2 text-sm">
+        <select className="mt-2 w-full rounded-[5px] border border-border px-3 py-2 text-sm">
           <option>Does not repeat</option>
         </select>
 
         <button
           onClick={() => navigate("/app/schedule")}
-          className="brand-gradient mt-6 md:mt-auto rounded-[5px] py-3 text-sm font-bold text-white"
+          className="brand-gradient mt-auto rounded-[5px] py-3 text-sm font-bold text-white cursor-pointer"
         >
           Schedule Live
         </button>
       </div>
 
       {/* Create Web Template */}
-      <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-6 shadow-sm">
+      <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
           <p className="flex items-center gap-2 text-base font-black">
             <LayoutTemplate className="h-5 w-5 text-[var(--brand-pink)]" />
             Create Web Template
           </p>
-
           <p className="mt-2 text-sm text-muted-foreground">
             Launch your AI twin on your website
           </p>
         </div>
 
-        <div className="mt-5 overflow-hidden rounded-2xl">
+        <div className="mt-5 flex flex-1 items-center overflow-hidden rounded-2xl">
           <img
             src="/images/ccc.png"
             alt="Live Commerce Demo"
@@ -609,102 +605,95 @@ function ToolCards() {
           />
         </div>
 
-       <button
-  onClick={() => navigate("/app/wizard")}
-  className="brand-gradient mt-6 rounded-[5px] py-3 text-sm font-bold text-white"
->
-  Create Template
-</button>
+        <button
+          onClick={() => navigate("/app/wizard")}
+          className="brand-gradient mt-6 rounded-[5px] py-3 text-sm font-bold text-white cursor-pointer"
+        >
+          Create Template
+        </button>
       </div>
 
       {/* Run Ads */}
-      <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-6 shadow-sm">
+      <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
           <p className="flex items-center gap-2 text-base font-black">
             <Megaphone className="h-5 w-5 text-[var(--brand-pink)]" />
             Run Ads (Meta)
           </p>
-
           <p className="mt-2 text-sm text-muted-foreground">
             Promote your AI twin live sessions
           </p>
         </div>
 
         <p className="mt-5 text-sm font-bold">Platform</p>
-
-        <select className="mt-2 rounded-[5px] border border-border px-3 py-2 text-sm">
+        <select className="mt-2 w-full rounded-[5px] border border-border px-3 py-2 text-sm">
           <option>Facebook & Instagram</option>
         </select>
 
         <p className="mt-4 text-sm font-bold">Objective</p>
-
-        <select className="mt-2 rounded-[5px] border border-border px-3 py-2 text-sm">
+        <select className="mt-2 w-full rounded-[5px] border border-border px-3 py-2 text-sm">
           <option>Conversions</option>
         </select>
 
         <p className="mt-4 text-sm font-bold">Budget</p>
-
         <input
           defaultValue="₹1,000 / day"
-          className="mt-2 rounded-[5px] border border-border px-3 py-2 text-sm"
+          className="mt-2 w-full rounded-[5px] border border-border px-3 py-2 text-sm"
         />
 
         <button
-  onClick={() => navigate("/")}
-  className="brand-gradient mt-6 rounded-[5px] py-3 text-sm font-bold text-white"
->
-  Launch Ad
-</button>
+          onClick={() => navigate("/")}
+          className="brand-gradient mt-auto rounded-[5px] py-3 text-sm font-bold text-white cursor-pointer"
+        >
+          Launch Ad
+        </button>
       </div>
 
       {/* Analytics Overview */}
-      <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-6 shadow-sm">
+      <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6 md:col-span-2 lg:col-span-1">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-[var(--brand-pink)]" />
-
-          <p className="text-base font-black">
-            Analytics Overview
-          </p>
+          <p className="text-base font-black">Analytics Overview</p>
         </div>
 
         <p className="mt-2 text-sm text-muted-foreground">
           Track performance in real-time
         </p>
 
-        <div className="mt-6 space-y-5">
+        <div className="mt-6 flex-1 space-y-5">
           {stats.map(({ icon: Icon, color, label, value, change }) => (
-            <div
-              key={label}
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
+            <div key={label} className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${color}`}
                 >
                   <Icon className="h-5 w-5" />
                 </div>
 
-                <div>
-                  <p className="text-sm text-muted-foreground">
+                <div className="min-w-0">
+                  <p className="truncate text-sm text-muted-foreground">
                     {label}
                   </p>
-
-                  <p className="text-lg font-black">
-                    {value}
-                  </p>
+                  <p className="text-lg font-black">{value}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex shrink-0 items-center gap-1">
                 <span className="text-sm font-bold text-emerald-600">
                   {change}
                 </span>
-
                 <TrendingUp className="h-4 w-4 text-pink-500" />
               </div>
             </div>
           ))}
         </div>
+
+        <button
+          onClick={() => navigate("/app/analytics")}
+          className="brand-gradient mt-6 rounded-[5px] py-3 text-sm font-bold text-white cursor-pointer"
+        >
+          View Analytics
+        </button>
       </div>
     </section>
   );
@@ -869,7 +858,7 @@ function Tools() {
       </div>
 
       {/* Logos */}
-      <div className="mt-12 flex flex-wrap items-center justify-center gap-x-12 gap-y-8">
+      <div className="mt-12 flex flex-wrap items-center justify-center gap-x-15 gap-y-8">
         {logos.map((logo) => (
           <div
             key={logo.name}
@@ -1018,15 +1007,14 @@ function SocialProof() {
 
 function Footer() {
   const cols = [
-    [Box, "Product", ["Features", "How It Works", "Use Cases", "Pricing"]],
-    [BookOpen, "Resources", ["Blog", "Help Center", "Guides", "Webinars"]],
-    [
-      Building2,
-      "Company",
-      ["About Us", "Careers", "Privacy Policy", "Terms of Service"],
-    ],
-    [Mail, "Contact", ["hello2twinn.live","www.twinn.live", "+91 84285 27015", "Chennai, India"]],
-  ];
+  [Box, "Product", ["Features", "How It Works", "Use Cases", "Pricing"]],
+  [BookOpen, "Resources", ["Blog", "Help Center", "Guides", "Webinars"]],
+  [
+    Building2,
+    "Company",
+    ["About Us", "Careers", "Privacy Policy", "Terms of Service"],
+  ],
+];
 
   return (
     <footer className="bg-[#0d0d12] text-white">
@@ -1087,7 +1075,37 @@ function Footer() {
               ))}
             </ul>
           </div>
-        ))}
+        ))}{/* Contact */}
+<div>
+  <div className="mb-5 flex items-center gap-2">
+    <Mail className="h-4 w-4 text-[var(--brand-pink)]" />
+    <h4 className="text-base font-bold">
+      Contact
+    </h4>
+  </div>
+
+  <ul className="space-y-4 text-sm text-white/70">
+    <li className="flex items-center gap-3">
+      <Mail className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+      hello@twinn.live
+    </li>
+
+    <li className="flex items-center gap-3">
+      <Globe className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+      www.twinn.live
+    </li>
+
+    <li className="flex items-center gap-3">
+      <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+      +91 84285 27015
+    </li>
+
+    <li className="flex items-center gap-3">
+      <MapPin className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+      Chennai, India
+    </li>
+  </ul>
+</div>
       </div>
 
       {/* Bottom Bar */}

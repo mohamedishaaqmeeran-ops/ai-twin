@@ -85,18 +85,19 @@ export default function Wizard() {
 
   return (
   <>
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-      {/* Mobile Header */}
-      <div className="flex items-center justify-between md:hidden">
-        <Logo />
-
-        <button className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-card shadow-sm">
-          <Bell className="h-5 w-5" />
-        </button>
-      </div>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8  border-b border-border bg-background/90 backdrop-blur">
+          {/* Mobile Header */}
+          <div className="flex items-center  z-50 justify-between md:hidden">
+            <Logo />
+    
+            <button className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-card shadow-sm">
+              <Bell className="h-5 w-5" />
+            </button>
+          </div>
+    
 
       {/* Heading */}
-      <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight md:mt-0 md:text-5xl">
+      <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight  md:text-5xl">
         Avatar Wizard
       </h1>
 

@@ -82,9 +82,10 @@ export default function Analytics() {
   ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8  border-b border-border bg-background/90 backdrop-blur">
       {/* Mobile Header */}
-      <div className="flex items-center justify-between md:hidden">
+      <div className="flex items-center  justify-between md:hidden">
         <Logo />
 
         <button className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-card shadow-sm">

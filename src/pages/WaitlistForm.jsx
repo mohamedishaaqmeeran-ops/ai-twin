@@ -180,7 +180,7 @@ if (joined) {
   </div>
 </div>
 {/* Footer */}
-<div className="mx-auto mt-12 flex items-center justify-between border-t border-border pt-6">
+<div className="mx-auto mt-12 flex flex-col gap-5 border-t border-border pt-6 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
   {/* Left */}
   <div>
     <h4 className="text-lg font-bold">
@@ -193,7 +193,7 @@ if (joined) {
   </div>
 
   {/* Right */}
-  <div className="flex items-center gap-3">
+   <div className="flex items-center justify-center gap-3 sm:justify-end">
   <a
   href="https://www.instagram.com/"
   target="_blank"

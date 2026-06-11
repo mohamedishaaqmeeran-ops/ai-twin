@@ -1,8 +1,8 @@
 // src/pages/CreateTwin.jsx
-
+import Logo from "../components/Logo";
 import {
   Camera,
-  Check,
+  Check,Bell,
   Menu,
   ChevronDown,
 } from "lucide-react";
@@ -18,22 +18,19 @@ export default function CreateTwin() {
   const [tone, setTone] = useState("Friendly & Professional");
 
   return (
-    <div className="mx-auto max-w-md px-4 py-8">
-
+    <div><div className="flex items-center pb-10 justify-between md:hidden px-4 sm:px-6 lg:px-8">
+            <Logo />
+    
+            <button className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-card shadow-sm">
+              <Bell className="h-5 w-5" />
+            </button>
+          </div>
+    <div className="mx-auto bg-white px-4 py-8 rounded-lg shadow-md max-w-4xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black brand-text">
-          twin
-        </h1>
-
-        <div className="flex items-center gap-4">
-          <Menu className="h-5 w-5" />
-          <ChevronDown className="h-5 w-5" />
-        </div>
-      </div>
+     
 
       {/* Progress */}
-      <div className="mt-8 flex items-center justify-between">
+      <div className="mt-8  flex items-center justify-between">
 
         <div className="flex flex-col items-center">
           <Check className="h-5 w-5 text-emerald-500" />
@@ -83,7 +80,7 @@ export default function CreateTwin() {
       {/* Avatar */}
       <div className="relative mx-auto mt-8 h-32 w-32">
         <img
-          src="/images/girl.png"
+          src="/images/4.jpeg"
           alt="Twin"
           className="h-full w-full rounded-full object-cover border-4 border-pink-200"
         />
@@ -163,7 +160,7 @@ export default function CreateTwin() {
       {/* Continue */}
       <button
         onClick={() => navigate("/app/basic-info")}
-        className="brand-gradient mt-8 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white"
+        className="brand-gradient mt-8 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white cursor-pointer"
       >
         Continue →
       </button>
@@ -171,11 +168,11 @@ export default function CreateTwin() {
       {/* Back */}
       <button
         onClick={() => navigate("/app/connect")}
-        className="mt-3 w-full text-sm font-semibold"
+        className="mt-3 w-full text-sm font-semibold cursor-pointer"
       >
         Back
       </button>
-
+</div>
     </div>
   );
 }

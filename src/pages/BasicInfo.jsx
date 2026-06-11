@@ -1,6 +1,6 @@
 // src/pages/BasicInfo.jsx
-
-import { Check, Menu, ChevronDown } from "lucide-react";
+import Logo from "../components/Logo";
+import { Check, Menu, ChevronDown, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
@@ -12,7 +12,15 @@ export default function BasicInfo() {
   );
 
   const [language, setLanguage] = useState("English");
+const availableLanguages = [
+  "Hindi",
+  "Tamil",
+  "Malayalam",
+  "Telugu",
+  "Kannada",
+];
 
+const [additionalLanguages, setAdditionalLanguages] = useState(["Hindi"]);
   const abilities = [
     "Answer Questions",
     "Recommend Products",
@@ -34,20 +42,33 @@ export default function BasicInfo() {
       setSelectedAbilities([...selectedAbilities, ability]);
     }
   };
+const removeLanguage = (lang) => {
+  setAdditionalLanguages(
+    additionalLanguages.filter((item) => item !== lang)
+  );
+};
 
+const addLanguage = () => {
+  const remaining = availableLanguages.filter(
+    (lang) => !additionalLanguages.includes(lang)
+  );
+
+  if (remaining.length > 0) {
+    setAdditionalLanguages([...additionalLanguages, remaining[0]]);
+  }
+};
   return (
-    <div className="mx-auto max-w-md px-4 py-8">
+    <div> <div className="flex items-center pb-10 justify-between md:hidden px-4 sm:px-6 lg:px-8">
+                <Logo />
+        
+                <button className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-card shadow-sm">
+                  <Bell className="h-5 w-5" />
+                </button>
+              </div>
+     <div className="mx-auto bg-white px-4 py-8 rounded-lg shadow-md max-w-4xl">
+   
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black brand-text">
-          twin
-        </h1>
-
-        <div className="flex items-center gap-4">
-          <Menu className="h-5 w-5" />
-          <ChevronDown className="h-5 w-5" />
-        </div>
-      </div>
+  
 
       {/* Progress */}
       <div className="mt-8 flex items-center justify-between">
@@ -154,26 +175,43 @@ export default function BasicInfo() {
       </div>
 
       {/* Additional Languages */}
-      <div className="mt-8">
-        <label className="text-sm font-bold">
-          Additional Languages (Optional)
-        </label>
+  <div className="mt-8">
+  <label className="text-sm font-bold">
+    Additional Languages (Optional)
+  </label>
 
-        <div className="mt-3 flex flex-wrap gap-3">
-          <span className="rounded-full bg-pink-50 px-4 py-2 text-sm text-[var(--brand-pink)]">
-            Hindi
-          </span>
+  <div className="mt-3 flex flex-wrap gap-3">
+    {additionalLanguages.map((lang) => (
+      <div
+        key={lang}
+        className="flex items-center gap-2 rounded-full bg-pink-50 px-4 py-2 text-sm font-semibold text-[var(--brand-pink)]"
+      >
+        <span>{lang}</span>
 
-          <button className="rounded-full border border-border px-4 py-2 text-sm font-semibold">
-            + Add
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => removeLanguage(lang)}
+          className="cursor-pointer text-base leading-none hover:text-red-500"
+        >
+          ×
+        </button>
       </div>
+    ))}
+
+    <button
+      type="button"
+      onClick={addLanguage}
+      className="rounded-full border border-border px-4 py-2 text-sm font-semibold cursor-pointer"
+    >
+      + Add
+    </button>
+  </div>
+</div>
 
       {/* Continue */}
       <button
         onClick={() => navigate("/app/train")}
-        className="brand-gradient mt-10 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white"
+        className="brand-gradient mt-10 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white cursor-pointer"
       >
         Continue →
       </button>
@@ -181,10 +219,11 @@ export default function BasicInfo() {
       {/* Back */}
       <button
         onClick={() => navigate("/app/create")}
-        className="mt-3 w-full text-sm font-semibold"
+        className="mt-3 w-full text-sm font-semibold cursor-pointer"
       >
         Back
       </button>
+    </div>
     </div>
   );
 }

@@ -2,47 +2,46 @@
 
 import {
   Check,
-  Menu,
-  ChevronDown,
-  User,
-  Shirt,
-  Palette,
-  Sparkles,
+  Camera,
+  Bell,
 } from "lucide-react";
+import Logo from "../components/Logo";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 export default function CustomizeAppearance() {
   const navigate = useNavigate();
 
+  const [selectedAvatar, setSelectedAvatar] = useState(0);
+  const [selectedBg, setSelectedBg] = useState(0);
   const [gender, setGender] = useState("Female");
-  const [outfit, setOutfit] = useState("Casual");
-  const [theme, setTheme] = useState("Pink");
 
-  const colors = [
-    "#ec4899",
-    "#8b5cf6",
-    "#f97316",
-    "#22c55e",
-    "#3b82f6",
+  const avatars = [
+    "/images/dd.png",
+    "/images/aa.png",
+    "/images/bb.png",
+    "/images/cc.png",
+  ];
+
+  const backgrounds = [
+    "/images/hh.png",
+    "/images/ee.png",
+    "/images/ff.png",
+    "/images/gg.png",
   ];
 
   return (
-    <div className="mx-auto max-w-md px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-black brand-text">
-          twin
-        </h1>
+    <div> <div className="flex items-center justify-between pb-10 md:hidden px-4 sm:px-6 lg:px-8">
+        <Logo />
 
-        <div className="flex items-center gap-4">
-          <Menu className="h-5 w-5" />
-          <ChevronDown className="h-5 w-5" />
-        </div>
+        <button className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-card shadow-sm">
+          <Bell className="h-5 w-5" />
+        </button>
       </div>
 
+     <div className="mx-auto bg-white px-4 py-8 rounded-lg shadow-md max-w-4xl">
       {/* Progress */}
-      <div className="mt-8 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <div className="flex flex-col items-center">
           <Check className="h-5 w-5 text-emerald-500" />
           <p className="mt-2 text-xs">Connect</p>
@@ -65,130 +64,110 @@ export default function CustomizeAppearance() {
         <div className="h-[2px] flex-1 bg-gray-200" />
 
         <div className="flex flex-col items-center">
-          <div className="h-3 w-3 rounded-full bg-[var(--brand-pink)]" />
+          <div className="h-3 w-3 rounded-full bg-[var(--brand-pink)]"></div>
+
           <p className="mt-2 text-xs font-bold text-[var(--brand-pink)]">
             Launch
           </p>
         </div>
       </div>
 
-      {/* Title */}
+      {/* Heading */}
       <div className="mt-10 text-center">
         <h2 className="text-3xl font-black">
-          Customize Appearance
+          Customize Your Twin's Appearance
         </h2>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          Choose how your AI Twin should look.
+          Choose how your AI Twin looks on live and videos.
         </p>
       </div>
 
-      {/* Avatar Preview */}
-      <div className="mt-8 flex justify-center">
-        <div className="relative h-36 w-36 overflow-hidden rounded-full border-4 border-pink-200 bg-pink-50 shadow-lg">
-          <img
-            src="/images/girl.png"
-            alt="Avatar"
-            className="h-full w-full object-cover"
-          />
+      {/* Video */}
+     <div className="mt-8 overflow-hidden rounded-3xl border shadow-sm">
 
-          <div className="absolute bottom-2 right-2 grid h-10 w-10 place-items-center rounded-full brand-gradient shadow-lg">
-            <Sparkles className="h-5 w-5 text-white" />
-          </div>
-        </div>
-      </div>
+  {/* Mobile Image */}
+  <img
+    src="/images/b2.png"
+    alt="Mobile Banner"
+    className="block h-auto w-full object-cover md:hidden"
+  />
 
-      {/* Gender */}
-      <div className="mt-10">
-        <p className="mb-3 text-sm font-bold">
-          Gender
-        </p>
+  {/* Desktop Image */}
+  <img
+    src="/images/b1.png"
+    alt="Desktop Banner"
+    className="hidden h-auto w-full object-cover md:block"
+  />
 
-        <div className="grid grid-cols-2 gap-3">
-          {["Female", "Male"].map((item) => (
+</div>
+
+    
+
+      {/* Avatar Style */}
+      <div className="mt-8">
+        <h3 className="font-bold">
+          Choose Avatar / Style
+        </h3>
+
+        <div className="mt-5 flex gap-4">
+          {avatars.map((avatar, index) => (
             <button
-              key={item}
-              onClick={() => setGender(item)}
-              className={`rounded-[5px] border px-4 py-3 font-semibold transition ${
-                gender === item
-                  ? "border-pink-500 bg-pink-50 text-[var(--brand-pink)]"
-                  : "border-border"
+              key={index}
+              onClick={() => setSelectedAvatar(index)}
+              className={`relative cursor-pointer rounded-full ${
+                selectedAvatar === index
+                  ? "ring-4 ring-pink-500"
+                  : ""
               }`}
             >
-              <User className="mx-auto mb-2 h-5 w-5" />
-              {item}
+              <img
+                src={avatar}
+                className="h-20 w-20 rounded-full object-cover"
+                alt=""
+              />
+
+              {selectedAvatar === index && (
+                <div className="absolute bottom-0 right-0 grid h-7 w-7 place-items-center rounded-full brand-gradient">
+                  <Check className="h-4 w-4 text-white" />
+                </div>
+              )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Outfit */}
+      {/* Background Style */}
       <div className="mt-8">
-        <p className="mb-3 text-sm font-bold">
-          Outfit Style
-        </p>
+        <h3 className="font-bold">
+          Background Style
+        </h3>
 
-        <div className="grid grid-cols-3 gap-3">
-          {["Casual", "Formal", "Luxury"].map((item) => (
+        <div className="mt-4 grid grid-cols-4 gap-3">
+          {backgrounds.map((bg, index) => (
             <button
-              key={item}
-              onClick={() => setOutfit(item)}
-              className={`rounded-[5px] border px-3 py-3 text-sm font-semibold transition ${
-                outfit === item
-                  ? "border-pink-500 bg-pink-50 text-[var(--brand-pink)]"
-                  : "border-border"
-              }`}
-            >
-              <Shirt className="mx-auto mb-2 h-5 w-5" />
-              {item}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Theme Color */}
-      <div className="mt-8">
-        <p className="mb-3 text-sm font-bold">
-          Theme Color
-        </p>
-
-        <div className="flex gap-4">
-          {colors.map((color) => (
-            <button
-              key={color}
-              onClick={() => setTheme(color)}
-              className={`h-12 w-12 rounded-full border-4 ${
-                theme === color
-                  ? "border-black"
+              key={index}
+              onClick={() => setSelectedBg(index)}
+              className={`overflow-hidden cursor-pointer rounded-xl border-4 ${
+                selectedBg === index
+                  ? "border-pink-500"
                   : "border-transparent"
               }`}
-              style={{ backgroundColor: color }}
-            />
+            >
+              <img
+                src={bg}
+                className="h-16 w-full object-cover"
+                alt=""
+              />
+            </button>
           ))}
-        </div>
-      </div>
-
-      {/* Personality Card */}
-      <div className="mt-8 rounded-[5px] border border-pink-200 bg-pink-50 p-5">
-        <div className="flex items-center gap-3">
-          <Palette className="h-6 w-6 text-[var(--brand-pink)]" />
-
-          <div>
-            <h3 className="font-bold">
-              Visual Personality
-            </h3>
-
-            <p className="text-sm text-muted-foreground">
-              Your AI Twin will reflect your selected style and colors.
-            </p>
-          </div>
         </div>
       </div>
 
       {/* Continue */}
       <button
         onClick={() => navigate("/app/voice")}
-        className="brand-gradient mt-10 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90"
+        className="brand-gradient mt-10 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white cursor-pointer"
       >
         Continue →
       </button>
@@ -196,10 +175,11 @@ export default function CustomizeAppearance() {
       {/* Back */}
       <button
         onClick={() => navigate("/app/train")}
-        className="mt-3 w-full text-sm font-semibold"
+        className="mt-3 mb-8 w-full text-sm font-semibold cursor-pointer"
       >
         Back
       </button>
+    </div>
     </div>
   );
 }

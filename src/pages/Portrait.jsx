@@ -21,6 +21,7 @@ export default function Portrait() {
   );
 
   return (
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8  bg-background/90 backdrop-blur">
     <div className="space-y-8">
       {/* Avatar Identity */}
       <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
@@ -124,46 +125,47 @@ export default function Portrait() {
           className="mt-5 w-full resize-none rounded-2xl border border-border bg-card px-4 py-3 text-sm leading-6 focus:outline-none focus:ring-2 focus:ring-[var(--brand-pink)]/40"
         />
 
-        <div className="mt-6">
+       
+      </div>
+
+       <div className="mt-6 max-w-xl mx-auto ">
           <GradientButton
             icon={<Sparkles className="h-5 w-5" />}
             onClick={() => setReady(true)}
+            className="rounded-[5px]"
           >
             Generate Avatar
           </GradientButton>
         </div>
 
         {/* Result */}
-        <div className="mt-8 overflow-hidden rounded-3xl bg-gradient-to-b from-pink-50 to-orange-50">
-          {ready ? (
-            <div className="relative aspect-[3/4]">
-              <img
-                src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&q=80"
-                alt="Generated twin"
-                className="h-full w-full object-cover"
-              />
+      <div className="mt-8 mx-auto max-w-xl overflow-hidden rounded-3xl bg-gradient-to-b from-pink-50 to-orange-50 lg:h-[700px]">
+  {ready ? (
+    <div className="relative h-full">
+      <img
+        src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=800&q=80"
+        alt="Generated twin"
+        className="h-full w-full object-cover"
+      />
 
-              <span className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold shadow-md">
-                <Check
-                  className="h-4 w-4 text-[var(--brand-pink)]"
-                  strokeWidth={3}
-                />
-                Avatar Ready
-              </span>
-            </div>
-          ) : (
-            <div className="grid aspect-[3/4] place-items-center text-center">
-              <div>
-                <Sparkles className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
+      <span className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold shadow-lg sm:bottom-6 sm:px-5 sm:py-2 sm:text-sm">
+        <Check className="h-4 w-4 text-[var(--brand-pink)]" />
+        Avatar Ready
+      </span>
+    </div>
+  ): (
+            <div className="flex min-h-[300px] items-center justify-center text-center sm:min-h-[400px] lg:min-h-[500px]">
+  <div className="flex flex-col items-center">
+    <Sparkles className="h-10 w-10 text-[var(--brand-pink)] sm:h-12 sm:w-12 lg:h-14 lg:w-14" />
 
-                <p className="mt-4 text-sm font-medium text-muted-foreground">
-                  Your generated avatar will appear here
-                </p>
-              </div>
-            </div>
+    <p className="mt-4 max-w-xs text-sm font-medium text-muted-foreground sm:text-base">
+      Your generated avatar will appear here
+    </p>
+  </div>
+</div>
           )}
         </div>
-      </div>
+    </div>
     </div>
   );
 }
