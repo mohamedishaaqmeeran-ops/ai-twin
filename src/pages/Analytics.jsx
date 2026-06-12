@@ -1,218 +1,198 @@
-
 import {
-  Bell,
-  Eye,
+  TrendingUp,
   ShoppingBag,
-  IndianRupee,
+  Eye,
   Heart,
+  Radio,
+  IndianRupee,
+  Users,
   Package,
-  CalendarDays,
+  BarChart3,
+  Instagram,
+  Youtube,
+  Facebook,
+  Music2,
+  Sparkles,
 } from "lucide-react";
-import Logo from "../components/Logo";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  BarChart,
-  Bar,
-} from "recharts";
 
 export default function Analytics() {
-  const stats = [
-    {
-      label: "Total Viewers",
-      value: "125.4K",
-      change: "+24%",
-      icon: Eye,
-    },
-    {
-      label: "Total Sales",
-      value: "3,842",
-      change: "+18%",
-      icon: ShoppingBag,
-    },
-    {
-      label: "Revenue",
-      value: "₹12.4L",
-      change: "+31%",
-      icon: IndianRupee,
-    },
-    {
-      label: "Avg Engagement",
-      value: "14.8%",
-      change: "+9%",
-      icon: Heart,
-    },
-    {
-      label: "Products",
-      value: "126",
-      change: "+12",
-      icon: Package,
-    },
-    {
-      label: "Scheduled Lives",
-      value: "18",
-      change: "+5",
-      icon: CalendarDays,
-    },
-  ];
-
-  const viewerData = [
-    { day: "Mon", viewers: 1200 },
-    { day: "Tue", viewers: 1800 },
-    { day: "Wed", viewers: 2400 },
-    { day: "Thu", viewers: 3200 },
-    { day: "Fri", viewers: 2900 },
-    { day: "Sat", viewers: 4100 },
-    { day: "Sun", viewers: 5200 },
-  ];
-
-  const salesData = [
-    { day: "Mon", sales: 45 },
-    { day: "Tue", sales: 72 },
-    { day: "Wed", sales: 58 },
-    { day: "Thu", sales: 95 },
-    { day: "Fri", sales: 84 },
-    { day: "Sat", sales: 120 },
-    { day: "Sun", sales: 105 },
-  ];
-
   return (
-    
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8  border-b border-border bg-background/90 backdrop-blur">
-      {/* Mobile Header */}
-      <div className="flex items-center  justify-between md:hidden">
-        <Logo />
+    <div className="space-y-6">
+      {/* Hero */}
 
-        <button className="grid h-11 w-11 place-items-center rounded-2xl border border-border bg-card shadow-sm">
-          <Bell className="h-5 w-5" />
-        </button>
+      <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 px-4 py-2 text-xs font-bold">
+          <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+          AI ANALYTICS
+        </span>
+
+        <h1 className="mt-5 text-4xl font-black">
+          <span className="brand-text">Performance</span> Dashboard
+        </h1>
+
+        <p className="mt-2 text-muted-foreground">
+          Track your AI Twin live sessions, product sales and audience
+          engagement.
+        </p>
       </div>
 
-      {/* Header */}
-      <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight md:text-5xl">
-        Analytics
-      </h1>
+      {/* Stats */}
 
-      <p className="mt-4 text-base leading-7 text-muted-foreground">
-        Track your AI twin performance, engagement, sales, and revenue in real
-        time.
-      </p>
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat
+          icon={Eye}
+          title="Total Views"
+          value="25.4K"
+          growth="+18%"
+        />
 
-      {/* KPI Cards */}
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.map((item) => {
-          const Icon = item.icon;
+        <Stat
+          icon={ShoppingBag}
+          title="Orders"
+          value="1,245"
+          growth="+32%"
+        />
 
-          return (
-            <div
-              key={item.label}
-              className="rounded-3xl border border-border bg-card p-5 shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
-                  <Icon className="h-6 w-6" />
-                </div>
+        <Stat
+          icon={IndianRupee}
+          title="Revenue"
+          value="₹9.85L"
+          growth="+42%"
+        />
 
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-600">
-                  {item.change}
-                </span>
-              </div>
+        <Stat
+          icon={Heart}
+          title="Engagement"
+          value="12.6%"
+          growth="+15%"
+        />
+      </div>
 
-              <p className="mt-4 text-sm text-muted-foreground">
-                {item.label}
-              </p>
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+        {/* Left */}
 
-              <p className="mt-1 text-3xl font-black">{item.value}</p>
+        <div className="space-y-6">
+          {/* Chart */}
+
+          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-black">
+                Live Performance
+              </h2>
+
+              <BarChart3 className="text-[var(--brand-pink)]" />
             </div>
-          );
-        })}
-      </div>
 
-      {/* Viewers Graph */}
-      <div className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <h3 className="mb-4 text-lg font-black">
-          Viewers Trend (Last 7 Days)
-        </h3>
-
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={viewerData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="viewers"
-                stroke="#ec4899"
-                strokeWidth={4}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Sales Graph */}
-      <div className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <h3 className="mb-4 text-lg font-black">
-          Sales Trend (Last 7 Days)
-        </h3>
-
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={salesData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Bar
-                dataKey="sales"
-                fill="#ec4899"
-                radius={[10, 10, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Performance Summary */}
-      <div className="mt-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
-        <h3 className="text-lg font-black">Performance Summary</h3>
-
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl bg-muted/40 p-4">
-            <p className="text-sm text-muted-foreground">
-              Best Day
-            </p>
-
-            <p className="mt-1 text-xl font-black">
-              Saturday
-            </p>
+            <div className="mt-6 flex h-72 items-end justify-between rounded-2xl bg-pink-50 p-6">
+              {[40, 60, 45, 80, 55, 90, 75].map((v, i) => (
+                <div
+                  key={i}
+                  className="brand-gradient w-8 rounded-t-xl"
+                  style={{
+                    height: `${v}%`,
+                  }}
+                />
+              ))}
+            </div>
           </div>
 
-          <div className="rounded-2xl bg-muted/40 p-4">
-            <p className="text-sm text-muted-foreground">
-              Top Product
-            </p>
+          {/* Products */}
 
-            <p className="mt-1 text-xl font-black">
-              AI Beauty Kit
-            </p>
+          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-xl font-black">
+              Top Selling Products
+            </h2>
+
+            <div className="mt-5 space-y-4">
+              <Product
+                name="Vitamin C Glow Serum"
+                sales="524 Orders"
+                percent={90}
+              />
+
+              <Product
+                name="Wireless Headphone"
+                sales="312 Orders"
+                percent={65}
+              />
+
+              <Product
+                name="Smart Watch"
+                sales="201 Orders"
+                percent={45}
+              />
+            </div>
           </div>
 
-          <div className="rounded-2xl bg-muted/40 p-4">
-            <p className="text-sm text-muted-foreground">
-              Conversion Rate
-            </p>
+          {/* Recent Lives */}
 
-            <p className="mt-1 text-xl font-black">
-              8.4%
-            </p>
+          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-xl font-black">
+              Recent Live Sessions
+            </h2>
+
+            <div className="mt-5 space-y-4">
+              <Live
+                title="Glow Serum Evening Sale"
+                viewers="4.8K"
+                revenue="₹58,900"
+              />
+
+              <Live
+                title="Headphone Flash Sale"
+                viewers="3.2K"
+                revenue="₹42,500"
+              />
+
+              <Live
+                title="Smart Watch Demo"
+                viewers="2.6K"
+                revenue="₹31,800"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Right */}
+
+        <div className="space-y-6">
+          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-xl font-black brand-text">
+              AI Twin Status
+            </h2>
+
+            <div className="mt-5 rounded-2xl bg-pink-50 p-5">
+              <img
+                src="/images/bb.png"
+                className="mx-auto h-40 rounded-[5px] object-contain"
+              />
+
+              <h3 className="mt-4 text-center text-xl font-black">
+                My AI Twin
+              </h3>
+
+              <p className="text-center text-green-600 font-bold">
+                ● Online
+              </p>
+            </div>
+
+            <Progress label="Avatar Created" value="100%" width="100%" />
+            <Progress label="Voice Training" value="90%" width="90%" />
+            <Progress label="Knowledge Base" value="85%" width="85%" />
+            <Progress label="Products Added" value="70%" width="70%" />
+          </div>
+
+          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+            <h2 className="text-xl font-black">
+              Platform Performance
+            </h2>
+
+            <div className="mt-5 space-y-4">
+              <Platform icon={Instagram} name="Instagram" value="45%" />
+              <Platform icon={Youtube} name="YouTube" value="30%" />
+              <Platform icon={Facebook} name="Facebook" value="15%" />
+              <Platform icon={Music2} name="TikTok" value="10%" />
+            </div>
           </div>
         </div>
       </div>
@@ -220,3 +200,95 @@ export default function Analytics() {
   );
 }
 
+function Stat({ icon: Icon, title, value, growth }) {
+  return (
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex justify-between">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            {title}
+          </p>
+
+          <h2 className="mt-2 text-4xl font-black brand-text">
+            {value}
+          </h2>
+
+          <p className="mt-2 font-bold text-green-600">
+            {growth}
+          </p>
+        </div>
+
+        <div className="grid h-14 w-14 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
+          <Icon />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Product({ name, sales, percent }) {
+  return (
+    <div>
+      <div className="flex justify-between font-bold">
+        <span>{name}</span>
+        <span>{sales}</span>
+      </div>
+
+      <div className="mt-2 h-3 rounded-full bg-pink-100">
+        <div
+          className="brand-gradient h-3 rounded-full"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Live({ title, viewers, revenue }) {
+  return (
+    <div className="rounded-2xl border border-border p-4">
+      <h3 className="font-black">{title}</h3>
+
+      <div className="mt-2 flex justify-between text-sm">
+        <span>{viewers} Viewers</span>
+
+        <span className="brand-text font-bold">
+          {revenue}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Progress({ label, value, width }) {
+  return (
+    <div className="mt-5">
+      <div className="flex justify-between font-bold">
+        <span>{label}</span>
+        <span>{value}</span>
+      </div>
+
+      <div className="mt-2 h-3 rounded-full bg-pink-100">
+        <div
+          className="brand-gradient h-3 rounded-full"
+          style={{ width }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Platform({ icon: Icon, name, value }) {
+  return (
+    <div className="flex items-center justify-between rounded-2xl border border-border p-4">
+      <div className="flex items-center gap-3">
+        <Icon className="text-[var(--brand-pink)]" />
+        <span className="font-bold">{name}</span>
+      </div>
+
+      <span className="brand-text font-black">
+        {value}
+      </span>
+    </div>
+  );
+}

@@ -144,7 +144,7 @@ function Nav() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
+   <header className="sticky top-0 z-50 border-b border-border bg-[#f8f8fb]/90 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 ">
         {/* Top Row */}
         <div className="flex items-center justify-between">
@@ -249,7 +249,7 @@ function Nav() {
 
         {/* Mobile Menu */}
         {open && (
-          <div className="mt-4 space-y-4 rounded-2xl border border-border bg-background p-5 md:hidden">
+          <div className="mt-4 space-y-4 rounded-2xl border border-border bg-[#f8f8fb] p-5 md:hidden">
             <a
               href="#features"
               className="block font-medium hover:text-[var(--brand-pink)]"
@@ -372,7 +372,7 @@ function Hero() {
         {/* Buttons */}
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
           <Link
-            to="/app/wizard"
+            to="/signin"
             className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-semibold text-white shadow-md transition hover:opacity-90"
           >
             Create Your AI Twin
@@ -497,13 +497,13 @@ function FeatureRow() {
     </section>
   );
 }
-
+/*
 function ToolCards() {
   const navigate = useNavigate();
 
   return (
     <section className="mx-auto grid max-w-7xl auto-rows-fr grid-cols-1 gap-6 px-4 py-6 sm:px-6 md:grid-cols-2 lg:grid-cols-3 lg:px-8">
-      {/* Connect Social Accounts */}
+     
       <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
           <p className="flex items-center gap-2 text-base font-black">
@@ -548,7 +548,7 @@ function ToolCards() {
         </button>
       </div>
 
-      {/* Schedule Live */}
+      
       <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
           <p className="flex items-center gap-2 text-base font-black">
@@ -585,7 +585,7 @@ function ToolCards() {
         </button>
       </div>
 
-      {/* Create Web Template */}
+     
       <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
           <p className="flex items-center gap-2 text-base font-black">
@@ -613,7 +613,7 @@ function ToolCards() {
         </button>
       </div>
 
-      {/* Run Ads */}
+     
       <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div>
           <p className="flex items-center gap-2 text-base font-black">
@@ -649,7 +649,6 @@ function ToolCards() {
         </button>
       </div>
 
-      {/* Analytics Overview */}
       <div className="flex h-full min-h-[430px] flex-col rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6 md:col-span-2 lg:col-span-1">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-[var(--brand-pink)]" />
@@ -698,7 +697,7 @@ function ToolCards() {
     </section>
   );
 }
-
+*/
 function HowItWorks() {
   const steps = [
     {
@@ -1120,12 +1119,11 @@ function Footer() {
 
 export default function Landing() {
   return (
-    <div>
+    <div className="min-h-screen bg-[#f8f8fb] text-foreground">
       <TopBanner />
       <Nav />
       <Hero />
       <FeatureRow />
-      <ToolCards />
       <HowItWorks />
       <PerfectFor />
       <Tools />
