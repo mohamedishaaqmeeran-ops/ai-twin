@@ -248,9 +248,9 @@ export default function CreateTwin() {
       <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <h2 className="text-xl font-black brand-text">AI Twin Preview</h2>
 
-        <div className="brand-gradient mt-5 rounded-3xl p-4">
+        <div className="brand-gradient mt-5 rounded-3xl">
           <img
-            src="/images/girl.png"
+            src="/images/bb.png"
             alt="AI Twin"
             className="h-80 w-full rounded-2xl object-cover"
           />
