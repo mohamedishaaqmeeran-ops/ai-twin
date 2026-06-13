@@ -52,13 +52,53 @@
   --success-foreground: oklch(1 0 0);
 }
 
+.dark {
+  --background: oklch(0.12 0.025 260);
+  --foreground: oklch(0.98 0.01 260);
+
+  --card: oklch(0.18 0.025 260);
+  --card-foreground: oklch(0.98 0.01 260);
+
+  --muted: oklch(0.22 0.025 260);
+  --muted-foreground: oklch(0.75 0.025 260);
+
+  --border: oklch(0.28 0.025 260);
+  --input: oklch(0.28 0.025 260);
+  --ring: oklch(0.7 0.22 10);
+
+  --primary: oklch(0.7 0.24 10);
+  --primary-foreground: oklch(1 0 0);
+
+  --accent: oklch(0.22 0.025 260);
+  --accent-foreground: oklch(0.98 0.01 260);
+
+  --brand-pink: #ff4f9a;
+  --brand-orange: #ff8a5c;
+
+  --success: oklch(0.72 0.17 150);
+  --success-foreground: oklch(1 0 0);
+}
+
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body { font-family: var(--font-display); }
+  * {
+    border-color: var(--border);
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    font-family: var(--font-display);
+  }
+
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--background);
+    color: var(--foreground);
     -webkit-font-smoothing: antialiased;
+    transition:
+      background-color 0.3s ease,
+      color 0.3s ease,
+      border-color 0.3s ease;
   }
 }
 

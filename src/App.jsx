@@ -28,6 +28,17 @@ import TestTwin from "./pages/twin/TestTwin";
 import Settings from "./pages/Settings";
 
 function RequireTwin({ children }) {
+  const theme = localStorage.getItem("theme");
+
+if (theme === "Dark") {
+  document.documentElement.classList.add("dark");
+} else if (theme === "Light") {
+  document.documentElement.classList.remove("dark");
+} else {
+  if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+    document.documentElement.classList.add("dark");
+  }
+}
   const hasTwin = localStorage.getItem("hasTwin") === "true";
 
   if (!hasTwin) {

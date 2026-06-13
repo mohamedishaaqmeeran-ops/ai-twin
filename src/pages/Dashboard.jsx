@@ -36,7 +36,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
+     <div className="min-h-full bg-background text-foreground space-y-6 transition-colors duration-300">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr] lg:items-center">

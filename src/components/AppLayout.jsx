@@ -47,12 +47,14 @@ export default function AppLayout() {
     }`;
 
   const mobileClass = ({ isActive }) =>
-    `flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition ${
-      isActive ? "text-[var(--brand-pink)]" : "text-gray-500"
-    }`;
+  `flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition ${
+    isActive
+      ? "text-[var(--brand-pink)]"
+      : "text-muted-foreground"
+  }`;
 
   return (
-    <div className="flex min-h-screen bg-[#f8f8fb]">
+    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Desktop Sidebar */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-80 flex-col overflow-y-auto bg-gradient-to-b from-[#040816] via-[#090f24] to-[#0d1028] p-5 text-white lg:flex">
         {/* Logo */}
@@ -232,7 +234,7 @@ export default function AppLayout() {
       </aside>
 
       {/* Mobile Top Header */}
-      <header className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-white px-4 lg:hidden">
+      <header className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center">
   <img
@@ -244,7 +246,7 @@ export default function AppLayout() {
 
           <div>
             <h1 className="text-xl font-black leading-none">twin</h1>
-            <p className="text-[10px] text-gray-500">Never stop selling.</p>
+           <p className="text-[10px] text-muted-foreground">Never stop selling.</p>
           </div>
         </div>
 
@@ -376,6 +378,15 @@ export default function AppLayout() {
                 <BarChart3 size={18} />
                 Analytics
               </NavLink>
+
+              <NavLink
+  to="/app/settings"
+  onClick={() => setMobileMenu(false)}
+  className={linkClass}
+>
+  <Settings size={18} />
+  Settings
+</NavLink>
             </nav>
             <div className="mt-8 border-t border-white/10 pt-5">
   <button
@@ -396,7 +407,7 @@ export default function AppLayout() {
       {/* Main */}
       <main className="min-h-screen flex-1 pt-16 pb-24 lg:ml-80 lg:pt-0 lg:pb-0">
         {/* Desktop Header */}
-        <header className="sticky top-0 z-30 hidden h-24 items-center justify-between border-b border-border bg-white/90 px-8 backdrop-blur lg:flex">
+       <header className="sticky top-0 z-30 hidden h-24 items-center justify-between border-b border-border bg-card/90 px-8 backdrop-blur lg:flex">
           <div>
             <p className="text-sm font-bold text-[var(--brand-pink)]">
               Welcome back
@@ -428,7 +439,7 @@ export default function AppLayout() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
+     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 px-3 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
   <div className="grid grid-cols-5 items-center gap-1">
 
     <NavLink to="/app" end className={mobileClass}>
@@ -442,7 +453,7 @@ export default function AppLayout() {
     `flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
       location.pathname.startsWith("/app/twin")
         ? "text-[var(--brand-pink)]"
-        : "text-gray-500"
+        : "text-muted-foreground"
     }`
   }
 >
@@ -455,7 +466,7 @@ export default function AppLayout() {
       className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
         location.pathname.startsWith("/app/products")
           ? "text-[var(--brand-pink)]"
-          : "text-gray-500"
+          :  "text-muted-foreground"
       }`}
     >
       <Package size={21} />
@@ -467,7 +478,7 @@ export default function AppLayout() {
       className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
         location.pathname.startsWith("/app/golive")
           ? "text-[var(--brand-pink)]"
-          : "text-gray-500"
+          :  "text-muted-foreground"
       }`}
     >
       
@@ -482,7 +493,7 @@ export default function AppLayout() {
       className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
         location.pathname.startsWith("/app/schedule")
           ? "text-[var(--brand-pink)]"
-          : "text-gray-500"
+          :  "text-muted-foreground"
       }`}
     >
       <Calendar size={21} />
