@@ -20,18 +20,20 @@ export default function CreateTwin() {
   const [voice, setVoice] = useState("Warm Female");
   const [trainingText, setTrainingText] = useState("");
 
-  const steps = [
-    { title: "Basic Info", icon: UserCircle2 },
-    { title: "Appearance", icon: ScanFace },
-    { title: "Voice", icon: Mic },
-    { title: "Train AI", icon: FileText },
-    { title: "Preview", icon: BadgeCheck },
-  ];
+const steps = [
+  { title: "Basic Info", icon: UserCircle2 },
+  { title: "Appearance", icon: ScanFace },
+  { title: "Voice", icon: Mic },
+  { title: "Lip Sync", icon: BadgeCheck },
+  { title: "Train AI", icon: FileText },
+  { title: "Preview", icon: BadgeCheck },
+];
 
   const finishCreate = () => {
     localStorage.setItem("hasTwin", "true");
     localStorage.setItem("twinName", name || "My AI Twin");
     localStorage.setItem("twinImage", "/images/dd.png");
+    localStorage.setItem("lipSyncEnabled", "true");
     navigate("/app/twin");
   };
 
@@ -173,7 +175,51 @@ export default function CreateTwin() {
             </div>
           )}
 
-          {step === 4 && (
+
+{step === 4 && (
+  <div>
+    <h2 className="text-xl font-black brand-text">Lip Sync Setup</h2>
+    <p className="mt-1 text-sm text-muted-foreground">
+      Test how your AI Twin mouth movement matches the selected voice.
+    </p>
+
+    <div className="mt-5 grid gap-5 lg:grid-cols-2">
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <img
+          src="/images/bb.png"
+          alt="Lip Sync Preview"
+          className="h-72 w-full rounded-2xl object-cover"
+        />
+
+        <div className="mt-4 rounded-2xl bg-pink-50 p-4">
+          <p className="font-bold text-[var(--brand-pink)]">
+            Lip Sync Status
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Voice and face movement will be synced during live sessions.
+          </p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <h3 className="font-black">Test Script</h3>
+
+        <textarea
+          rows="7"
+          className="mt-4 w-full rounded-2xl border border-border bg-background p-4 text-sm outline-none focus:border-[var(--brand-pink)]"
+          defaultValue="Hi everyone! I am your AI Twin. Today I am going to show you this amazing product and answer your questions live."
+        />
+
+        <button className="brand-gradient mt-4 w-full rounded-[5px] py-3 text-sm font-bold text-white">
+          Generate Lip Sync Preview
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+          {step === 5 && (
             <div>
               <h2 className="text-xl font-black brand-text">Train Your AI</h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -202,7 +248,7 @@ export default function CreateTwin() {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div>
               <h2 className="text-xl font-black brand-text">
                 Preview Your AI Twin
@@ -227,7 +273,7 @@ export default function CreateTwin() {
             Back
           </button>
 
-          {step < 5 ? (
+          {step < 6 ? (
             <button
               onClick={() => setStep(step + 1)}
               className="brand-gradient flex items-center gap-2 rounded-[5px] px-6 py-3 text-sm font-bold text-white shadow-md hover:opacity-90"
@@ -263,9 +309,13 @@ export default function CreateTwin() {
           </p>
         </div>
 
-        <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold text-[var(--brand-pink)] hover:bg-pink-50">
-          <Sparkles size={18} /> Test Twin
-        </button>
+        <button
+  onClick={() => navigate("/app/twin/test")}
+  className="mt-5 flex w-full items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 hover:shadow-md"
+>
+  <Sparkles size={18} />
+  Test Twin
+</button>
       </aside>
     </div>
   );

@@ -24,6 +24,9 @@ import ScrollToTop from "./components/ScrollToTop";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 import WaitlistForm from "./pages/WaitlistForm";
+import TestTwin from "./pages/twin/TestTwin";
+import Settings from "./pages/Settings";
+import Orders from "./pages/orders/Orders";
 
 function RequireTwin({ children }) {
   const hasTwin = localStorage.getItem("hasTwin") === "true";
@@ -50,7 +53,15 @@ export default function App() {
           <Route path="twin" element={<TwinDashboard />} />
           <Route path="twin/create" element={<CreateTwin />} />
           <Route path="twin/train" element={<TrainTwin />} />
-
+          <Route path="twin/test" element={<TestTwin />} />
+         <Route
+  path="orders"
+  element={
+    <RequireTwin>
+      <Orders />
+    </RequireTwin>
+  }
+/>
           <Route
             path="products"
             element={
@@ -133,6 +144,7 @@ export default function App() {
           />
 
           <Route path="analytics" element={<Analytics />} />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
