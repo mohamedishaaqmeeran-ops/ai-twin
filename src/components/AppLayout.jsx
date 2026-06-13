@@ -5,7 +5,6 @@ import {
   Sparkles,
   Database,
   Package,
-  ShoppingBag,
   Calendar,
   BarChart3,
   Settings,
@@ -27,7 +26,7 @@ export default function AppLayout() {
 
   const hasTwin = localStorage.getItem("hasTwin") === "true";
   const twinName = localStorage.getItem("twinName") || "My AI Twin";
-  const twinImage = "/images/bb.png";
+  const twinImage =  "/images/bb.png";
 
   const handleProtectedNav = (path) => {
     if (!hasTwin) {
@@ -58,13 +57,13 @@ export default function AppLayout() {
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-80 flex-col overflow-y-auto bg-gradient-to-b from-[#040816] via-[#090f24] to-[#0d1028] p-5 text-white lg:flex">
         {/* Logo */}
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center">
-            <img
-              src="/images/logo.jpg"
-              alt="Twin Logo"
-              className="h-[52px] w-[52px] rounded-[5px] object-cover"
-            />
-          </div>
+         <div className="flex h-14 w-14 items-center justify-center">
+  <img
+    src="/images/logo.jpg"
+    alt="Twin Logo"
+    className="h-13 w-13 rounded-[5px] object-cover"
+  />
+</div>
 
           <div>
             <h1 className="text-3xl font-black leading-none tracking-tight">
@@ -144,36 +143,68 @@ export default function AppLayout() {
           </NavLink>
 
           <NavLink to="/app/twin/test" className={linkClass}>
-            <BadgeCheck size={18} />
-            Test Twin
-          </NavLink>
+  <BadgeCheck size={18} />
+  Test Twin
+</NavLink>
 
           <MenuTitle title="Selling" />
 
-          <NavLink to="/app/products" className={linkClass}>
-            <Package size={18} />
-            Products
-          </NavLink>
+          <NavLink
+  to="/app/products"
+  className={({ isActive }) =>
+    `flex items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all duration-300 ${
+      isActive
+        ? "brand-gradient text-white shadow-lg shadow-pink-500/20"
+        : "text-white/70 hover:bg-white/10 hover:text-white"
+    }`
+  }
+>
+  <Package size={18} />
+  Products
+</NavLink>
 
-          <NavLink to="/app/orders" className={linkClass}>
-            <ShoppingBag size={18} />
-            Orders
-          </NavLink>
 
-          <NavLink to="/app/connect" className={linkClass}>
-            <Wifi size={18} />
-            Connect Social
-          </NavLink>
 
-          <NavLink to="/app/schedule" className={linkClass}>
-            <Calendar size={18} />
-            Schedule Live
-          </NavLink>
+        <NavLink
+  to="/app/connect"
+  className={({ isActive }) =>
+    `flex items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all duration-300 ${
+      isActive
+        ? "brand-gradient text-white shadow-lg shadow-pink-500/20"
+        : "text-white/70 hover:bg-white/10 hover:text-white"
+    }`
+  }
+>
+  <Wifi size={18} />
+  Connect Social
+</NavLink>
+<NavLink
+  to="/app/schedule"
+  className={({ isActive }) =>
+    `flex items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all duration-300 ${
+      isActive
+        ? "brand-gradient text-white shadow-lg shadow-pink-500/20"
+        : "text-white/70 hover:bg-white/10 hover:text-white"
+    }`
+  }
+>
+  <Calendar size={18} />
+  Schedule Live
+</NavLink>
 
-          <NavLink to="/app/golive" className={linkClass}>
-            <Radio size={18} />
-            Go Live
-          </NavLink>
+        <NavLink
+  to="/app/golive"
+  className={({ isActive }) =>
+    `flex items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all duration-300 ${
+      isActive
+        ? "brand-gradient text-white shadow-lg shadow-pink-500/20"
+        : "text-white/70 hover:bg-white/10 hover:text-white"
+    }`
+  }
+>
+  <Radio size={18} />
+  Go Live
+</NavLink>
 
           <MenuTitle title="System" />
 
@@ -204,12 +235,12 @@ export default function AppLayout() {
       <header className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-white px-4 lg:hidden">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center">
-            <img
-              src="/images/logo.jpg"
-              alt="Twin Logo"
-              className="h-10 w-10 rounded-[5px] object-contain"
-            />
-          </div>
+  <img
+    src="/images/logo.jpg"
+    alt="Twin Logo"
+    className="h-10 w-10 rounded-[5px] object-contain"
+  />
+</div>
 
           <div>
             <h1 className="text-xl font-black leading-none">twin</h1>
@@ -236,13 +267,13 @@ export default function AppLayout() {
           <aside className="relative h-full w-80 max-w-[85%] overflow-y-auto bg-gradient-to-b from-[#040816] via-[#090f24] to-[#0d1028] p-5 text-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center">
-                  <img
-                    src="/images/logo.jpg"
-                    alt="Twin Logo"
-                    className="h-11 w-11 rounded-[5px] object-contain"
-                  />
-                </div>
+       <div className="flex h-11 w-11 items-center justify-center">
+  <img
+    src="/images/logo.jpg"
+    alt="Twin Logo"
+    className="h-11 w-11 rounded-[5px] object-contain"
+  />
+</div>
 
                 <div>
                   <h1 className="text-2xl font-black">twin</h1>
@@ -309,58 +340,33 @@ export default function AppLayout() {
               </NavLink>
 
               <NavLink
-                to="/app/twin/test"
-                onClick={() => setMobileMenu(false)}
-                className={linkClass}
-              >
-                <BadgeCheck size={18} />
-                Test Twin
-              </NavLink>
+  to="/app/twin/test"
+  onClick={() => setMobileMenu(false)}
+  className={linkClass}
+>
+  <BadgeCheck size={18} />
+  Test Twin
+</NavLink>
 
-              <NavLink
-                to="/app/products"
-                onClick={() => setMobileMenu(false)}
-                className={linkClass}
-              >
-                <Package size={18} />
-                Products
-              </NavLink>
+            
 
-              <NavLink
-                to="/app/orders"
-                onClick={() => setMobileMenu(false)}
-                className={linkClass}
-              >
-                <ShoppingBag size={18} />
-                Orders
-              </NavLink>
+              <SidebarButton
+                icon={Share2}
+                text="Connect Social"
+                onClick={() => handleProtectedNav("/app/connect")}
+              />
 
-              <NavLink
-                to="/app/connect"
-                onClick={() => setMobileMenu(false)}
-                className={linkClass}
-              >
-                <Share2 size={18} />
-                Connect Social
-              </NavLink>
+              <SidebarButton
+                icon={Calendar}
+                text="Schedule Live"
+                onClick={() => handleProtectedNav("/app/schedule")}
+              />
 
-              <NavLink
-                to="/app/schedule"
-                onClick={() => setMobileMenu(false)}
-                className={linkClass}
-              >
-                <Calendar size={18} />
-                Schedule Live
-              </NavLink>
-
-              <NavLink
-                to="/app/golive"
-                onClick={() => setMobileMenu(false)}
-                className={linkClass}
-              >
-                <Radio size={18} />
-                Go Live
-              </NavLink>
+              <SidebarButton
+                icon={Radio}
+                text="Go Live"
+                onClick={() => handleProtectedNav("/app/golive")}
+              />
 
               <NavLink
                 to="/app/analytics"
@@ -370,29 +376,19 @@ export default function AppLayout() {
                 <BarChart3 size={18} />
                 Analytics
               </NavLink>
-
-              <NavLink
-                to="/app/settings"
-                onClick={() => setMobileMenu(false)}
-                className={linkClass}
-              >
-                <Settings size={18} />
-                Settings
-              </NavLink>
             </nav>
-
             <div className="mt-8 border-t border-white/10 pt-5">
-              <button
-                onClick={() => {
-                  setMobileMenu(false);
-                  navigate("/");
-                }}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
-              >
-                <LogOut size={18} />
-                Logout
-              </button>
-            </div>
+  <button
+    onClick={() => {
+      setMobileMenu(false);
+      navigate("/");
+    }}
+    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
+  >
+    <LogOut size={18} />
+    Logout
+  </button>
+</div>
           </aside>
         </div>
       )}
@@ -432,64 +428,66 @@ export default function AppLayout() {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
-        <div className="grid grid-cols-5 items-center gap-1">
-          <NavLink to="/app" end className={mobileClass}>
-            <Home size={21} />
-            Home
-          </NavLink>
+     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
+  <div className="grid grid-cols-5 items-center gap-1">
 
-          <NavLink
-            to="/app/twin"
-            className={() =>
-              `flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition ${
-                location.pathname.startsWith("/app/twin")
-                  ? "text-[var(--brand-pink)]"
-                  : "text-gray-500"
-              }`
-            }
-          >
-            <UserRound size={21} />
-            Twin
-          </NavLink>
+    <NavLink to="/app" end className={mobileClass}>
+      <Home size={21} />
+      Home
+    </NavLink>
 
-          <button
-            onClick={() => handleProtectedNav("/app/products")}
-            className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
-              location.pathname.startsWith("/app/products")
-                ? "text-[var(--brand-pink)]"
-                : "text-gray-500"
-            }`}
-          >
-            <Package size={21} />
-            Products
-          </button>
+    <NavLink
+  to="/app/twin"
+  className={() =>
+    `flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition ${
+      location.pathname.startsWith("/app/twin")
+        ? "text-[var(--brand-pink)]"
+        : "text-gray-500"
+    }`
+  }
+/>
 
-          <button
-            onClick={() => handleProtectedNav("/app/orders")}
-            className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
-              location.pathname.startsWith("/app/orders")
-                ? "text-[var(--brand-pink)]"
-                : "text-gray-500"
-            }`}
-          >
-            <ShoppingBag size={21} />
-            Orders
-          </button>
+    <button
+      onClick={() => handleProtectedNav("/app/products")}
+      className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
+        location.pathname.startsWith("/app/products")
+          ? "text-[var(--brand-pink)]"
+          : "text-gray-500"
+      }`}
+    >
+      <Package size={21} />
+      Products
+    </button>
 
-          <button
-            onClick={() => handleProtectedNav("/app/golive")}
-            className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
-              location.pathname.startsWith("/app/golive")
-                ? "text-[var(--brand-pink)]"
-                : "text-gray-500"
-            }`}
-          >
-            <Radio size={21} />
-            Live
-          </button>
-        </div>
-      </nav>
+    <button
+      onClick={() => handleProtectedNav("/app/golive")}
+      className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
+        location.pathname.startsWith("/app/golive")
+          ? "text-[var(--brand-pink)]"
+          : "text-gray-500"
+      }`}
+    >
+      
+        <Radio size={24} />
+    
+
+      Live
+    </button>
+
+    <button
+      onClick={() => handleProtectedNav("/app/schedule")}
+      className={`flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
+        location.pathname.startsWith("/app/schedule")
+          ? "text-[var(--brand-pink)]"
+          : "text-gray-500"
+      }`}
+    >
+      <Calendar size={21} />
+      Schedule
+    </button>
+
+  </div>
+</nav>
     </div>
   );
 }
@@ -499,5 +497,17 @@ function MenuTitle({ title }) {
     <p className="mb-2 mt-6 px-5 text-[11px] font-black uppercase tracking-[0.2em] text-white/35">
       {title}
     </p>
+  );
+}
+
+function SidebarButton({ icon: Icon, text, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-bold text-white/70 transition-all duration-300 hover:translate-x-1 hover:bg-white/10 hover:text-white"
+    >
+      <Icon size={18} />
+      {text}
+    </button>
   );
 }

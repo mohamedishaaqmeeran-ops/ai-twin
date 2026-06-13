@@ -26,7 +26,6 @@ import NotFound from "./pages/NotFound";
 import WaitlistForm from "./pages/WaitlistForm";
 import TestTwin from "./pages/twin/TestTwin";
 import Settings from "./pages/Settings";
-import Orders from "./pages/orders/Orders";
 
 function RequireTwin({ children }) {
   const hasTwin = localStorage.getItem("hasTwin") === "true";
@@ -54,14 +53,7 @@ export default function App() {
           <Route path="twin/create" element={<CreateTwin />} />
           <Route path="twin/train" element={<TrainTwin />} />
           <Route path="twin/test" element={<TestTwin />} />
-         <Route
-  path="orders"
-  element={
-    <RequireTwin>
-      <Orders />
-    </RequireTwin>
-  }
-/>
+
           <Route
             path="products"
             element={

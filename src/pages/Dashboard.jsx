@@ -193,113 +193,168 @@ export default function Dashboard() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-3">
-        {/* Recent Products */}
-        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6 xl:col-span-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-black brand-text">Recent Products</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Products ready for your AI Twin to sell.
-              </p>
-            </div>
+  {/* Recent Products */}
+  <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6 xl:col-span-2">
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <h2 className="text-xl font-black brand-text">Recent Products</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Products ready for your AI Twin to sell.
+        </p>
+      </div>
 
-            <Link
-              to="/app/products"
-              className="text-sm font-bold text-[var(--brand-pink)] hover:underline"
-            >
-              View All
-            </Link>
-          </div>
+      <Link
+        to="/app/products"
+        className="shrink-0 text-sm font-bold text-[var(--brand-pink)] hover:underline"
+      >
+        View All
+      </Link>
+    </div>
 
-          <div className="mt-5 space-y-3">
-            {[
+    <div className="mt-5 space-y-3">
+      {(
+        JSON.parse(localStorage.getItem("products") || "[]").length
+          ? JSON.parse(localStorage.getItem("products") || "[]").slice(0, 3)
+          : [
               {
                 name: "Vitamin C Glow Serum",
                 price: "₹799",
-                status: "Ready",
-                img: "/images/product1.png",
+                status: "Ready to sell",
+                img: "/images/6.jpeg",
               },
               {
                 name: "Wireless Headphone",
                 price: "₹1,299",
-                status: "Ready",
-                img: "/images/headphone.png",
+                status: "Ready to sell",
+                img: "/images/5.jpeg",
               },
               {
                 name: "Smart Watch",
                 price: "₹2,499",
-                status: "Needs Script",
-                img: "/images/watch.png",
+                status: "Needs script",
+                img: "/images/7.jpeg",
               },
-            ].map((product) => (
-              <div
-                key={product.name}
-                className="flex flex-col gap-4 rounded-2xl border border-border bg-background p-4 sm:flex-row sm:items-center sm:justify-between"
+            ]
+      ).map((product) => (
+        <div
+          key={product.id || product.name}
+          className="flex flex-col gap-4 rounded-2xl border border-border bg-background p-4 transition hover:-translate-y-1 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <img
+              src={product.img || "/images/6.jpeg"}
+              alt={product.name}
+              className="h-16 w-16 rounded-xl bg-pink-50 object-contain"
+            />
+
+            <div>
+              <h3 className="font-black">{product.name}</h3>
+
+              <p className="text-sm font-bold brand-text">
+                {product.price || "₹0"}
+              </p>
+
+              <p
+                className={`text-xs font-bold ${
+                  product.status === "Needs script"
+                    ? "text-orange-500"
+                    : "text-emerald-600"
+                }`}
               >
-                <div className="flex items-center gap-4">
-                  <img
-                    src={product.img}
-                    alt={product.name}
-                    className="h-16 w-16 rounded-xl bg-pink-50 object-contain"
-                  />
-
-                  <div>
-                    <h3 className="font-black">{product.name}</h3>
-                    <p className="text-sm font-bold brand-text">
-                      {product.price}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {product.status}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => {
-                    localStorage.setItem("selectedProduct", product.name);
-                    goLive();
-                  }}
-                  className="brand-gradient rounded-[5px] px-5 py-2.5 text-sm font-bold text-white"
-                >
-                  Sell Live
-                </button>
-              </div>
-            ))}
+                {product.status || "Ready to sell"}
+              </p>
+            </div>
           </div>
+
+          <button
+            onClick={() => {
+              localStorage.setItem("selectedProduct", product.name);
+              goLive();
+            }}
+            className="brand-gradient rounded-[5px] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:opacity-90"
+          >
+            Sell Live
+          </button>
         </div>
+      ))}
+    </div>
+  </div>
 
-        {/* Upcoming Live */}
-        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black brand-text">Upcoming Live</h2>
+  {/* Upcoming Live */}
+  <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+    <h2 className="text-xl font-black brand-text">Upcoming Live</h2>
 
-          <div className="mt-5 rounded-2xl border border-border bg-background p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
-                <Instagram className="h-6 w-6" />
-              </div>
+    {(() => {
+      const schedules = JSON.parse(localStorage.getItem("liveSchedules") || "[]");
 
-              <div>
-                <h3 className="font-black">Instagram Live</h3>
-                <p className="text-sm text-muted-foreground">
-                  Vitamin C Glow Serum
-                </p>
-              </div>
+      const live = schedules[0] || {
+        title: "Instagram Live",
+        product: "Vitamin C Glow Serum",
+        date: "Today",
+        time: "07:30 PM",
+        platforms: ["Instagram"],
+      };
+
+      const platform = Array.isArray(live.platforms)
+        ? live.platforms[0]
+        : live.platform || "Instagram";
+
+      const PlatformIcon =
+        platform === "YouTube"
+          ? Youtube
+          : platform === "Facebook"
+          ? Facebook
+          : platform === "TikTok"
+          ? Music2
+          : Instagram;
+
+      return (
+        <div className="mt-5 rounded-2xl border border-border bg-background p-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
+              <PlatformIcon className="h-6 w-6" />
             </div>
 
-            <div className="mt-5 space-y-3 text-sm">
-              <Info icon={Calendar} label="Date" value="Today" />
-              <Info icon={Clock} label="Time" value="07:30 PM" />
+            <div>
+              <h3 className="font-black">{platform} Live</h3>
+              <p className="text-sm text-muted-foreground">
+                {live.product}
+              </p>
             </div>
+          </div>
 
+          <div className="mt-5 space-y-3 text-sm">
+            <Info icon={Calendar} label="Date" value={live.date || "Not set"} />
+            <Info icon={Clock} label="Time" value={live.time || "Not set"} />
+          </div>
+
+          <div className="mt-5 grid gap-3">
             <Link
               to="/app/schedule"
-              className="mt-5 flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)] hover:bg-pink-50"
+              className="flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)] hover:bg-pink-50"
             >
               Manage Schedule
             </Link>
+
+            <button
+              onClick={() => {
+                localStorage.setItem("selectedProduct", live.product);
+                localStorage.setItem(
+                  "selectedPlatforms",
+                  JSON.stringify(live.platforms || [platform])
+                );
+                goLive();
+              }}
+              className="brand-gradient h-11 rounded-[5px] text-sm font-bold text-white shadow-md hover:opacity-90"
+            >
+              Start This Live
+            </button>
           </div>
         </div>
-      </section>
+      );
+    })()}
+  </div>
+</section>
 
       <section className="grid gap-6 xl:grid-cols-2">
         {/* Connected Accounts */}
