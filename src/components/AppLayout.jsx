@@ -436,16 +436,19 @@ export default function AppLayout() {
       Home
     </NavLink>
 
-    <NavLink
+   <NavLink
   to="/app/twin"
   className={() =>
-    `flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition ${
+    `flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1 text-[11px] font-bold transition ${
       location.pathname.startsWith("/app/twin")
         ? "text-[var(--brand-pink)]"
         : "text-gray-500"
     }`
   }
-/>
+>
+  <UserRound size={21} />
+  Twin
+</NavLink>
 
     <button
       onClick={() => handleProtectedNav("/app/products")}
