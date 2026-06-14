@@ -13,6 +13,14 @@ import {
   VolumeX,
   VideoOff,
   CheckCircle2,
+  Copy,
+  Share2,
+  X,
+  Facebook,
+  Music2,
+  Youtube,
+  Instagram,
+  MessageCircle,
 } from "lucide-react";
 
 const defaultComments = [
@@ -25,10 +33,11 @@ const defaultComments = [
 export default function LiveStream() {
   const navigate = useNavigate();
 
-  const twinImage =  "/images/bb.png";
+  const twinImage = "/images/bb.png";
   const twinName = localStorage.getItem("twinName") || "My AI Twin";
 
   const liveSetup = JSON.parse(localStorage.getItem("liveSetup") || "{}");
+
   const product =
     liveSetup.product ||
     localStorage.getItem("selectedProduct") ||
@@ -42,12 +51,42 @@ export default function LiveStream() {
   const [cameraOn, setCameraOn] = useState(true);
   const [engageOn, setEngageOn] = useState(true);
   const [productVisible, setProductVisible] = useState(true);
+
   const [comments, setComments] = useState(defaultComments);
   const [message, setMessage] = useState("");
+
   const [viewers, setViewers] = useState(4800);
   const [orders, setOrders] = useState(85);
   const [revenue, setRevenue] = useState(58900);
+
   const [ended, setEnded] = useState(false);
+  const [liveLink, setLiveLink] = useState("");
+  const [showShareModal, setShowShareModal] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const oldSession = JSON.parse(localStorage.getItem("liveSession") || "{}");
+
+    if (oldSession.url) {
+      setLiveLink(oldSession.url);
+    } else {
+      const liveId = crypto.randomUUID().slice(0, 8).toUpperCase();
+      const url = `${window.location.origin}/live/${liveId}`;
+
+      const session = {
+        id: liveId,
+        url,
+        twinName,
+        product,
+        platforms,
+        startedAt: new Date().toISOString(),
+        status: "live",
+      };
+
+      localStorage.setItem("liveSession", JSON.stringify(session));
+      setLiveLink(url);
+    }
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -71,6 +110,57 @@ export default function LiveStream() {
     setMessage("");
   };
 
+  const copyLiveLink = async () => {
+    await navigator.clipboard.writeText(liveLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  const shareLive = (platform) => {
+    const encodedUrl = encodeURIComponent(liveLink);
+
+    const text = encodeURIComponent(
+      `🔴 I'm LIVE now!\nWatch my AI Twin selling ${product}.\n${liveLink}`
+    );
+
+    if (platform === "facebook") {
+      window.open(
+        `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+        "_blank"
+      );
+      return;
+    }
+
+    if (platform === "whatsapp") {
+      window.open(`https://wa.me/?text=${text}`, "_blank");
+      return;
+    }
+
+    if (platform === "twitter") {
+      window.open(`https://twitter.com/intent/tweet?text=${text}`, "_blank");
+      return;
+    }
+
+    if (platform === "youtube") {
+      window.open("https://www.youtube.com/", "_blank");
+      return;
+    }
+
+    if (platform === "instagram") {
+      copyLiveLink();
+      window.open("https://www.instagram.com/", "_blank");
+      return;
+    }
+
+    if (platform === "tiktok") {
+      copyLiveLink();
+      window.open("https://www.tiktok.com/", "_blank");
+      return;
+    }
+
+    copyLiveLink();
+  };
+
   const endLive = () => {
     const summary = {
       product,
@@ -78,10 +168,13 @@ export default function LiveStream() {
       viewers,
       orders,
       revenue,
+      liveLink,
       endedAt: new Date().toLocaleString(),
     };
 
     localStorage.setItem("lastLiveSummary", JSON.stringify(summary));
+    localStorage.removeItem("liveSession");
+
     setEnded(true);
 
     setTimeout(() => {
@@ -91,7 +184,6 @@ export default function LiveStream() {
 
   return (
     <div className="grid gap-6 bg-background text-foreground transition-colors duration-300 xl:grid-cols-[1fr_380px]">
-      {/* Live Preview */}
       <section className="relative min-h-[720px] overflow-hidden rounded-3xl border border-border bg-[#0d0d12] shadow-sm">
         {cameraOn ? (
           <img
@@ -103,7 +195,6 @@ export default function LiveStream() {
           <div className="grid h-[720px] place-items-center text-white">
             <div className="text-center">
               <VideoOff className="mx-auto h-12 w-12 text-white/70" />
-
               <p className="mt-3 text-lg font-black tracking-tight">
                 Camera Off
               </p>
@@ -113,7 +204,6 @@ export default function LiveStream() {
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/50" />
 
-        {/* Top Badges */}
         <div className="absolute left-5 top-5 flex flex-wrap gap-3">
           <span className="rounded-[5px] bg-red-600 px-4 py-2 text-sm font-black tracking-wide text-white">
             LIVE
@@ -133,7 +223,6 @@ export default function LiveStream() {
           ))}
         </div>
 
-        {/* Twin Speech */}
         <div className="absolute left-5 top-24 max-w-md rounded-2xl bg-white/90 p-4 backdrop-blur">
           <p className="text-sm font-black tracking-tight brand-text">
             {twinName}
@@ -145,7 +234,6 @@ export default function LiveStream() {
           </p>
         </div>
 
-        {/* Comments */}
         <div className="absolute left-5 top-56 max-w-md space-y-3">
           {comments.slice(0, 4).map((msg, index) => (
             <div
@@ -157,11 +245,10 @@ export default function LiveStream() {
           ))}
         </div>
 
-        {/* Product Card */}
         {productVisible && (
-          <div className="absolute bottom-5 left-5 right-5 flex flex-col gap-4 dark:bg-white/10 rounded-2xl bg-white p-4 shadow-xl sm:flex-row sm:items-center sm:justify-between">
+          <div className="absolute bottom-5 left-5 right-5 flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-xl dark:bg-white/10 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
-              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
+              <div className="grid h-16 w-16 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
                 <Package className="h-7 w-7" />
               </div>
 
@@ -188,7 +275,7 @@ export default function LiveStream() {
 
         {ended && (
           <div className="absolute inset-0 grid place-items-center bg-black/70">
-            <div className="rounded-3xl bg-white p-8 text-center">
+            <div className="rounded-3xl bg-white p-8 text-center dark:bg-card">
               <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
 
               <h2 className="mt-4 text-2xl font-black tracking-tight brand-text">
@@ -203,8 +290,37 @@ export default function LiveStream() {
         )}
       </section>
 
-      {/* Controls */}
       <aside className="space-y-6">
+        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <h2 className="text-xl font-black tracking-tight brand-text">
+            Live Link
+          </h2>
+
+          <div className="mt-4 rounded-2xl border border-border bg-background p-4">
+            <p className="break-all text-sm font-medium text-muted-foreground">
+              {liveLink}
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                onClick={copyLiveLink}
+                className="flex items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+              >
+                <Copy className="h-4 w-4" />
+                {copied ? "Copied" : "Copy"}
+              </button>
+
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="brand-gradient flex items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-black tracking-tight brand-text">
             Live Controls
@@ -287,7 +403,142 @@ export default function LiveStream() {
           End Live
         </button>
       </aside>
+
+      {showShareModal && (
+        <ShareLiveModal
+          liveLink={liveLink}
+          product={product}
+          platforms={platforms}
+          copied={copied}
+          onCopy={copyLiveLink}
+          onClose={() => setShowShareModal(false)}
+          onShare={shareLive}
+        />
+      )}
     </div>
+  );
+}
+
+function ShareLiveModal({
+  liveLink,
+  product,
+  platforms,
+  copied,
+  onCopy,
+  onClose,
+  onShare,
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+      <div className="w-full max-w-xl rounded-3xl border border-border bg-card p-5 shadow-2xl sm:p-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-black tracking-tight brand-text">
+              Live Started
+            </h2>
+
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
+              Share this live link with your audience.
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="grid h-10 w-10 place-items-center rounded-xl border border-border text-muted-foreground transition hover:text-foreground"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-border bg-background p-4">
+          <p className="text-sm font-bold tracking-tight text-foreground">
+            Product
+          </p>
+
+          <p className="mt-1 text-sm font-medium text-muted-foreground">
+            {product}
+          </p>
+
+          <div className="mt-4 rounded-xl bg-card p-3">
+            <p className="break-all text-sm font-medium text-foreground">
+              {liveLink}
+            </p>
+          </div>
+
+          <button
+            onClick={onCopy}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+          >
+            <Copy className="h-4 w-4" />
+            {copied ? "Copied Link" : "Copy Live Link"}
+          </button>
+        </div>
+
+        <div className="mt-5">
+          <h3 className="text-base font-black tracking-tight text-foreground">
+            Share to selected platforms
+          </h3>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {platforms.includes("Instagram") && (
+              <ShareButton
+                icon={Instagram}
+                label="Instagram"
+                onClick={() => onShare("instagram")}
+              />
+            )}
+
+            {platforms.includes("Facebook") && (
+              <ShareButton
+                icon={Facebook}
+                label="Facebook"
+                onClick={() => onShare("facebook")}
+              />
+            )}
+
+            {platforms.includes("YouTube") && (
+              <ShareButton
+                icon={Youtube}
+                label="YouTube"
+                onClick={() => onShare("youtube")}
+              />
+            )}
+
+            {platforms.includes("TikTok") && (
+              <ShareButton
+                icon={Music2}
+                label="TikTok"
+                onClick={() => onShare("tiktok")}
+              />
+            )}
+
+            <ShareButton
+              icon={MessageCircle}
+              label="WhatsApp"
+              onClick={() => onShare("whatsapp")}
+            />
+
+            <ShareButton
+              icon={Share2}
+              label="X / Twitter"
+              onClick={() => onShare("twitter")}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShareButton({ icon: Icon, label, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex h-12 items-center justify-center gap-3 rounded-[5px] border border-border bg-background text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10"
+    >
+      <Icon className="h-5 w-5 text-[var(--brand-pink)]" />
+      {label}
+    </button>
   );
 }
 
@@ -315,7 +566,6 @@ function Stat({ icon: Icon, label, value }) {
     <div className="flex items-center justify-between rounded-2xl border border-border bg-background p-4">
       <div className="flex items-center gap-3">
         <Icon className="h-5 w-5 text-[var(--brand-pink)]" />
-
         <p className="text-sm font-medium text-foreground">{label}</p>
       </div>
 
