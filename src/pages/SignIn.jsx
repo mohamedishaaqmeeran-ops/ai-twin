@@ -54,11 +54,11 @@ export default function SignIn() {
       <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-8 px-4 py-10 lg:grid-cols-2">
         {/* Left */}
         <section className="hidden rounded-[40px] border border-border bg-card p-8 shadow-sm lg:block">
-          <div className="brand-gradient rounded-[32px] p-5">
+          <div className="brand-gradient rounded-[32px] ">
             <img
               src="/images/bb.png"
               alt="AI Twin"
-              className="h-[520px] w-full rounded-[24px] object-contain"
+              className="h-[520px] w-full rounded-[24px] object-cover"
             />
           </div>
 

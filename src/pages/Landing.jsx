@@ -28,11 +28,20 @@ import {
   MapPin,
   Menu,
   Box,
-  BookOpen,
   Building2,
   Heart,
-  ClipboardList,
-  IndianRupee,
+  Briefcase,
+  Store,
+  Shirt,
+  Wand2,
+  Mic,
+  BarChart3,
+  Users,
+  Flame,
+  Crown,
+  Rocket,
+  ShoppingBasket,
+  IndianRupee
 } from "lucide-react";
 import Logo from "../components/Logo";
 import { useState } from "react";
@@ -43,6 +52,30 @@ import woocommerceLogo from "/images/fff.png";
 import klaviyoLogo from "/images/ggg.png";
 import zapierLogo from "/images/hhh.png";
 import stripeLogo from "/images/iii.png";
+
+const exploreMenu = [
+  { icon: ShoppingBag, title: "Live Shopping", desc: "Discover live product selling" },
+  { icon: Users, title: "AI Creators", desc: "Explore AI-powered creators" },
+  { icon: Flame, title: "Trending Lives", desc: "See what is trending now" },
+  { icon: ShoppingBasket, title: "Popular Products", desc: "Products selling live" },
+  { icon: Crown, title: "Success Stories", desc: "Brands growing with AI Twin" },
+];
+
+const createMenu = [
+  { icon: ScanFace, title: "Create AI Twin", desc: "Build your digital avatar" },
+  { icon: Mic, title: "Train Voice", desc: "Clone or select AI voice" },
+  { icon: ShoppingBag, title: "Add Products", desc: "Upload products to sell" },
+  { icon: Radio, title: "Go Live", desc: "Launch your AI live session" },
+  { icon: BarChart3, title: "Track Analytics", desc: "Measure sales and engagement" },
+];
+
+const businessMenu = [
+  { icon: Store, title: "For Shops", desc: "Sell products with AI live" },
+  { icon: Shirt, title: "For Fashion Brands", desc: "Showcase styles and offers" },
+  { icon: Sparkles, title: "For Beauty Brands", desc: "Demo products live" },
+  { icon: Users, title: "For Influencers", desc: "Earn with AI selling" },
+  { icon: Briefcase, title: "For Agencies", desc: "Manage multiple brands" },
+];
 
 function TopBanner() {
   const [open, setOpen] = useState(true);
@@ -58,14 +91,9 @@ function TopBanner() {
           </div>
 
           <p className="truncate text-xs font-bold tracking-wide sm:text-sm">
-            Never sleep.{" "}
-            <span className="brand-text font-black">Never stop selling.</span>
+            AI Twin goes live, engages and sells for you 24/7.
           </p>
         </div>
-
-        <p className="hidden whitespace-nowrap text-xs font-medium text-gray-300 sm:block">
-          24/7 AI digital self
-        </p>
 
         <div className="flex shrink-0 items-center gap-2">
           <Link
@@ -87,6 +115,42 @@ function TopBanner() {
   );
 }
 
+function DesktopDropdown({ label, items }) {
+  return (
+    <div className="group relative">
+      <button className="inline-flex items-center gap-1 transition hover:text-[var(--brand-pink)]">
+        {label}
+        <ChevronDown className="h-4 w-4" />
+      </button>
+
+      <div className="absolute left-0 top-full z-50 hidden w-[310px] rounded-3xl border border-border bg-background p-3 shadow-2xl group-hover:block">
+        <div className="space-y-1">
+          {items.map(({ icon: Icon, title, desc }) => (
+            <Link
+              key={title}
+              to="/signin"
+              className="flex gap-3 rounded-2xl p-3 transition hover:bg-pink-50 dark:hover:bg-white/10"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+                <Icon className="h-5 w-5" />
+              </div>
+
+              <div>
+                <p className="text-sm font-black tracking-tight text-foreground">
+                  {title}
+                </p>
+                <p className="mt-1 text-xs font-medium text-muted-foreground">
+                  {desc}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Nav() {
   const [open, setOpen] = useState(false);
 
@@ -94,44 +158,28 @@ function Nav() {
     <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          <div className="shrink-0">
-            <Logo />
-          </div>
+          <Logo />
 
-          <nav className="hidden items-center gap-10 text-sm font-bold tracking-wide text-foreground/80 lg:flex">
-            <a href="#features" className="transition hover:text-foreground">
-              Features
+          <nav className="hidden items-center gap-8 text-sm font-bold tracking-wide text-foreground/80 lg:flex">
+            <a href="#" className="transition hover:text-[var(--brand-pink)]">
+              Home
             </a>
-            <a href="#how" className="transition hover:text-foreground">
-              How It Works
+
+            <DesktopDropdown label="Explore" items={exploreMenu} />
+            <DesktopDropdown label="Create" items={createMenu} />
+
+            <a href="#live" className="transition hover:text-[var(--brand-pink)]">
+              Live
             </a>
-            <a href="#cases" className="transition hover:text-foreground">
-              Use Cases
-            </a>
-            <Link to="/pricing" className="transition hover:text-foreground">
+
+            <DesktopDropdown label="Business" items={businessMenu} />
+
+            <Link
+              to="/pricing"
+              className="transition hover:text-[var(--brand-pink)]"
+            >
               Pricing
             </Link>
-
-            <div className="group relative">
-              <button className="inline-flex items-center gap-1 transition hover:text-foreground">
-                Resources
-                <ChevronDown className="h-4 w-4" />
-              </button>
-
-              <div className="absolute left-0 top-full z-50 hidden w-56 rounded-2xl border border-border bg-background p-2 shadow-xl group-hover:block">
-                {["Documentation", "Tutorials", "Prompt Templates", "FAQ", "Blog"].map(
-                  (item) => (
-                    <Link
-                      key={item}
-                      to={`/${item.toLowerCase().replaceAll(" ", "-")}`}
-                      className="block rounded-lg px-4 py-2 text-sm font-semibold transition hover:bg-muted"
-                    >
-                      {item}
-                    </Link>
-                  )
-                )}
-              </div>
-            </div>
           </nav>
 
           <div className="hidden items-center gap-3 md:flex">
@@ -143,10 +191,10 @@ function Nav() {
             </Link>
 
             <Link
-              to="/signin"
+              to="/waitlist"
               className="brand-gradient flex h-11 items-center justify-center rounded-[5px] px-5 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
             >
-              Get Started Free
+              Join Waitlist
             </Link>
           </div>
 
@@ -160,25 +208,11 @@ function Nav() {
 
         {open && (
           <div className="mt-4 space-y-4 rounded-2xl border border-border bg-background p-5 md:hidden">
-            {[
-              ["Features", "#features"],
-              ["How It Works", "#how"],
-              ["Use Cases", "#cases"],
-            ].map(([label, href]) => (
-              <a
-                key={label}
-                href={href}
-                className="block text-sm font-bold tracking-wide text-foreground transition hover:text-[var(--brand-pink)]"
-              >
-                {label}
-              </a>
-            ))}
-
-            {["Pricing", "Documentation", "Tutorials", "Prompt Templates", "FAQ", "Blog"].map(
+            {["Home", "Explore", "Create", "Live", "Business", "Pricing"].map(
               (item) => (
                 <Link
                   key={item}
-                  to={`/${item.toLowerCase().replaceAll(" ", "-")}`}
+                  to={item === "Pricing" ? "/pricing" : "/signin"}
                   className="block text-sm font-bold tracking-wide text-foreground transition hover:text-[var(--brand-pink)]"
                 >
                   {item}
@@ -195,10 +229,10 @@ function Nav() {
               </Link>
 
               <Link
-                to="/signin"
+                to="/waitlist"
                 className="brand-gradient flex h-11 items-center justify-center rounded-lg text-sm font-bold tracking-wide text-white"
               >
-                Get Started Free
+                Join Waitlist
               </Link>
             </div>
           </div>
@@ -209,79 +243,157 @@ function Nav() {
 }
 
 function Hero() {
-  const avatars = ["/images/1.jpeg", "/images/2.jpeg", "/images/3.jpeg", "/images/4.jpeg"];
+  const avatars = ["/images/1.jpeg", "/images/2.jpeg", "/images/3.jpeg"];
 
   return (
-    <section className="mx-auto grid max-w-7xl gap-14 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-20">
-      <div className="text-center lg:text-left">
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-          <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-          LIVE <span className="brand-text font-black">COMMERCE REVOLUTION</span>
-        </span>
+    <section className="relative overflow-hidden bg-gradient-to-br from-background via-pink-50/40 to-orange-50/30 py-16 dark:from-background dark:via-white/5 dark:to-white/5">
+      <div className="mx-auto grid max-w-7xl gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_520px] lg:items-center lg:px-8">
+        <div className="text-center lg:text-left">
+          <span className="inline-flex items-center gap-2 rounded-full bg-pink-50 px-4 py-2 text-xs font-bold tracking-wide text-[var(--brand-pink)] dark:bg-white/10">
+            <span className="h-2 w-2 rounded-full bg-[var(--brand-pink)]" />
+            AI LIVE COMMERCE PLATFORM
+          </span>
 
-        <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-          <span className="brand-text">Your AI Twin</span>
-          <br />
-          Sells for You.
-        </h1>
+          <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            Your AI Twin.
+            <br />
+            Live. Engage.{" "}
+            <span className="brand-text">Sell.</span>
+          </h1>
 
-        <p className="mx-auto mt-5 max-w-xl text-base font-medium leading-6 text-muted-foreground lg:mx-0">
-          Create your AI sales twin that goes live, talks, answers questions and
-          sells 24/7 while you focus on growing your brand.
-        </p>
-
-        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
-          <Link
-            to="/signin"
-            className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-          >
-            Create Your AI Twin
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-
-          <button className="flex h-12 items-center justify-center gap-2 rounded-[5px] border-2 border-pink-500 bg-card px-7 text-sm font-bold tracking-wide text-foreground transition hover:bg-pink-50 dark:hover:bg-white/10">
-            <Play className="h-4 w-4 fill-foreground" />
-            Watch Demo
-          </button>
-        </div>
-
-        <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
-          <div className="flex -space-x-3">
-            {avatars.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt={`User ${i + 1}`}
-                className="h-10 w-10 rounded-full bg-pink-200 object-cover ring-2 ring-background"
-              />
-            ))}
-          </div>
-
-          <div className="flex items-center gap-1 text-amber-500">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Star key={i} className="h-4 w-4 fill-amber-500" />
-            ))}
-          </div>
-
-          <p className="text-sm font-medium text-muted-foreground">
-            Trusted by <span className="font-bold text-foreground">10,000+</span>{" "}
-            creators and brands
+          <p className="mx-auto mt-5 max-w-xl text-base font-medium leading-7 text-muted-foreground lg:mx-0">
+            Create your AI Twin, go live across social platforms, engage
+            customers 24/7 and grow your business like never before.
           </p>
+
+          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
+            <Link
+              to="/signin"
+              className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+            >
+              Create Your AI Twin
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+
+            <button className="flex h-12 items-center justify-center gap-2 rounded-[5px] border border-border bg-card px-7 text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10">
+              <Play className="h-4 w-4" />
+              Watch Demo
+            </button>
+          </div>
+
+          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
+            <div className="flex -space-x-3">
+              {avatars.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt=""
+                  className="h-10 w-10 rounded-full bg-pink-200 object-cover ring-2 ring-background"
+                />
+              ))}
+            </div>
+
+            <p className="text-sm font-medium text-muted-foreground">
+              Trusted by{" "}
+              <span className="font-bold text-[var(--brand-pink)]">
+                10,000+
+              </span>{" "}
+              creators and brands worldwide
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="relative overflow-hidden rounded-3xl">
-        <img
-          src="/images/b1.png"
-          alt="Live Shopping Dashboard"
-          className="hidden w-full object-cover md:block"
-        />
+        <div className="grid gap-6 lg:grid-cols-[1fr_190px]">
+          <div className="relative mx-auto w-full max-w-[360px] overflow-hidden rounded-[36px] border-[8px] border-white bg-[#0d0d12] shadow-2xl dark:border-white/10">
+            <img
+              src="/images/bbb.png"
+              alt="Live AI Twin"
+              className="h-[560px] w-full object-cover"
+            />
 
-        <img
-          src="/images/b2.png"
-          alt="Live Shopping Dashboard Mobile"
-          className="block w-full object-cover md:hidden"
-        />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+
+            <div className="absolute left-4 top-4 flex gap-2">
+              <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-black text-white">
+                LIVE
+              </span>
+              <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-black text-white">
+                👁 4.8K
+              </span>
+            </div>
+
+            <div className="absolute bottom-20 left-4 right-4 space-y-2 text-white">
+              {[
+                "Is it good for sensitive skin?",
+                "What is the best offer today?",
+                "Show ingredients please",
+              ].map((x) => (
+                <div
+                  key={x}
+                  className="rounded-2xl bg-black/50 px-3 py-2 text-xs font-medium backdrop-blur"
+                >
+                  {x}
+                </div>
+              ))}
+            </div>
+
+            <div className="absolute bottom-4 left-4 right-4 rounded-2xl bg-white p-3 shadow-lg dark:bg-card">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black text-foreground">
+                    Glow Boost Serum
+                  </p>
+                  <p className="text-xs font-black brand-text">₹799</p>
+                </div>
+
+                <button className="brand-gradient rounded-full px-4 py-2 text-xs font-bold text-white">
+                  Buy Now
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden space-y-6 lg:block">
+            <div className="rounded-3xl border border-border bg-card p-5 shadow-xl">
+              <div className="space-y-5">
+                {[
+                  [Instagram, "Instagram", "Live"],
+                  [Facebook, "Facebook", "Live"],
+                  [Youtube, "YouTube", "Live"],
+                  [Music2, "TikTok", "Live"],
+                ].map(([Icon, name, status]) => (
+                  <div key={name} className="flex items-center gap-3">
+                    <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
+                    <div>
+                      <p className="text-sm font-black text-foreground">
+                        {name}
+                      </p>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {status}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-border bg-card p-5 shadow-xl">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+                <TrendingUp className="h-7 w-7" />
+              </div>
+
+              <p className="mt-5 text-sm font-bold text-muted-foreground">
+                Live Sales Today
+              </p>
+              <p className="mt-2 text-3xl font-black tracking-tight text-foreground">
+                ₹1,25,430
+              </p>
+              <p className="mt-2 text-sm font-bold text-emerald-600">
+                +32% vs yesterday ↗
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -289,29 +401,36 @@ function Hero() {
 
 function FeatureRow() {
   const items = [
-    [ScanFace, "Clone Yourself", "AI clones your face, voice & personality"],
-    [Radio, "Go Live 24/7", "Your AI twin goes live anytime, anywhere"],
-    [ShoppingBag, "Sell Products", "Show, explain and sell products like a pro"],
-    [MessageSquare, "Engage & Convert", "Answers questions and builds trust in real-time"],
-    [Globe, "Multiple Languages", "Talk to your audience in their language"],
+    [UserCircle2, "Create AI Twin", "Build your digital twin that looks, speaks and sells like you."],
+    [Mic, "Train Voice", "Clone your voice or choose the perfect AI voice."],
+    [ShoppingBag, "Add Products", "Upload products and let AI learn everything about them."],
+    [Radio, "Go Live Anywhere", "Go live across multiple social platforms with one click."],
+    [TrendingUp, "AI Engages & Sells", "AI answers, engages and converts viewers into customers."],
   ];
 
   return (
-    <section id="features" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <section id="features" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <h2 className="text-center text-2xl font-black tracking-tight text-foreground sm:text-3xl">
+        Everything you need to{" "}
+        <span className="brand-text">sell more</span>, live more, worry less.
+      </h2>
+
+      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {items.map(([Icon, t, d]) => (
           <div
             key={t}
-            className="flex h-full items-start gap-4 rounded-2xl border border-border bg-card p-6 transition hover:-translate-y-1 hover:shadow-lg"
+            className="rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-              <Icon className="h-6 w-6" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+              <Icon className="h-7 w-7" />
             </div>
 
-            <div className="min-w-0">
-              <p className="text-base font-bold tracking-tight text-foreground">{t}</p>
-              <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">{d}</p>
-            </div>
+            <p className="mt-5 text-base font-black tracking-tight text-foreground">
+              {t}
+            </p>
+            <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">
+              {d}
+            </p>
           </div>
         ))}
       </div>
@@ -321,10 +440,10 @@ function FeatureRow() {
 
 function HowItWorks() {
   const steps = [
-    [UserCircle2, "Upload & Train", "Upload your videos and voice. We train your AI twin."],
-    [Tag, "Add Products", "Add your products and create your AI twin store."],
-    [Radio, "Go Live", "Your AI twin goes live and starts presenting products."],
-    [TrendingUp, "Generate Sales", "Engage, answer, and convert viewers into happy customers."],
+    [ScanFace, "Create AI Twin", "Create avatar, choose appearance and voice."],
+    [FileText, "Train AI", "Add product details, FAQs and brand knowledge."],
+    [Radio, "Launch Live", "Select platform, product and start live selling."],
+    [IndianRupee, "Grow Sales", "AI engages viewers and guides them to buy."],
   ];
 
   return (
@@ -334,23 +453,21 @@ function HowItWorks() {
       </h2>
 
       <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        {steps.map(([Icon, t, d], i) => (
+        {steps.map(([Icon, t, d]) => (
           <div
             key={t}
-            className="relative flex h-full items-start gap-4 rounded-2xl border border-border bg-card p-6 transition hover:-translate-y-1 hover:shadow-lg"
+            className="rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
           >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
               <Icon className="h-6 w-6" />
             </div>
 
-            <div className="min-w-0">
-              <p className="text-base font-bold tracking-tight text-foreground">{t}</p>
-              <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">{d}</p>
-            </div>
-
-            {i < steps.length - 1 && (
-              <ArrowRight className="absolute -right-6 top-1/2 hidden h-5 w-5 -translate-y-1/2 text-[var(--brand-pink)] xl:block" />
-            )}
+            <p className="mt-5 text-base font-black tracking-tight text-foreground">
+              {t}
+            </p>
+            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+              {d}
+            </p>
           </div>
         ))}
       </div>
@@ -360,31 +477,35 @@ function HowItWorks() {
 
 function PerfectFor() {
   const items = [
-    [UserCircle2, "Creators & Influencers", "Monetize your content and engage fans 24/7"],
-    [FileText, "D2C Brands", "Boost sales by showcasing products live"],
-    [BadgeCheck, "Coaches & Educators", "Teach, interact and sell courses live"],
-    [Home, "Real Estate", "Show properties and close deals live"],
-    [Sparkles, "Beauty & Fashion", "Recommend, try-on and sell effortlessly"],
+    [Sparkles, "Beauty Brands", "Demo skincare, makeup and beauty products live."],
+    [Shirt, "Fashion Stores", "Show outfits, styling and limited offers."],
+    [Store, "Small Shops", "Sell products online with AI assistance."],
+    [Users, "Influencers", "Turn followers into live-shopping customers."],
+    [Briefcase, "Agencies", "Manage live commerce for multiple brands."],
   ];
 
   return (
     <section id="cases" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <h2 className="text-center text-3xl font-black tracking-tight brand-text md:text-4xl">
-        Perfect For
+        Built for Creators, Brands and Businesses
       </h2>
 
       <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {items.map(([Icon, t, d]) => (
           <div
             key={t}
-            className="flex h-full flex-col items-center rounded-2xl border border-border bg-card p-6 text-center transition hover:-translate-y-1 hover:shadow-lg"
+            className="flex h-full flex-col items-center rounded-3xl border border-border bg-card p-6 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
           >
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
               <Icon className="h-7 w-7" />
             </div>
 
-            <p className="mt-5 text-base font-bold tracking-tight text-foreground">{t}</p>
-            <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">{d}</p>
+            <p className="mt-5 text-base font-black tracking-tight text-foreground">
+              {t}
+            </p>
+            <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">
+              {d}
+            </p>
           </div>
         ))}
       </div>
@@ -406,15 +527,15 @@ function Tools() {
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="text-center">
         <h2 className="text-3xl font-black tracking-tight brand-text md:text-4xl">
-          Integrations
+          Works with Your Business Tools
         </h2>
 
         <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground md:text-base">
-          Works seamlessly with your favorite tools and platforms
+          Connect your store, products and sales tools easily.
         </p>
       </div>
 
-      <div className="mt-12 flex flex-wrap items-center justify-center gap-x-15 gap-y-8">
+      <div className="mt-12 flex flex-wrap items-center justify-center gap-x-14 gap-y-8">
         {logos.map(([name, src]) => (
           <div key={name} className="flex h-16 items-center justify-center">
             <img
@@ -424,8 +545,6 @@ function Tools() {
             />
           </div>
         ))}
-
-        <span className="text-sm font-medium text-muted-foreground">and more...</span>
       </div>
     </section>
   );
@@ -447,7 +566,7 @@ function SocialProof() {
   ];
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10">
+    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr_1fr]">
         <div className="brand-gradient rounded-2xl p-6 text-white">
           <div className="space-y-5">
@@ -526,12 +645,11 @@ function SocialProof() {
     </section>
   );
 }
-
 function Footer() {
   const cols = [
-    [Box, "Product", ["Features", "How It Works", "Use Cases", "Pricing"]],
-    [BookOpen, "Resources", ["Blog", "Help Center", "Guides", "Webinars"]],
-    [Building2, "Company", ["About Us", "Careers", "Privacy Policy", "Terms of Service"]],
+    [Box, "Product", ["AI Twin", "Live Shopping", "Product Training", "Analytics"]],
+    [Rocket, "Explore", ["Trending Lives", "AI Creators", "Popular Products", "Success Stories"]],
+    [Building2, "Business", ["For Shops", "For Brands", "For Influencers", "For Agencies"]],
   ];
 
   return (
@@ -541,8 +659,8 @@ function Footer() {
           <Logo />
 
           <p className="mt-5 text-sm font-medium leading-7 text-white/70">
-            Never sleep. Never stop selling. Your AI twin that goes live,
-            engages, and sells while you grow your brand.
+            Your AI Twin that goes live, engages customers and sells while you
+            grow your business.
           </p>
 
           <div className="mt-6 flex items-center gap-5">

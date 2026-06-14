@@ -26,7 +26,7 @@ export default function AppLayout() {
 
   const hasTwin = localStorage.getItem("hasTwin") === "true";
   const twinName = localStorage.getItem("twinName") || "My AI Twin";
-  const twinImage =  "/images/bb.png";
+  const twinImage =  "/images/bbb.png";
 
   const handleProtectedNav = (path) => {
     if (!hasTwin) {
@@ -246,7 +246,7 @@ export default function AppLayout() {
 
           <div>
             <h1 className="text-xl font-black leading-none">twin</h1>
-           <p className="text-[10px] text-muted-foreground">Never stop selling.</p>
+           <p className="text-[10px] text-muted-foreground">Never Sleep. Never stop selling.</p>
           </div>
         </div>
 
