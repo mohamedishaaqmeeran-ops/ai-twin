@@ -94,16 +94,17 @@ export default function Products() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+    <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
+      {/* Header */}
+      <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-semibold text-foreground">
+            <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
               <ShoppingBag className="h-4 w-4 text-[var(--brand-pink)]" />
               AI TWIN PRODUCTS
             </span>
 
-            <h1 className="mt-5 text-3xl font-black sm:text-4xl">
+            <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
               <span className="brand-text">Products</span>
             </h1>
 
@@ -114,15 +115,16 @@ export default function Products() {
 
           <Link
             to="/app/products/add"
-            className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold text-white shadow-md transition hover:opacity-90"
+            className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             Add Product
           </Link>
         </div>
-      </div>
+      </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* Stats */}
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={Package} label="Total Products" value={products.length} />
         <StatCard
           icon={Radio}
@@ -135,9 +137,10 @@ export default function Products() {
           value={products.filter((p) => p.status === "Needs script").length}
         />
         <StatCard icon={TrendingUp} label="Total Sales" value="₹2.4L" />
-      </div>
+      </section>
 
-      <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+      {/* Search */}
+      <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row">
           <div className="flex flex-1 items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3">
             <Search className="h-5 w-5 text-[var(--brand-pink)]" />
@@ -145,14 +148,14 @@ export default function Products() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search products..."
-              className="w-full bg-transparent text-sm outline-none"
+              className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
 
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-semibold outline-none"
+            className="rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold text-foreground outline-none transition focus:border-[var(--brand-pink)]"
           >
             <option>All Products</option>
             <option>Ready to sell</option>
@@ -160,40 +163,44 @@ export default function Products() {
             <option>Out of stock</option>
           </select>
         </div>
-      </div>
+      </section>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      {/* Products */}
+      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredProducts.map((product) => (
           <div
             key={product.id}
-            className="group rounded-3xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+            className="group rounded-3xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
           >
             <Link to={`/app/products/${product.id}`}>
-              <div className="relative overflow-hidden rounded-2xl bg-pink-50 p-4">
+              <div className="relative overflow-hidden rounded-2xl bg-pink-50 p-4 dark:bg-white/10">
                 <img
                   src={product.img}
                   alt={product.name}
                   className="h-56 w-full rounded-[5px] object-contain transition duration-300 group-hover:scale-105"
                 />
 
-                <span className="absolute left-3 top-3 rounded-full bg-white px-3 py-1 text-xs font-black text-[var(--brand-pink)] shadow-sm">
+                <span className="absolute left-3 top-3 rounded-full bg-card px-3 py-1 text-xs font-black tracking-wide text-[var(--brand-pink)] shadow-sm">
                   {product.status}
                 </span>
 
-                <span className="absolute right-3 top-3 rounded-full bg-[#0d0d12] px-3 py-1 text-xs font-bold text-white">
+                <span className="absolute right-3 top-3 rounded-full bg-[#0d0d12] px-3 py-1 text-xs font-bold tracking-wide text-white">
                   {product.category}
                 </span>
               </div>
             </Link>
 
             <div className="mt-5">
-              <h3 className="text-lg font-black text-foreground">
+              <h3 className="text-lg font-black tracking-tight text-foreground">
                 {product.name}
               </h3>
 
-              <div className="mt-2 flex items-center justify-between">
-                <p className="text-2xl font-black brand-text">{product.price}</p>
-                <p className="text-xs font-bold text-muted-foreground">
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-2xl font-black tracking-tight brand-text">
+                  {product.price}
+                </p>
+
+                <p className="text-xs font-bold tracking-wide text-muted-foreground">
                   {product.sales}
                 </p>
               </div>
@@ -201,8 +208,8 @@ export default function Products() {
               <p
                 className={`mt-2 text-sm font-bold ${
                   product.stock === "Low Stock"
-                    ? "text-orange-500"
-                    : "text-emerald-600"
+                    ? "text-orange-500 dark:text-orange-400"
+                    : "text-emerald-600 dark:text-emerald-400"
                 }`}
               >
                 {product.stock}
@@ -212,7 +219,7 @@ export default function Products() {
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button
                 onClick={() => setEditingProduct(product)}
-                className="flex h-11 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50"
+                className="flex h-11 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
               >
                 <Pencil className="h-4 w-4" />
                 Edit
@@ -223,7 +230,7 @@ export default function Products() {
                 onClick={() =>
                   localStorage.setItem("selectedProduct", product.name)
                 }
-                className="brand-gradient flex h-11 items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white transition hover:opacity-90"
+                className="brand-gradient flex h-11 items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white transition hover:opacity-90"
               >
                 <Radio className="h-4 w-4" />
                 Sell Live
@@ -231,7 +238,7 @@ export default function Products() {
 
               <Link
                 to={`/app/products/${product.id}`}
-                className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-border text-sm font-bold transition hover:border-[var(--brand-pink)]"
+                className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-border bg-background text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)]"
               >
                 <Package className="h-4 w-4" />
                 Details
@@ -239,7 +246,7 @@ export default function Products() {
 
               <button
                 onClick={() => deleteProduct(product.id)}
-                className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-red-200 text-sm font-bold text-red-500 transition hover:bg-red-50"
+                className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-red-200 text-sm font-bold tracking-wide text-red-500 transition hover:bg-red-50 dark:border-red-500/30 dark:hover:bg-red-500/10"
               >
                 <Trash2 className="h-4 w-4" />
                 Delete
@@ -247,17 +254,33 @@ export default function Products() {
             </div>
           </div>
         ))}
-      </div>
+      </section>
 
+      {/* Empty State */}
+      {filteredProducts.length === 0 && (
+        <section className="rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
+          <Package className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
+          <h2 className="mt-4 text-xl font-black tracking-tight text-foreground">
+            No products found
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Try changing your search or filter.
+          </p>
+        </section>
+      )}
+
+      {/* Edit Modal */}
       {editingProduct && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-3xl border border-border bg-card p-6 shadow-xl">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black brand-text">Edit Product</h2>
+          <div className="w-full max-w-2xl rounded-3xl border border-border bg-card p-6 text-foreground shadow-xl">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-2xl font-black tracking-tight brand-text">
+                Edit Product
+              </h2>
 
               <button
                 onClick={() => setEditingProduct(null)}
-                className="grid h-10 w-10 place-items-center rounded-xl border border-border"
+                className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background text-foreground transition hover:border-[var(--brand-pink)]"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -315,7 +338,7 @@ export default function Products() {
 
             <button
               onClick={saveEdit}
-              className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold text-white"
+              className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
             >
               <Save className="h-4 w-4" />
               Save Changes
@@ -330,11 +353,14 @@ export default function Products() {
 function EditInput({ label, value, onChange }) {
   return (
     <div>
-      <label className="text-sm font-bold">{label}</label>
+      <label className="text-sm font-black tracking-tight text-foreground">
+        {label}
+      </label>
+
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-2 w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm outline-none focus:border-[var(--brand-pink)]"
+        className="mt-2 w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20"
       />
     </div>
   );
@@ -344,13 +370,15 @@ function StatCard({ icon: Icon, label, value }) {
   return (
     <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
           <Icon className="h-6 w-6" />
         </div>
 
         <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-2xl font-black brand-text">{value}</p>
+          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p className="text-3xl font-black tracking-tight brand-text">
+            {value}
+          </p>
         </div>
       </div>
     </div>

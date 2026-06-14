@@ -350,7 +350,14 @@ export default function AppLayout() {
   Test Twin
 </NavLink>
 
-            
+            <NavLink
+  to="/app/products"
+  onClick={() => setMobileMenu(false)}
+  className={linkClass}
+>
+  <Package size={18} />
+  Products
+</NavLink>
 
               <SidebarButton
                 icon={Share2}

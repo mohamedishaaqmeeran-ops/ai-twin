@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Signin from "./pages/SignIn";
@@ -7,7 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import TwinDashboard from "./pages/twin/TwinDashboard";
 import CreateTwin from "./pages/twin/CreateTwin";
 import TrainTwin from "./pages/twin/TrainTwin";
-
+import TestTwin from "./pages/twin/TestTwin";
 
 import Products from "./pages/products/Products";
 import AddProduct from "./pages/products/AddProduct";
@@ -20,25 +21,34 @@ import CreateSchedule from "./pages/schedule/CreateSchedule";
 import GoLive from "./pages/golive/GoLive";
 import PreLivePreview from "./pages/golive/PreLivePreview";
 import LiveStream from "./pages/golive/LiveStream";
+
 import ScrollToTop from "./components/ScrollToTop";
 import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 import WaitlistForm from "./pages/WaitlistForm";
-import TestTwin from "./pages/twin/TestTwin";
 import Settings from "./pages/Settings";
 
-function RequireTwin({ children }) {
-  const theme = localStorage.getItem("theme");
+function applySavedTheme() {
+  const theme = localStorage.getItem("theme") || "Light";
 
-if (theme === "Dark") {
-  document.documentElement.classList.add("dark");
-} else if (theme === "Light") {
-  document.documentElement.classList.remove("dark");
-} else {
-  if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+  if (theme === "Dark") {
     document.documentElement.classList.add("dark");
+    return;
   }
+
+  if (theme === "Light") {
+    document.documentElement.classList.remove("dark");
+    return;
+  }
+
+  const prefersDark = window.matchMedia(
+    "(prefers-color-scheme: dark)"
+  ).matches;
+
+  document.documentElement.classList.toggle("dark", prefersDark);
 }
+
+function RequireTwin({ children }) {
   const hasTwin = localStorage.getItem("hasTwin") === "true";
 
   if (!hasTwin) {
@@ -49,6 +59,10 @@ if (theme === "Dark") {
 }
 
 export default function App() {
+  useEffect(() => {
+    applySavedTheme();
+  }, []);
+
   return (
     <>
       <ScrollToTop />
@@ -56,7 +70,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/signin" element={<Signin />} />
-        <Route path="/waitlist" element={<WaitlistForm/>} />
+        <Route path="/waitlist" element={<WaitlistForm />} />
+
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Dashboard />} />
 

@@ -35,8 +35,56 @@ export default function Dashboard() {
     navigate("/app/golive");
   };
 
+  const products = JSON.parse(localStorage.getItem("products") || "[]");
+
+  const recentProducts = products.length
+    ? products.slice(0, 3)
+    : [
+        {
+          name: "Vitamin C Glow Serum",
+          price: "₹799",
+          status: "Ready to sell",
+          img: "/images/6.jpeg",
+        },
+        {
+          name: "Wireless Headphone",
+          price: "₹1,299",
+          status: "Ready to sell",
+          img: "/images/5.jpeg",
+        },
+        {
+          name: "Smart Watch",
+          price: "₹2,499",
+          status: "Needs script",
+          img: "/images/7.jpeg",
+        },
+      ];
+
+  const schedules = JSON.parse(localStorage.getItem("liveSchedules") || "[]");
+
+  const live = schedules[0] || {
+    title: "Instagram Live",
+    product: "Vitamin C Glow Serum",
+    date: "Today",
+    time: "07:30 PM",
+    platforms: ["Instagram"],
+  };
+
+  const platform = Array.isArray(live.platforms)
+    ? live.platforms[0]
+    : live.platform || "Instagram";
+
+  const PlatformIcon =
+    platform === "YouTube"
+      ? Youtube
+      : platform === "Facebook"
+      ? Facebook
+      : platform === "TikTok"
+      ? Music2
+      : Instagram;
+
   return (
-     <div className="min-h-full bg-background text-foreground space-y-6 transition-colors duration-300">
+    <div className="min-h-full space-y-6 bg-background text-foreground transition-colors duration-300">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr] lg:items-center">
@@ -46,7 +94,7 @@ export default function Dashboard() {
               AI LIVE COMMERCE DASHBOARD
             </span>
 
-            <h1 className="mt-5 text-3xl font-black leading-tight sm:text-5xl">
+            <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight sm:text-5xl">
               <span className="brand-text">Never sleep.</span>
               <br />
               Never stop selling.
@@ -60,7 +108,7 @@ export default function Dashboard() {
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={goLive}
-                className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold text-white shadow-md hover:opacity-90"
+                className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold text-white shadow-md transition hover:opacity-90"
               >
                 Go Live Now
                 <Radio className="h-4 w-4" />
@@ -68,7 +116,7 @@ export default function Dashboard() {
 
               <Link
                 to="/app/products/add"
-                className="flex h-12 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] px-6 text-sm font-bold text-[var(--brand-pink)] hover:bg-pink-50"
+                className="flex h-12 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] px-6 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
               >
                 Add Product
                 <ArrowRight className="h-4 w-4" />
@@ -76,11 +124,11 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="rounded-3xl bg-pink-50 ">
+          <div className="rounded-3xl bg-pink-50 p-3 dark:bg-white/10">
             <img
               src={twinImage}
               alt="AI Twin"
-              className="h-72 w-full rounded-2xl object-cover"
+              className="h-80 w-full rounded-2xl object-cover"
             />
           </div>
         </div>
@@ -91,15 +139,22 @@ export default function Dashboard() {
         <StatCard icon={Package} label="Products" value="24" change="+12%" />
         <StatCard icon={Radio} label="Live Sessions" value="18" change="+8%" />
         <StatCard icon={ShoppingBag} label="Orders" value="420" change="+22%" />
-        <StatCard icon={TrendingUp} label="Revenue" value="₹2.4L" change="+35%" />
+        <StatCard
+          icon={TrendingUp}
+          label="Revenue"
+          value="₹2.4L"
+          change="+35%"
+        />
       </section>
 
+      {/* Quick Actions + Twin Status */}
       <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        {/* Quick Actions */}
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black brand-text">Quick Actions</h2>
+              <h2 className="text-xl font-black tracking-tight brand-text">
+                Quick Actions
+              </h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Continue your AI Twin setup and selling flow.
               </p>
@@ -146,9 +201,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Twin Status */}
         <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black brand-text">AI Twin Status</h2>
+          <h2 className="text-xl font-black tracking-tight brand-text">
+            AI Twin Status
+          </h2>
 
           <div className="mt-5 rounded-2xl border border-border bg-background p-4">
             <div className="flex items-center gap-4">
@@ -159,8 +215,10 @@ export default function Dashboard() {
               />
 
               <div>
-                <h3 className="font-black">{twinName}</h3>
-                <p className="text-sm font-bold text-emerald-600">
+                <h3 className="text-base font-black tracking-tight text-foreground">
+                  {twinName}
+                </h3>
+                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                   ● {hasTwin ? "Online" : "Not Created"}
                 </p>
               </div>
@@ -184,7 +242,7 @@ export default function Dashboard() {
           ) : (
             <Link
               to="/app/twin"
-              className="mt-5 flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)] hover:bg-pink-50"
+              className="mt-5 flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
             >
               View Twin Dashboard
             </Link>
@@ -192,174 +250,131 @@ export default function Dashboard() {
         </aside>
       </section>
 
+      {/* Recent Products + Upcoming Live */}
       <section className="grid gap-6 xl:grid-cols-3">
-  {/* Recent Products */}
-  <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6 xl:col-span-2">
-    <div className="flex items-center justify-between gap-4">
-      <div>
-        <h2 className="text-xl font-black brand-text">Recent Products</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Products ready for your AI Twin to sell.
-        </p>
-      </div>
-
-      <Link
-        to="/app/products"
-        className="shrink-0 text-sm font-bold text-[var(--brand-pink)] hover:underline"
-      >
-        View All
-      </Link>
-    </div>
-
-    <div className="mt-5 space-y-3">
-      {(
-        JSON.parse(localStorage.getItem("products") || "[]").length
-          ? JSON.parse(localStorage.getItem("products") || "[]").slice(0, 3)
-          : [
-              {
-                name: "Vitamin C Glow Serum",
-                price: "₹799",
-                status: "Ready to sell",
-                img: "/images/6.jpeg",
-              },
-              {
-                name: "Wireless Headphone",
-                price: "₹1,299",
-                status: "Ready to sell",
-                img: "/images/5.jpeg",
-              },
-              {
-                name: "Smart Watch",
-                price: "₹2,499",
-                status: "Needs script",
-                img: "/images/7.jpeg",
-              },
-            ]
-      ).map((product) => (
-        <div
-          key={product.id || product.name}
-          className="flex flex-col gap-4 rounded-2xl border border-border bg-background p-4 transition hover:-translate-y-1 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
-        >
-          <div className="flex items-center gap-4">
-            <img
-              src={product.img || "/images/6.jpeg"}
-              alt={product.name}
-              className="h-16 w-16 rounded-xl bg-pink-50 object-contain"
-            />
-
+        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6 xl:col-span-2">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <h3 className="font-black">{product.name}</h3>
-
-              <p className="text-sm font-bold brand-text">
-                {product.price || "₹0"}
-              </p>
-
-              <p
-                className={`text-xs font-bold ${
-                  product.status === "Needs script"
-                    ? "text-orange-500"
-                    : "text-emerald-600"
-                }`}
-              >
-                {product.status || "Ready to sell"}
+              <h2 className="text-xl font-black tracking-tight brand-text">
+                Recent Products
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Products ready for your AI Twin to sell.
               </p>
             </div>
-          </div>
 
-          <button
-            onClick={() => {
-              localStorage.setItem("selectedProduct", product.name);
-              goLive();
-            }}
-            className="brand-gradient rounded-[5px] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:opacity-90"
-          >
-            Sell Live
-          </button>
-        </div>
-      ))}
-    </div>
-  </div>
-
-  {/* Upcoming Live */}
-  <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-    <h2 className="text-xl font-black brand-text">Upcoming Live</h2>
-
-    {(() => {
-      const schedules = JSON.parse(localStorage.getItem("liveSchedules") || "[]");
-
-      const live = schedules[0] || {
-        title: "Instagram Live",
-        product: "Vitamin C Glow Serum",
-        date: "Today",
-        time: "07:30 PM",
-        platforms: ["Instagram"],
-      };
-
-      const platform = Array.isArray(live.platforms)
-        ? live.platforms[0]
-        : live.platform || "Instagram";
-
-      const PlatformIcon =
-        platform === "YouTube"
-          ? Youtube
-          : platform === "Facebook"
-          ? Facebook
-          : platform === "TikTok"
-          ? Music2
-          : Instagram;
-
-      return (
-        <div className="mt-5 rounded-2xl border border-border bg-background p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
-              <PlatformIcon className="h-6 w-6" />
-            </div>
-
-            <div>
-              <h3 className="font-black">{platform} Live</h3>
-              <p className="text-sm text-muted-foreground">
-                {live.product}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 space-y-3 text-sm">
-            <Info icon={Calendar} label="Date" value={live.date || "Not set"} />
-            <Info icon={Clock} label="Time" value={live.time || "Not set"} />
-          </div>
-
-          <div className="mt-5 grid gap-3">
             <Link
-              to="/app/schedule"
-              className="flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)] hover:bg-pink-50"
+              to="/app/products"
+              className="shrink-0 text-sm font-bold text-[var(--brand-pink)] hover:underline"
             >
-              Manage Schedule
+              View All
             </Link>
+          </div>
 
-            <button
-              onClick={() => {
-                localStorage.setItem("selectedProduct", live.product);
-                localStorage.setItem(
-                  "selectedPlatforms",
-                  JSON.stringify(live.platforms || [platform])
-                );
-                goLive();
-              }}
-              className="brand-gradient h-11 rounded-[5px] text-sm font-bold text-white shadow-md hover:opacity-90"
-            >
-              Start This Live
-            </button>
+          <div className="mt-5 space-y-3">
+            {recentProducts.map((product) => (
+              <div
+                key={product.id || product.name}
+                className="flex flex-col gap-4 rounded-2xl border border-border bg-background p-4 transition hover:-translate-y-1 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-center gap-4">
+                  <img
+                    src={product.img || "/images/6.jpeg"}
+                    alt={product.name}
+                    className="h-16 w-16 rounded-xl bg-pink-50 object-contain dark:bg-white/10"
+                  />
+
+                  <div>
+                    <h3 className="text-base font-black tracking-tight text-foreground">
+                      {product.name}
+                    </h3>
+
+                    <p className="text-sm font-bold brand-text">
+                      {product.price || "₹0"}
+                    </p>
+
+                    <p
+                      className={`text-xs font-bold ${
+                        product.status === "Needs script"
+                          ? "text-orange-500"
+                          : "text-emerald-600 dark:text-emerald-400"
+                      }`}
+                    >
+                      {product.status || "Ready to sell"}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem("selectedProduct", product.name);
+                    goLive();
+                  }}
+                  className="brand-gradient rounded-[5px] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:opacity-90"
+                >
+                  Sell Live
+                </button>
+              </div>
+            ))}
           </div>
         </div>
-      );
-    })()}
-  </div>
-</section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
-        {/* Connected Accounts */}
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black brand-text">Connected Accounts</h2>
+          <h2 className="text-xl font-black tracking-tight brand-text">
+            Upcoming Live
+          </h2>
+
+          <div className="mt-5 rounded-2xl border border-border bg-background p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+                <PlatformIcon className="h-6 w-6" />
+              </div>
+
+              <div>
+                <h3 className="text-base font-black tracking-tight text-foreground">
+                  {platform} Live
+                </h3>
+                <p className="text-sm text-muted-foreground">{live.product}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-3 text-sm">
+              <Info icon={Calendar} label="Date" value={live.date || "Not set"} />
+              <Info icon={Clock} label="Time" value={live.time || "Not set"} />
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              <Link
+                to="/app/schedule"
+                className="flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+              >
+                Manage Schedule
+              </Link>
+
+              <button
+                onClick={() => {
+                  localStorage.setItem("selectedProduct", live.product);
+                  localStorage.setItem(
+                    "selectedPlatforms",
+                    JSON.stringify(live.platforms || [platform])
+                  );
+                  goLive();
+                }}
+                className="brand-gradient h-11 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90"
+              >
+                Start This Live
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Connected Accounts + Activity */}
+      <section className="grid gap-6 xl:grid-cols-2">
+        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <h2 className="text-xl font-black tracking-tight brand-text">
+            Connected Accounts
+          </h2>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <SocialCard icon={Instagram} name="Instagram" connected />
@@ -369,9 +384,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Activity */}
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black brand-text">Recent Activity</h2>
+          <h2 className="text-xl font-black tracking-tight brand-text">
+            Recent Activity
+          </h2>
 
           <div className="mt-5 space-y-4">
             <ActivityItem
@@ -399,11 +415,15 @@ function StatCard({ icon: Icon, label, value, change }) {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted-foreground">{label}</p>
-          <h2 className="mt-2 text-3xl font-black brand-text">{value}</h2>
-          <p className="mt-1 text-sm font-bold text-emerald-600">{change}</p>
+          <h2 className="mt-2 text-2xl font-black tracking-tight brand-text sm:text-3xl">
+            {value}
+          </h2>
+          <p className="mt-1 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+            {change}
+          </p>
         </div>
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
           <Icon className="h-6 w-6" />
         </div>
       </div>
@@ -417,11 +437,13 @@ function ActionCard({ icon: Icon, title, desc, to }) {
       to={to}
       className="rounded-2xl border border-border bg-background p-5 transition hover:-translate-y-1 hover:border-[var(--brand-pink)] hover:shadow-lg"
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
         <Icon className="h-6 w-6" />
       </div>
 
-      <h3 className="mt-5 font-black">{title}</h3>
+      <h3 className="mt-5 text-base font-black tracking-tight text-foreground">
+        {title}
+      </h3>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">{desc}</p>
     </Link>
   );
@@ -431,11 +453,13 @@ function Progress({ label, value }) {
   return (
     <div>
       <div className="mb-2 flex justify-between text-sm">
-        <span className="font-bold">{label}</span>
-        <span className="font-bold text-[var(--brand-pink)]">{value}%</span>
+        <span className="text-sm font-bold text-foreground">{label}</span>
+        <span className="text-sm font-bold text-[var(--brand-pink)]">
+          {value}%
+        </span>
       </div>
 
-      <div className="h-2 rounded-full bg-pink-100">
+      <div className="h-2 rounded-full bg-pink-100 dark:bg-white/10">
         <div
           className="brand-gradient h-2 rounded-full"
           style={{ width: `${value}%` }}
@@ -448,11 +472,11 @@ function Progress({ label, value }) {
 function Info({ icon: Icon, label, value }) {
   return (
     <div className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3">
-      <span className="flex items-center gap-2 text-muted-foreground">
+      <span className="flex items-center gap-2 text-sm text-muted-foreground">
         <Icon className="h-4 w-4 text-[var(--brand-pink)]" />
         {label}
       </span>
-      <span className="font-bold">{value}</span>
+      <span className="text-sm font-black text-foreground">{value}</span>
     </div>
   );
 }
@@ -462,14 +486,14 @@ function SocialCard({ icon: Icon, name, connected }) {
     <div className="flex items-center justify-between rounded-2xl border border-border bg-background p-4">
       <div className="flex items-center gap-3">
         <Icon className="h-5 w-5 text-[var(--brand-pink)]" />
-        <p className="font-bold">{name}</p>
+        <p className="text-sm font-black text-foreground">{name}</p>
       </div>
 
       <span
         className={`rounded-full px-3 py-1 text-xs font-bold ${
           connected
-            ? "bg-emerald-50 text-emerald-600"
-            : "bg-orange-50 text-orange-500"
+            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+            : "bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400"
         }`}
       >
         {connected ? "Connected" : "Not Connected"}
@@ -484,7 +508,7 @@ function ActivityItem({ title, time }) {
       <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
 
       <div>
-        <p className="font-bold">{title}</p>
+        <p className="text-sm font-bold leading-6 text-foreground">{title}</p>
         <p className="mt-1 text-sm text-muted-foreground">{time}</p>
       </div>
     </div>

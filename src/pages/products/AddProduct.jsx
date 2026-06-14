@@ -30,6 +30,12 @@ export default function AddProduct() {
   const [images, setImages] = useState([]);
   const [saved, setSaved] = useState(false);
 
+  const inputClass =
+    "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100 dark:focus:ring-pink-500/20";
+
+  const textareaClass =
+    "w-full rounded-2xl border border-border bg-background p-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100 dark:focus:ring-pink-500/20";
+
   const updateField = (field, value) => {
     setProduct((prev) => ({ ...prev, [field]: value }));
   };
@@ -59,7 +65,12 @@ export default function AddProduct() {
     };
 
     const oldProducts = JSON.parse(localStorage.getItem("products") || "[]");
-    localStorage.setItem("products", JSON.stringify([...oldProducts, newProduct]));
+
+    localStorage.setItem(
+      "products",
+      JSON.stringify([...oldProducts, newProduct])
+    );
+
     localStorage.setItem("selectedProduct", newProduct.name);
 
     setSaved(true);
@@ -72,7 +83,7 @@ export default function AddProduct() {
   const canSave = product.name.trim() && product.price.trim();
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6 text-foreground">
       {/* Header */}
       <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <button
@@ -102,11 +113,13 @@ export default function AddProduct() {
         {/* Form */}
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           {/* Upload */}
-          <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-[var(--brand-pink)] hover:bg-pink-50">
-            <Upload className="text-[var(--brand-pink)]" />
-            <p className="mt-3 font-bold">Upload product images</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              PNG, JPG, WEBP supported
+          <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-[var(--brand-pink)] hover:bg-accent">
+            <Upload className="h-7 w-7 text-[var(--brand-pink)]" />
+
+            <p className="mt-3 text-base font-black">Upload product images</p>
+
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              PNG, JPG, WEBP supported. You can upload multiple product images.
             </p>
 
             <input
@@ -122,7 +135,7 @@ export default function AddProduct() {
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {images.map((img, index) => (
                 <div
-                  key={index}
+                  key={`${img.name}-${index}`}
                   className="relative rounded-2xl border border-border bg-background p-3"
                 >
                   <img
@@ -132,8 +145,9 @@ export default function AddProduct() {
                   />
 
                   <button
+                    type="button"
                     onClick={() => removeImage(index)}
-                    className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-white text-red-500 shadow"
+                    className="absolute right-2 top-2 grid h-8 w-8 place-items-center rounded-full bg-card text-red-500 shadow transition hover:bg-red-50 dark:hover:bg-white/10"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -148,7 +162,7 @@ export default function AddProduct() {
               <input
                 value={product.name}
                 onChange={(e) => updateField("name", e.target.value)}
-                 className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100"
+                className={inputClass}
                 placeholder="Vitamin C Glow Serum"
               />
             </Field>
@@ -157,7 +171,7 @@ export default function AddProduct() {
               <input
                 value={product.price}
                 onChange={(e) => updateField("price", e.target.value)}
-                 className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100"
+                className={inputClass}
                 placeholder="₹799"
               />
             </Field>
@@ -166,7 +180,7 @@ export default function AddProduct() {
               <input
                 value={product.category}
                 onChange={(e) => updateField("category", e.target.value)}
-                className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100"
+                className={inputClass}
                 placeholder="Beauty / Electronics"
               />
             </Field>
@@ -175,7 +189,7 @@ export default function AddProduct() {
               <input
                 value={product.stock}
                 onChange={(e) => updateField("stock", e.target.value)}
-                 className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100"
+                className={inputClass}
                 placeholder="100"
               />
             </Field>
@@ -185,7 +199,7 @@ export default function AddProduct() {
             <textarea
               value={product.description}
               onChange={(e) => updateField("description", e.target.value)}
-               className="w-full rounded-2xl border border-border bg-background p-4 text-sm outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100"
+              className={textareaClass}
               rows="5"
               placeholder="Write product benefits, ingredients/features, usage and offer details..."
             />
@@ -195,7 +209,7 @@ export default function AddProduct() {
             <textarea
               value={product.script}
               onChange={(e) => updateField("script", e.target.value)}
-              className="w-full rounded-2xl border border-border bg-background p-4 text-sm outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100"
+              className={textareaClass}
               rows="5"
               placeholder="Example: Introduce the product, explain benefits, handle objections, offer discount, ask viewers to buy now..."
             />
@@ -204,7 +218,7 @@ export default function AddProduct() {
           <button
             onClick={saveProduct}
             disabled={!canSave}
-            className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold text-white shadow-md hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
             Save Product
@@ -222,7 +236,7 @@ export default function AddProduct() {
               className="h-64 w-full rounded-2xl object-contain"
             />
 
-            <h3 className="mt-5 text-lg font-black">
+            <h3 className="mt-5 text-lg font-black text-foreground">
               {product.name || "Product Name"}
             </h3>
 
@@ -234,20 +248,30 @@ export default function AddProduct() {
               {product.category || "Category"} · Stock: {product.stock || "0"}
             </p>
 
-            <div className="mt-5 rounded-2xl bg-pink-50 p-4">
+            <div className="mt-5 rounded-2xl border border-border bg-accent p-4">
               <p className="text-sm font-bold text-[var(--brand-pink)]">
                 AI Selling Status
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
+
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {product.script.trim()
                   ? "Ready to sell during live."
                   : "Add sales script to make it live-ready."}
               </p>
             </div>
+
+            <div className="mt-5 rounded-2xl border border-border bg-background p-4">
+              <p className="text-sm font-black">Product Description</p>
+
+              <p className="mt-2 line-clamp-5 text-sm leading-6 text-muted-foreground">
+                {product.description ||
+                  "Your product description will appear here."}
+              </p>
+            </div>
           </div>
 
           {saved && (
-            <div className="mt-5 flex items-center gap-3 rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-600">
+            <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="h-5 w-5" />
               Product saved successfully
             </div>
@@ -261,10 +285,11 @@ export default function AddProduct() {
 function Field({ icon: Icon, label, children }) {
   return (
     <div className="mt-5">
-      <label className="mb-2 flex items-center gap-2 text-sm font-bold">
+      <label className="mb-2 flex items-center gap-2 text-sm font-black text-foreground">
         <Icon className="h-4 w-4 text-[var(--brand-pink)]" />
         {label}
       </label>
+
       {children}
     </div>
   );

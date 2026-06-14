@@ -90,26 +90,26 @@ export default function PreLivePreview() {
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+    <div className="grid gap-6 bg-background text-foreground transition-colors duration-300 xl:grid-cols-[1fr_380px]">
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <button
           onClick={() => navigate("/app/golive")}
-          className="mb-5 flex items-center gap-2 text-sm font-bold text-[var(--brand-pink)] hover:underline"
+          className="mb-5 flex items-center gap-2 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Setup
         </button>
 
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-semibold text-foreground">
+        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
           <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
           PRE-LIVE PREVIEW
         </span>
 
-        <h1 className="mt-5 text-3xl font-black sm:text-4xl">
+        <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
           <span className="brand-text">Preview</span> Before Live
         </h1>
 
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
           Preview how your AI Twin will look on each selected platform.
         </p>
 
@@ -123,9 +123,9 @@ export default function PreLivePreview() {
               <button
                 key={platform}
                 onClick={() => setActivePlatform(platform)}
-                className={`flex items-center gap-2 rounded-[5px] border px-4 py-2 text-sm font-bold transition ${
+                className={`flex items-center gap-2 rounded-[5px] border px-4 py-2 text-sm font-bold tracking-wide transition ${
                   active
-                    ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)]"
+                    ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
                     : "border-border bg-background text-muted-foreground hover:border-[var(--brand-pink)]"
                 }`}
               >
@@ -148,7 +148,7 @@ export default function PreLivePreview() {
 
         {/* All Selected Platforms Preview */}
         <div className="mt-10">
-          <h2 className="text-xl font-black brand-text">
+          <h2 className="text-xl font-black tracking-tight brand-text">
             All Selected Platform Previews
           </h2>
 
@@ -168,7 +168,9 @@ export default function PreLivePreview() {
       </section>
 
       <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <h2 className="text-xl font-black brand-text">Live Summary</h2>
+        <h2 className="text-xl font-black tracking-tight brand-text">
+          Live Summary
+        </h2>
 
         <div className="mt-5 space-y-4">
           <Info icon={Radio} label="AI Twin" value={setup.twinName} />
@@ -195,10 +197,11 @@ export default function PreLivePreview() {
           />
         </div>
 
-        <div className="mt-6 rounded-2xl bg-pink-50 p-4">
+        <div className="mt-6 rounded-2xl bg-pink-50 p-4 dark:bg-white/10">
           <div className="flex gap-3">
             <CheckCircle2 className="h-5 w-5 text-[var(--brand-pink)]" />
-            <p className="text-sm font-bold">
+
+            <p className="text-sm font-bold leading-6 text-foreground">
               Ready to launch. Your AI Twin will focus on this selected product.
             </p>
           </div>
@@ -206,7 +209,7 @@ export default function PreLivePreview() {
 
         <button
           onClick={startLive}
-          className="brand-gradient mt-8 w-full rounded-[5px] py-3 text-sm font-bold text-white shadow-md hover:opacity-90"
+          className="brand-gradient mt-8 w-full rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
         >
           Go Live Now
         </button>
@@ -224,10 +227,13 @@ function PlatformPreview({ platform, twinImage, twinName, product, compact }) {
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Icon className="h-5 w-5 text-[var(--brand-pink)]" />
-          <h3 className="font-black">{platform}</h3>
+
+          <h3 className="text-base font-black tracking-tight text-foreground">
+            {platform}
+          </h3>
         </div>
 
-        <span className="rounded-full bg-pink-50 px-3 py-1 text-xs font-bold text-[var(--brand-pink)]">
+        <span className="rounded-full bg-pink-50 px-3 py-1 text-xs font-bold tracking-wide text-[var(--brand-pink)] dark:bg-white/10">
           {config.label}
         </span>
       </div>
@@ -245,15 +251,15 @@ function PlatformPreview({ platform, twinImage, twinName, product, compact }) {
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/40" />
 
-        <span className="absolute left-3 top-3 rounded-[5px] bg-red-600 px-3 py-1 text-xs font-black text-white">
+        <span className="absolute left-3 top-3 rounded-[5px] bg-red-600 px-3 py-1 text-xs font-black tracking-wide text-white">
           LIVE
         </span>
 
-        <span className="absolute right-3 top-3 rounded-[5px] bg-black/60 px-3 py-1 text-xs font-black text-white">
+        <span className="absolute right-3 top-3 rounded-[5px] bg-black/60 px-3 py-1 text-xs font-black tracking-wide text-white">
           👁 2.8K
         </span>
 
-        <div className="absolute left-3 top-12 rounded-2xl bg-black/55 px-3 py-2 text-xs font-bold text-white backdrop-blur">
+        <div className="absolute left-3 top-12 rounded-2xl bg-black/55 px-3 py-2 text-xs font-black tracking-wide text-white backdrop-blur">
           {twinName}
         </div>
 
@@ -266,7 +272,7 @@ function PlatformPreview({ platform, twinImage, twinName, product, compact }) {
             ].map((msg) => (
               <div
                 key={msg}
-                className="rounded-2xl bg-black/55 px-3 py-2 text-xs text-white backdrop-blur"
+                className="rounded-2xl bg-black/55 px-3 py-2 text-xs font-medium leading-5 text-white backdrop-blur"
               >
                 {msg}
               </div>
@@ -274,13 +280,16 @@ function PlatformPreview({ platform, twinImage, twinName, product, compact }) {
           </div>
         )}
 
-        <div className="absolute bottom-3 left-3 right-3 rounded-2xl bg-white/95 p-3 shadow-lg">
-          <p className="text-sm font-black">{product}</p>
-          <p className="text-xs font-bold text-[var(--brand-pink)]">
+        <div className="absolute bottom-3 left-3 right-3 rounded-2xl bg-white/95 dark:bg-white/10 p-3 shadow-lg">
+          <p className="text-sm font-black tracking-tight text-foreground">
+            {product}
+          </p>
+
+          <p className="text-xs font-bold tracking-wide text-[var(--brand-pink)]">
             Limited live offer
           </p>
 
-          <button className="brand-gradient mt-2 w-full rounded-[5px] py-2 text-xs font-bold text-white">
+          <button className="brand-gradient mt-2 w-full rounded-[5px] py-2 text-xs font-bold tracking-wide text-white transition hover:opacity-90">
             Buy Now
           </button>
         </div>
@@ -292,12 +301,14 @@ function PlatformPreview({ platform, twinImage, twinName, product, compact }) {
 function Info({ icon: Icon, label, value }) {
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl border border-border bg-background p-4">
-      <span className="flex items-center gap-2 text-sm text-muted-foreground">
+      <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
         <Icon className="h-4 w-4 text-[var(--brand-pink)]" />
         {label}
       </span>
 
-      <span className="text-right text-sm font-black">{value}</span>
+      <span className="text-right text-sm font-black tracking-tight text-foreground">
+        {value}
+      </span>
     </div>
   );
 }
