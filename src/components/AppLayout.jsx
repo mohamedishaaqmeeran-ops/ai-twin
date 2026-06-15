@@ -1,4 +1,5 @@
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
   Home,
   UserRound,
@@ -28,16 +29,20 @@ export default function AppLayout() {
   const twinName = localStorage.getItem("twinName") || "My AI Twin";
   const twinImage =  "/images/bbb.png";
 
-  const handleProtectedNav = (path) => {
-    if (!hasTwin) {
-      navigate("/app/twin/create");
-      setMobileMenu(false);
-      return;
-    }
+const handleProtectedNav = (path) => {
+  if (!hasTwin) {
+    toast.warning("Please create your AI Twin first to access this section.", {
+      toastId: "create-twin-warning",
+    });
 
-    navigate(path);
+    navigate("/app/twin/create");
     setMobileMenu(false);
-  };
+    return;
+  }
+
+  navigate(path);
+  setMobileMenu(false);
+};
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-3 rounded-2xl px-5 py-3.5 text-sm font-bold transition-all duration-300 ${

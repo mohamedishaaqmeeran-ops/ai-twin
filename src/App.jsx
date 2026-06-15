@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Signin from "./pages/SignIn";
@@ -51,6 +53,17 @@ function applySavedTheme() {
 
 function RequireTwin({ children }) {
   const hasTwin = localStorage.getItem("hasTwin") === "true";
+
+  useEffect(() => {
+    if (!hasTwin) {
+      toast.warning(
+        "Please create your AI Twin first to access this section.",
+        {
+          toastId: "create-twin-warning",
+        }
+      );
+    }
+  }, [hasTwin]);
 
   if (!hasTwin) {
     return <Navigate to="/app/twin/create" replace />;
@@ -169,6 +182,16 @@ export default function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
+       <ToastContainer
+        position="top-right"
+        autoClose={2500}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="colored"
+      />
     </>
   );
 }

@@ -189,7 +189,7 @@ export default function LiveStream() {
           <img
             src={twinImage}
             alt="Live Twin"
-            className="h-[720px] w-full object-cover opacity-90"
+            className="h-full w-full object-cover opacity-90"
           />
         ) : (
           <div className="grid h-[720px] place-items-center text-white">

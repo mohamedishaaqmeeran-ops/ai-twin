@@ -153,12 +153,7 @@ const deleteAccount = () => {
                 onClick={() => update("liveAlerts", !settings.liveAlerts)}
               />
 
-              <Toggle
-                title="Order Alerts"
-                desc="Notify when new orders are created."
-                active={settings.orderAlerts}
-                onClick={() => update("orderAlerts", !settings.orderAlerts)}
-              />
+             
             </div>
           </Card>
 
