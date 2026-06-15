@@ -19,26 +19,38 @@ export default function SignIn() {
   const [showMore, setShowMore] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const login = (provider = "email") => {
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("loginProvider", provider);
+ const login = (provider = "email") => {
+  localStorage.setItem("isLoggedIn", "true");
+  localStorage.setItem("loginProvider", provider);
 
-    const hasTwin = localStorage.getItem("hasTwin") === "true";
+  // Demo role
+  // Change this value after backend authentication
+  const role =
+    email === "admin@aitwin.com" ? "admin" : "user";
 
-    if (hasTwin) {
-      navigate("/app");
-    } else {
-      navigate("/app/twin/create");
-    }
-  };
+  localStorage.setItem("role", role);
 
-  const handleEmailLogin = (e) => {
-    e.preventDefault();
+  if (role === "admin") {
+    navigate("/admin");
+    return;
+  }
 
-    if (!email.trim() || !password.trim()) return;
+  const hasTwin = localStorage.getItem("hasTwin") === "true";
 
-    login("email");
-  };
+  if (hasTwin) {
+    navigate("/app");
+  } else {
+    navigate("/app/twin/create");
+  }
+};
+
+ const handleEmailLogin = (e) => {
+  e.preventDefault();
+
+  if (!email.trim() || !password.trim()) return;
+
+  login("email");
+};
 
   const socialButtonClass =
     "flex h-12 w-full items-center justify-center gap-3 rounded-[5px] border border-border bg-background text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10";

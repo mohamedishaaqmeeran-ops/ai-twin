@@ -42,6 +42,16 @@ import AdminLives from "./admin/AdminLives";
 import AdminAnalytics from "./admin/AdminAnalytics";
 import AdminSettings from "./admin/AdminSettings";
 
+
+function RequireAdmin({ children }) {
+  const role = localStorage.getItem("role");
+
+  if (role !== "admin") {
+    return <Navigate to="/app" replace />;
+  }
+
+  return children;
+}
 function applySavedTheme() {
   const theme = localStorage.getItem("theme") || "Light";
 
@@ -194,7 +204,7 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
 
 
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/admin" element={ <RequireAdmin><AdminLayout /></RequireAdmin>}>
   <Route index element={<AdminDashboard />} />
   <Route path="users" element={<AdminUsers />} />
   <Route path="twins" element={<AdminTwins />} />
