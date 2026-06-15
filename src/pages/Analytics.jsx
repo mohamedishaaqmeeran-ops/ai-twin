@@ -210,17 +210,71 @@ function Product({ name, sales, percent }) {
   );
 }
 
-function Live({ title, viewers, revenue }) {
+function Live({
+  title,
+  viewers,
+  revenue,
+  date,
+  time,
+  status = "Live",
+}) {
   return (
-    <div className="rounded-2xl border border-border bg-background p-4">
-      <h3 className="text-base font-black tracking-tight text-foreground">
-        {title}
-      </h3>
+    <div className="rounded-2xl border border-border bg-background p-5 shadow-sm transition hover:shadow-md">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <h3 className="text-base font-black tracking-tight text-foreground">
+          {title}
+        </h3>
 
-      <div className="mt-2 flex justify-between gap-4 text-sm font-medium text-muted-foreground">
-        <span>{viewers} Viewers</span>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-bold ${
+            status === "Live"
+              ? "bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+              : "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+          }`}
+        >
+          ● {status}
+        </span>
+      </div>
 
-        <span className="font-black tracking-tight brand-text">{revenue}</span>
+      {/* Date & Time */}
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-border bg-card p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Date
+          </p>
+
+          <p className="mt-1 text-sm font-black text-foreground">
+            {date}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Time
+          </p>
+
+          <p className="mt-1 text-sm font-black text-foreground">
+            {time}
+          </p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-card p-3">
+        <div>
+          <p className="text-xs text-muted-foreground">Viewers</p>
+          <p className="text-sm font-black text-foreground">
+            {viewers}
+          </p>
+        </div>
+
+        <div className="text-right">
+          <p className="text-xs text-muted-foreground">Revenue</p>
+          <p className="text-sm font-black brand-text">
+            {revenue}
+          </p>
+        </div>
       </div>
     </div>
   );

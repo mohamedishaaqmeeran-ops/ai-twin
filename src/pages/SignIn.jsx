@@ -64,7 +64,7 @@ export default function SignIn() {
 
           <div className="mt-6">
             <span className="inline-flex rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-              AI LIVE COMMERCE
+              AI TWIN LIVE COMMERCE
             </span>
 
             <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight text-foreground sm:text-4xl">

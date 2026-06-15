@@ -368,45 +368,50 @@ function Hero() {
           </div>
 
      <div className="hidden space-y-6 lg:block">
-  <div className="w-[240px] rounded-3xl border border-border bg-card p-5 shadow-xl">
-    <h3 className="mb-5 text-xl font-black text-foreground">
-      Connected Platforms
-    </h3>
+  <div className="w-[280px] rounded-3xl border border-border bg-card p-5 shadow-xl">
+  <h3 className="mb-5 text-xl font-black text-foreground">
+    Connected Platforms
+  </h3>
 
-    <div className="space-y-4">
-      {[
-        [Instagram, "Instagram"],
-        [Facebook, "Facebook"],
-        [Youtube, "YouTube"],
-        [Music2, "TikTok"],
-      ].map(([Icon, name]) => (
-        <div
-          key={name}
-          className="flex items-center justify-between gap-3 rounded-2xl border border-border p-3"
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-pink-50 text-[var(--brand-pink)]">
-              <Icon className="h-6 w-6" />
-            </div>
-
-            <div className="min-w-0">
-              <p className="truncate text-sm font-black text-foreground">
-                {name}
-              </p>
-             
-            </div>
+  <div className="space-y-4">
+    {[
+      [Instagram, "Instagram"],
+      [Facebook, "Facebook"],
+      [Youtube, "YouTube"],
+      [Music2, "TikTok"],
+    ].map(([Icon, name]) => (
+      <div
+        key={name}
+        className="flex items-center justify-between gap-3 rounded-2xl border border-border p-3"
+      >
+        {/* Left */}
+        <div className="flex flex-1 items-center gap-3">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+            <Icon className="h-6 w-6" />
           </div>
 
-          <Link
-            to="/app/golive"
-            className="shrink-0 rounded-full border border-[var(--brand-pink)] px-3 py-2 text-center text-[11px] font-bold leading-tight text-[var(--brand-pink)] transition hover:bg-[var(--brand-pink)] hover:text-white"
-          >
-            Go<br />Live
-          </Link>
+          <div className="flex-1">
+            <p className="text-sm font-black text-foreground">
+              {name}
+            </p>
+
+            <p className="text-xs text-muted-foreground">
+              Connected
+            </p>
+          </div>
         </div>
-      ))}
-    </div>
+
+        {/* Button */}
+        <Link
+          to="/signin"
+          className="shrink-0 rounded-full border border-[var(--brand-pink)] px-3 py-2 text-center text-[11px] font-bold text-[var(--brand-pink)] transition hover:bg-[var(--brand-pink)] hover:text-white"
+        >
+          Go Live
+        </Link>
+      </div>
+    ))}
   </div>
+</div>
 </div>
         </div>
       </div>

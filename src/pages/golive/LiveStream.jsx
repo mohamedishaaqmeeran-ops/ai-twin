@@ -58,7 +58,7 @@ export default function LiveStream() {
   const [viewers, setViewers] = useState(4800);
   const [orders, setOrders] = useState(85);
   const [revenue, setRevenue] = useState(58900);
-
+   const [liveStartedAt, setLiveStartedAt] = useState("");
   const [ended, setEnded] = useState(false);
   const [liveLink, setLiveLink] = useState("");
   const [showShareModal, setShowShareModal] = useState(true);
@@ -67,24 +67,36 @@ export default function LiveStream() {
   useEffect(() => {
     const oldSession = JSON.parse(localStorage.getItem("liveSession") || "{}");
 
-    if (oldSession.url) {
-      setLiveLink(oldSession.url);
-    } else {
+   if (oldSession.url) {
+  setLiveLink(oldSession.url);
+  setLiveStartedAt(oldSession.startedAt);
+} else {
       const liveId = crypto.randomUUID().slice(0, 8).toUpperCase();
       const url = `${window.location.origin}/live/${liveId}`;
 
-      const session = {
-        id: liveId,
-        url,
-        twinName,
-        product,
-        platforms,
-        startedAt: new Date().toISOString(),
-        status: "live",
-      };
+     const startTime = new Date().toLocaleString("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
+});
 
-      localStorage.setItem("liveSession", JSON.stringify(session));
-      setLiveLink(url);
+const session = {
+  id: liveId,
+  url,
+  twinName,
+  product,
+  platforms,
+  startedAt: startTime,
+  status: "live",
+};
+
+localStorage.setItem("liveSession", JSON.stringify(session));
+
+setLiveLink(url);
+setLiveStartedAt(startTime);
     }
   }, []);
 
@@ -362,16 +374,37 @@ export default function LiveStream() {
             Live Stats
           </h2>
 
-          <div className="mt-5 space-y-3">
-            <Stat icon={Eye} label="Viewers" value={formattedViewers} />
-            <Stat icon={ShoppingCart} label="Orders" value={orders} />
-            <Stat
-              icon={IndianRupee}
-              label="Revenue"
-              value={`₹${revenue.toLocaleString("en-IN")}`}
-            />
-            <Stat icon={Users} label="Platforms" value={platforms.join(", ")} />
-          </div>
+         <div className="mt-5 space-y-3">
+  <Stat
+    icon={CheckCircle2}
+    label="Started"
+    value={liveStartedAt}
+  />
+
+  <Stat
+    icon={Eye}
+    label="Viewers"
+    value={formattedViewers}
+  />
+
+  <Stat
+    icon={ShoppingCart}
+    label="Orders"
+    value={orders}
+  />
+
+  <Stat
+    icon={IndianRupee}
+    label="Revenue"
+    value={`₹${revenue.toLocaleString("en-IN")}`}
+  />
+
+  <Stat
+    icon={Users}
+    label="Platforms"
+    value={platforms.join(", ")}
+  />
+</div>
         </div>
 
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
@@ -405,15 +438,16 @@ export default function LiveStream() {
       </aside>
 
       {showShareModal && (
-        <ShareLiveModal
-          liveLink={liveLink}
-          product={product}
-          platforms={platforms}
-          copied={copied}
-          onCopy={copyLiveLink}
-          onClose={() => setShowShareModal(false)}
-          onShare={shareLive}
-        />
+       <ShareLiveModal
+  liveLink={liveLink}
+  product={product}
+  platforms={platforms}
+  liveStartedAt={liveStartedAt}
+  copied={copied}
+  onCopy={copyLiveLink}
+  onClose={() => setShowShareModal(false)}
+  onShare={shareLive}
+/>
       )}
     </div>
   );
@@ -423,6 +457,7 @@ function ShareLiveModal({
   liveLink,
   product,
   platforms,
+  liveStartedAt,
   copied,
   onCopy,
   onClose,
@@ -458,7 +493,15 @@ function ShareLiveModal({
           <p className="mt-1 text-sm font-medium text-muted-foreground">
             {product}
           </p>
+<div className="mt-4 rounded-xl border border-border bg-background p-3">
+  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+    Live Started
+  </p>
 
+  <p className="mt-1 text-sm font-black text-foreground">
+    {liveStartedAt}
+  </p>
+</div>
           <div className="mt-4 rounded-xl bg-card p-3">
             <p className="break-all text-sm font-medium text-foreground">
               {liveLink}

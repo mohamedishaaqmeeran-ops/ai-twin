@@ -31,6 +31,17 @@ import NotFound from "./pages/NotFound";
 import WaitlistForm from "./pages/WaitlistForm";
 import Settings from "./pages/Settings";
 
+
+
+import AdminLayout from "./components/AdminLayout";
+import AdminDashboard from "./admin/AdminDashboard";
+import AdminUsers from "./admin/AdminUsers";
+import AdminTwins from "./admin/AdminTwins";
+import AdminProducts from "./admin/AdminProducts";
+import AdminLives from "./admin/AdminLives";
+import AdminAnalytics from "./admin/AdminAnalytics";
+import AdminSettings from "./admin/AdminSettings";
+
 function applySavedTheme() {
   const theme = localStorage.getItem("theme") || "Light";
 
@@ -181,6 +192,17 @@ export default function App() {
         </Route>
 
         <Route path="*" element={<NotFound />} />
+
+
+        <Route path="/admin" element={<AdminLayout />}>
+  <Route index element={<AdminDashboard />} />
+  <Route path="users" element={<AdminUsers />} />
+  <Route path="twins" element={<AdminTwins />} />
+  <Route path="products" element={<AdminProducts />} />
+  <Route path="lives" element={<AdminLives />} />
+  <Route path="analytics" element={<AdminAnalytics />} />
+  <Route path="settings" element={<AdminSettings />} />
+</Route>
       </Routes>
        <ToastContainer
         position="top-right"
