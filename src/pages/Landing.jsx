@@ -41,7 +41,8 @@ import {
   Crown,
   Rocket,
   ShoppingBasket,
-  IndianRupee
+  IndianRupee,
+  Sparkle
 } from "lucide-react";
 import Logo from "../components/Logo";
 import { useState } from "react";
@@ -84,21 +85,34 @@ function TopBanner() {
 
   return (
     <div className="bg-[#0d0d12] text-white">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-2 sm:px-6 lg:px-8">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 sm:px-6 lg:px-8">
+        
+        {/* Left */}
+        <div className="flex flex-1 items-center gap-2">
           <div className="brand-gradient flex h-8 w-8 shrink-0 items-center justify-center rounded-[5px]">
             <Activity className="h-4 w-4" />
           </div>
 
-          <p className="truncate text-xs font-bold tracking-wide sm:text-sm">
-            AI Twin goes live, engages and sells for you 24/7.
+          <p className="text-xs font-bold sm:text-sm">
+            Never Sleep.{" "}
+            <span className="brand-text font-black">
+              Never Stop Selling.
+            </span>
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        {/* Center */}
+        <div className="hidden flex-1 justify-center md:flex">
+          <p className="text-xs font-semibold text-gray-300 sm:text-sm">
+            24/7 AI Digital Self
+          </p>
+        </div>
+
+        {/* Right */}
+        <div className="flex flex-1 items-center justify-end gap-2">
           <Link
             to="/waitlist"
-            className="brand-gradient inline-flex items-center justify-center rounded-[5px] px-3 py-1.5 text-xs font-bold tracking-wide text-white hover:opacity-90 sm:text-sm"
+            className="brand-gradient inline-flex items-center justify-center rounded-[5px] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90 sm:text-sm"
           >
             Join Waitlist
           </Link>
@@ -110,6 +124,7 @@ function TopBanner() {
             <X className="h-4 w-4" />
           </button>
         </div>
+
       </div>
     </div>
   );
@@ -249,16 +264,15 @@ function Hero() {
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-pink-50/40 to-orange-50/30 py-16 dark:from-background dark:via-white/5 dark:to-white/5">
       <div className="mx-auto grid max-w-7xl gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_520px] lg:items-center lg:px-8">
         <div className="text-center lg:text-left">
-          <span className="inline-flex items-center gap-2 rounded-full bg-pink-50 px-4 py-2 text-xs font-bold tracking-wide text-[var(--brand-pink)] dark:bg-white/10">
-            <span className="h-2 w-2 rounded-full bg-[var(--brand-pink)]" />
-            AI LIVE COMMERCE PLATFORM
+          <span className="inline-flex items-center border-2 border-pink-500 gap-2 rounded-full bg-pink-50 px-4 py-2 text-xs font-bold tracking-wide text-[var(--brand-pink)] dark:bg-white/10">
+            <Sparkles />
+            AI TWIN LIVE COMMERCE PLATFORM
           </span>
 
           <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
             Your AI Twin.
             <br />
-            Live. Engage.{" "}
-            <span className="brand-text">Sell.</span>
+            <span className="brand-text">Live. Engage. Sell.</span>
           </h1>
 
           <p className="mx-auto mt-5 max-w-xl text-base font-medium leading-7 text-muted-foreground lg:mx-0">
@@ -353,46 +367,47 @@ function Hero() {
             </div>
           </div>
 
-          <div className="hidden space-y-6 lg:block">
-            <div className="rounded-3xl border border-border bg-card p-5 shadow-xl">
-              <div className="space-y-5">
-                {[
-                  [Instagram, "Instagram", "Live"],
-                  [Facebook, "Facebook", "Live"],
-                  [Youtube, "YouTube", "Live"],
-                  [Music2, "TikTok", "Live"],
-                ].map(([Icon, name, status]) => (
-                  <div key={name} className="flex items-center gap-3">
-                    <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
-                    <div>
-                      <p className="text-sm font-black text-foreground">
-                        {name}
-                      </p>
-                      <p className="text-xs font-medium text-muted-foreground">
-                        {status}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+     <div className="hidden space-y-6 lg:block">
+  <div className="w-[240px] rounded-3xl border border-border bg-card p-5 shadow-xl">
+    <h3 className="mb-5 text-xl font-black text-foreground">
+      Connected Platforms
+    </h3>
+
+    <div className="space-y-4">
+      {[
+        [Instagram, "Instagram"],
+        [Facebook, "Facebook"],
+        [Youtube, "YouTube"],
+        [Music2, "TikTok"],
+      ].map(([Icon, name]) => (
+        <div
+          key={name}
+          className="flex items-center justify-between gap-3 rounded-2xl border border-border p-3"
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-pink-50 text-[var(--brand-pink)]">
+              <Icon className="h-6 w-6" />
             </div>
 
-            <div className="rounded-3xl border border-border bg-card p-5 shadow-xl">
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-                <TrendingUp className="h-7 w-7" />
-              </div>
-
-              <p className="mt-5 text-sm font-bold text-muted-foreground">
-                Live Sales Today
+            <div className="min-w-0">
+              <p className="truncate text-sm font-black text-foreground">
+                {name}
               </p>
-              <p className="mt-2 text-3xl font-black tracking-tight text-foreground">
-                ₹1,25,430
-              </p>
-              <p className="mt-2 text-sm font-bold text-emerald-600">
-                +32% vs yesterday ↗
-              </p>
+             
             </div>
           </div>
+
+          <Link
+            to="/app/golive"
+            className="shrink-0 rounded-full border border-[var(--brand-pink)] px-3 py-2 text-center text-[11px] font-bold leading-tight text-[var(--brand-pink)] transition hover:bg-[var(--brand-pink)] hover:text-white"
+          >
+            Go<br />Live
+          </Link>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
         </div>
       </div>
     </section>
@@ -410,9 +425,8 @@ function FeatureRow() {
 
   return (
     <section id="features" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <h2 className="text-center text-2xl font-black tracking-tight text-foreground sm:text-3xl">
-        Everything you need to{" "}
-        <span className="brand-text">sell more</span>, live more, worry less.
+      <h2 className="text-center text-3xl font-black tracking-tight brand-text md:text-4xl">
+        Everything you need to sell more, live more, worry less.
       </h2>
 
       <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
