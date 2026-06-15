@@ -191,10 +191,10 @@ function Nav() {
             </Link>
 
             <Link
-              to="/waitlist"
+              to="/signin"
               className="brand-gradient flex h-11 items-center justify-center rounded-[5px] px-5 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
             >
-              Join Waitlist
+            Get Started
             </Link>
           </div>
 
@@ -229,10 +229,10 @@ function Nav() {
               </Link>
 
               <Link
-                to="/waitlist"
+                to="/signin"
                 className="brand-gradient flex h-11 items-center justify-center rounded-lg text-sm font-bold tracking-wide text-white"
               >
-                Join Waitlist
+                Get Started
               </Link>
             </div>
           </div>
