@@ -630,7 +630,7 @@ function SocialProof() {
               to="/signin"
               className="mt-5 inline-flex items-center gap-2 rounded-[5px] bg-white px-5 py-2.5 text-sm font-bold tracking-wide text-gray-900 shadow md:mt-18"
             >
-              Get Started Free
+              Get Started
               <ArrowRight className="h-4 w-4 text-[var(--brand-pink)]" />
             </Link>
           </div>
