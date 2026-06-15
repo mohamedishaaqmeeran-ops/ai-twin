@@ -92,7 +92,7 @@ export default function AdminLayout() {
               Admin
             </h1>
             <p className="text-[10px] font-medium text-muted-foreground">
-              AI Twin Control
+              Never sleep. <span className="brand-text">Never stop selling.</span>
             </p>
           </div>
         </div>
@@ -251,7 +251,7 @@ function AdminBrand({ compact = false }) {
         >
           Admin
         </h1>
-        <p className="text-xs font-medium text-pink-300">AI Twin Control</p>
+        <p className="text-xs font-medium text-pink-300">Never Sleep. Never Stop Selling</p>
       </div>
     </div>
   );
