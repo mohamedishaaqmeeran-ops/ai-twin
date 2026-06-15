@@ -9,6 +9,7 @@ import TwinDashboard from "./pages/twin/TwinDashboard";
 import CreateTwin from "./pages/twin/CreateTwin";
 import TrainTwin from "./pages/twin/TrainTwin";
 import TestTwin from "./pages/twin/TestTwin";
+import EditTwin from "./pages/twin/EditTwin";
 
 import Products from "./pages/products/Products";
 import AddProduct from "./pages/products/AddProduct";
@@ -77,6 +78,7 @@ export default function App() {
 
           <Route path="twin" element={<TwinDashboard />} />
           <Route path="twin/create" element={<CreateTwin />} />
+          <Route path="twin/edit" element={<EditTwin />} />
           <Route path="twin/train" element={<TrainTwin />} />
           <Route path="twin/test" element={<TestTwin />} />
 

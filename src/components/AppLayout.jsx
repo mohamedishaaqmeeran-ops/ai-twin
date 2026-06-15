@@ -134,10 +134,17 @@ export default function AppLayout() {
 
           <MenuTitle title="AI Management" />
 
-          <NavLink to="/app/twin/create" className={linkClass}>
-            <Sparkles size={18} />
-            Create AI Twin
-          </NavLink>
+      {hasTwin ? (
+  <NavLink to="/app/twin/edit" className={linkClass}>
+    <Sparkles size={18} />
+    Edit AI Twin
+  </NavLink>
+) : (
+  <NavLink to="/app/twin/create" className={linkClass}>
+    <Sparkles size={18} />
+    Create AI Twin
+  </NavLink>
+)}
 
           <NavLink to="/app/twin/train" className={linkClass}>
             <Database size={18} />
@@ -323,15 +330,23 @@ export default function AppLayout() {
                 My AI Twin
               </NavLink>
 
-              <NavLink
-                to="/app/twin/create"
-                onClick={() => setMobileMenu(false)}
-                className={linkClass}
-              >
-                <Sparkles size={18} />
-                Create AI Twin
-              </NavLink>
-
+              {hasTwin ? (
+  <NavLink
+    to="/app/twin/edit"
+    className={linkClass}
+  >
+    <Sparkles size={18} />
+    Edit AI Twin
+  </NavLink>
+) : (
+  <NavLink
+    to="/app/twin/create"
+    className={linkClass}
+  >
+    <Sparkles size={18} />
+    Create AI Twin
+  </NavLink>
+)}
               <NavLink
                 to="/app/twin/train"
                 onClick={() => setMobileMenu(false)}

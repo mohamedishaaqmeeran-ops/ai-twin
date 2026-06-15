@@ -13,11 +13,13 @@ import {
   Lock,
   Sun,
   Moon,
+   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 
 export default function Settings() {
   const [saved, setSaved] = useState(false);
-
+const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [settings, setSettings] = useState({
     name: "Ishaaq Meeran",
     email: "ishaaqmeeran1@gmail.com",
@@ -58,6 +60,18 @@ export default function Settings() {
     }
   };
 
+
+const deleteAccount = () => {
+  const theme = localStorage.getItem("theme");
+
+  localStorage.clear();
+
+  if (theme) {
+    localStorage.setItem("theme", theme);
+  }
+
+  window.location.href = "/";
+};
   const saveSettings = () => {
     localStorage.setItem("userSettings", JSON.stringify(settings));
     applyTheme(settings.theme);
@@ -161,6 +175,14 @@ export default function Settings() {
                 <Lock className="h-4 w-4" />
                 Change Password
               </button>
+
+              <button
+  onClick={() => setShowDeleteModal(true)}
+  className="flex h-12 w-full items-center justify-center gap-2 rounded-[5px] border-2 border-red-500 bg-red-50 text-sm font-bold tracking-wide text-red-600 transition hover:bg-red-500 hover:text-white dark:bg-red-500/10"
+>
+  <Trash2 className="h-4 w-4" />
+  Delete Account
+</button>
             </div>
           </Card>
         </section>
@@ -208,7 +230,47 @@ export default function Settings() {
           </section>
         </aside>
       </div>
+{
+  showDeleteModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl">
 
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/10">
+          <AlertTriangle className="h-8 w-8 text-red-500" />
+        </div>
+
+        <h2 className="mt-5 text-center text-2xl font-black tracking-tight">
+          Delete Account?
+        </h2>
+
+        <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">
+          This action cannot be undone.
+          <br />
+          Your AI Twin, Products, Live Sessions,
+          Training Data and Settings will be permanently removed.
+        </p>
+
+        <div className="mt-8 flex gap-3">
+
+          <button
+            onClick={() => setShowDeleteModal(false)}
+            className="flex-1 rounded-[5px] border border-border py-3 text-sm font-bold transition hover:bg-muted"
+          >
+            Cancel
+          </button>
+
+          <button
+            onClick={deleteAccount}
+            className="flex-1 rounded-[5px] bg-red-600 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+          >
+            Delete
+          </button>
+
+        </div>
+      </div>
+    </div>
+  )
+}
       {saved && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-sm font-bold tracking-wide text-foreground shadow-xl">
           <CheckCircle2 className="h-5 w-5 text-green-400" />

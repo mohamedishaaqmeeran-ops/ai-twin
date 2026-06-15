@@ -126,12 +126,12 @@ export default function TwinDashboard() {
           </p>
 
           <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            <ActionCard
-              to="/app/twin/create"
-              icon={Sparkles}
-              title="Edit AI Twin"
-              desc="Update face, style and basic info."
-            />
+           <ActionCard
+  to="/app/twin/edit"
+  icon={Sparkles}
+  title="Edit AI Twin"
+  desc="Update face, voice, appearance and personality."
+/>
             <ActionCard
               to="/app/twin/train"
               icon={Database}
