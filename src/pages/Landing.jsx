@@ -244,7 +244,7 @@ function Nav() {
               </Link>
 
               <Link
-                to="/signin"
+                to="/admin"
                 className="brand-gradient flex h-11 items-center justify-center rounded-lg text-sm font-bold tracking-wide text-white"
               >
                 Get Started
@@ -646,7 +646,7 @@ function SocialProof() {
             </p>
 
             <Link
-              to="/signin"
+              to="/admin"
               className="mt-5 inline-flex items-center gap-2 rounded-[5px] bg-white px-5 py-2.5 text-sm font-bold tracking-wide text-gray-900 shadow md:mt-18"
             >
               Get Started
