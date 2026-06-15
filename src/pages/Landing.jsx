@@ -206,7 +206,7 @@ function Nav() {
             </Link>
 
             <Link
-              to="/signin"
+              to="/admin"
               className="brand-gradient flex h-11 items-center justify-center rounded-[5px] px-5 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
             >
             Get Started
