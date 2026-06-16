@@ -208,7 +208,7 @@ function Nav() {
             </Link>
 
             <Link
-              to="/signin"
+              to="/signup"
               className="brand-gradient flex h-11 items-center justify-center rounded-[5px] px-5 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
             >
             Get Started
@@ -246,7 +246,7 @@ function Nav() {
               </Link>
 
               <Link
-                to="/signin"
+                to="/signup"
                 className="brand-gradient flex h-11 items-center justify-center rounded-lg text-sm font-bold tracking-wide text-white"
               >
                 Get Started
@@ -777,9 +777,9 @@ function Tools() {
         </p>
       </div>
 
-      <div className="mt-12 flex flex-wrap items-center justify-center gap-x-14 gap-y-8">
+      <div className="mt-12 flex flex-wrap items-center  justify-center gap-x-14 gap-y-8">
         {logos.map(([name, src]) => (
-          <div key={name} className="flex h-16 items-center justify-center">
+          <div key={name} className="flex h-16 items-center dark:bg-white/10 p-2 rounded-xl justify-center">
             <img
               src={src}
               alt={name}
@@ -869,7 +869,7 @@ function SocialProof() {
             </p>
 
             <Link
-              to="/signin"
+              to="/signup"
               className="mt-5 inline-flex items-center gap-2 rounded-[5px] bg-white px-5 py-2.5 text-sm font-bold tracking-wide text-gray-900 shadow md:mt-18"
             >
               Get Started

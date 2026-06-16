@@ -41,6 +41,7 @@ import AdminProducts from "./admin/AdminProducts";
 import AdminLives from "./admin/AdminLives";
 import AdminAnalytics from "./admin/AdminAnalytics";
 import AdminSettings from "./admin/AdminSettings";
+import SignUp from "./pages/SignUp";
 
 
 function RequireAdmin({ children }) {
@@ -104,6 +105,7 @@ export default function App() {
 
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<Signin />} />
         <Route path="/waitlist" element={<WaitlistForm />} />
 
