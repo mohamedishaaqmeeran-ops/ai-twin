@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import {
   Activity,
   X,
+  CheckCircle2,
+  CalendarDays,
   Star,
   Play,
   ArrowRight,
@@ -367,51 +369,44 @@ function Hero() {
             </div>
           </div>
 
-     <div className="hidden space-y-6 lg:block">
-  <div className="w-[280px] rounded-3xl border border-border bg-card p-5 shadow-xl">
-  <h3 className="mb-5 text-xl font-black text-foreground">
-    Connected Platforms
-  </h3>
+    <div className="w-full space-y-6 lg:block">
+  <div className="w-full rounded-3xl border border-border bg-card p-4 shadow-xl sm:p-5 lg:w-[280px]">
+    <h3 className="mb-5 text-lg font-black text-foreground sm:text-xl">
+      Connected Platforms
+    </h3>
 
-  <div className="space-y-4">
-    {[
-      [Instagram, "Instagram"],
-      [Facebook, "Facebook"],
-      [Youtube, "YouTube"],
-      [Music2, "TikTok"],
-    ].map(([Icon, name]) => (
-      <div
-        key={name}
-        className="flex items-center justify-between gap-3 rounded-2xl border border-border p-3"
-      >
-        {/* Left */}
-        <div className="flex flex-1 items-center gap-3">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-            <Icon className="h-6 w-6" />
-          </div>
-
-          <div className="flex-1">
-            <p className="text-sm font-black text-foreground">
-              {name}
-            </p>
-
-            <p className="text-xs text-muted-foreground">
-              Connected
-            </p>
-          </div>
-        </div>
-
-        {/* Button */}
-        <Link
-          to="/signin"
-          className="shrink-0 rounded-full border border-[var(--brand-pink)] px-3 py-2 text-center text-[11px] font-bold text-[var(--brand-pink)] transition hover:bg-[var(--brand-pink)] hover:text-white"
+    <div className="space-y-3 sm:space-y-4">
+      {[
+        [Instagram, "Instagram"],
+        [Facebook, "Facebook"],
+        [Youtube, "YouTube"],
+        [Music2, "TikTok"],
+      ].map(([Icon, name]) => (
+        <div
+          key={name}
+          className="flex flex-col gap-3 rounded-2xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
         >
-          Go Live
-        </Link>
-      </div>
-    ))}
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10 sm:h-12 sm:w-12">
+              <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-foreground">{name}</p>
+              <p className="text-xs text-muted-foreground">Connect</p>
+            </div>
+          </div>
+
+          <Link
+            to="/signin"
+            className="flex h-10 w-full shrink-0 items-center justify-center rounded-full border border-[var(--brand-pink)] px-4 text-xs font-bold text-[var(--brand-pink)] transition hover:bg-[var(--brand-pink)] hover:text-white sm:w-auto"
+          >
+            Go Live
+          </Link>
+        </div>
+      ))}
+    </div>
   </div>
-</div>
 </div>
         </div>
       </div>
@@ -457,40 +452,268 @@ function FeatureRow() {
   );
 }
 
+
+
 function HowItWorks() {
-  const steps = [
-    [ScanFace, "Create AI Twin", "Create avatar, choose appearance and voice."],
-    [FileText, "Train AI", "Add product details, FAQs and brand knowledge."],
-    [Radio, "Launch Live", "Select platform, product and start live selling."],
-    [IndianRupee, "Grow Sales", "AI engages viewers and guides them to buy."],
-  ];
-
   return (
-    <section id="how" className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <h2 className="text-center text-3xl font-black tracking-tight brand-text md:text-4xl">
-        How It Works
-      </h2>
+    <section
+      id="how"
+      className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"
+    >
+      <div className="rounded-[32px] border border-border bg-card p-6 shadow-sm lg:p-8">
+        <h2 className="text-center text-3xl font-black uppercase tracking-tight brand-text md:text-4xl">
+          3 Simple Steps to Launch Your AI Twin
+        </h2>
 
-      <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        {steps.map(([Icon, t, d]) => (
-          <div
-            key={t}
-            className="rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-              <Icon className="h-6 w-6" />
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_auto_1fr_auto_1fr]">
+
+          {/* STEP 1 */}
+
+          <div className="rounded-3xl border border-border bg-background p-6">
+            <div className="flex items-start gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full brand-gradient text-xl font-black text-white">
+                1
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-foreground">
+                  CREATE YOUR AVATAR
+                </h3>
+
+                <div className="mt-5 space-y-3">
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
+                    Upload a video
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
+                    Clone your voice
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
+                    Choose your style
+                  </div>
+
+                </div>
+              </div>
             </div>
 
-            <p className="mt-5 text-base font-black tracking-tight text-foreground">
-              {t}
-            </p>
-            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-              {d}
-            </p>
+            <div className="mt-6 flex justify-center">
+              <img
+                src="/images/bb.png"
+                alt=""
+                className="h-64 object-contain"
+              />
+            </div>
+
+            <div className="mx-auto mt-4 w-fit rounded-full border bg-white dark:bg-white/10 px-5 py-2 shadow">
+              <span className="font-black text-[var(--brand-pink)]">
+                ✓ Avatar Ready!
+              </span>
+            </div>
           </div>
-        ))}
+
+          {/* Arrow */}
+
+          <div className="hidden items-center justify-center lg:flex">
+            <ArrowRight className="h-10 w-10 text-[var(--brand-pink)]" />
+          </div>
+
+          {/* STEP 2 */}
+
+          <div className="rounded-3xl border border-border bg-background p-6">
+            <div className="flex items-start gap-4">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full brand-gradient text-xl font-black text-white">
+                2
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-foreground">
+                  EXPLAIN OR UPLOAD PRODUCTS
+                </h3>
+
+                <div className="mt-5 space-y-3">
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
+                    Upload products
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
+                    Explain in your own words
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
+                    AI learns everything
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+           <div className="mt-6 space-y-3 rounded-2xl border border-border bg-card p-4">
+
+  <ProductRow
+    image="/images/6.jpeg"
+    name="Vitamin C Serum"
+    price="₹799"
+  />
+
+  <ProductRow
+    image="/images/5.jpeg"
+    name="Head Phones"
+    price="₹499"
+  />
+
+  <ProductRow
+    image="/images/7.jpeg"
+    name="Smart Watch"
+    price="₹599"
+  />
+
+</div>
+          </div>
+
+          {/* Arrow */}
+
+          <div className="hidden items-center justify-center lg:flex">
+            <ArrowRight className="h-10 w-10 text-[var(--brand-pink)]" />
+          </div>
+
+          {/* STEP 3 */}
+
+          <div className="rounded-3xl border border-border bg-background p-6">
+
+            <div className="flex items-start gap-4">
+
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full brand-gradient text-xl font-black text-white">
+                3
+              </div>
+
+              <div>
+
+                <h3 className="text-xl font-black text-foreground">
+                  SCHEDULE YOUR AI LIVE
+                </h3>
+
+                <div className="mt-5 space-y-3">
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
+                    Choose platform
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
+                    Pick date & time
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
+                    AI Twin sells automatically
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="mt-6 rounded-2xl border bg-card p-5">
+
+              <p className="text-center font-black">
+                Schedule Live
+              </p>
+
+              <div className="mt-4 flex justify-center gap-3">
+
+                <Instagram className="text-pink-500" />
+
+                <Facebook className="text-blue-600" />
+
+                <Youtube className="text-red-500" />
+
+                <Music2 />
+
+              </div>
+
+              <div className="mt-5 space-y-3 text-sm">
+
+                <div className="flex items-center gap-2">
+
+                  <CalendarDays className="h-4 w-4 text-pink-500" />
+
+                  May 25, 2026
+
+                </div>
+
+                <div className="flex items-center gap-2">
+
+                  <CalendarDays className="h-4 w-4 text-pink-500" />
+
+                  07:30 PM
+
+                </div>
+
+                <div className="flex items-center gap-2">
+
+                  <CalendarDays className="h-4 w-4 text-pink-500" />
+
+                  2 Hours
+
+                </div>
+
+              </div>
+
+             <Link
+  to="/signin"
+  className="brand-gradient mt-6 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white transition hover:opacity-90"
+>
+  Schedule Live
+</Link>
+
+            </div>
+
+          </div>
+
+        </div>
       </div>
     </section>
+  );
+}
+
+function ProductRow({ image, name, price }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border border-border bg-white p-3 transition hover:shadow-sm dark:bg-card">
+
+      <div className="flex items-center gap-3">
+
+        <img
+          src={image}
+          alt={name}
+          className="h-14 w-14 rounded-lg border object-contain bg-white p-1"
+        />
+
+        <div>
+          <p className="text-sm font-black text-foreground">
+            {name}
+          </p>
+
+          <p className="mt-1 text-xs font-semibold brand-text">
+            {price}
+          </p>
+        </div>
+
+      </div>
+
+      
+
+    </div>
   );
 }
 
