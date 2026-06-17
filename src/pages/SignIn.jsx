@@ -199,14 +199,14 @@ export default function SignIn() {
 
             <div className="mt-7 space-y-3">
               <div className="overflow-hidden rounded-[5px]">
-               <GoogleLogin
-  onSuccess={handleGoogleSuccess}
-  onError={handleGoogleError}
-  theme="outline"
-  size="large"
-  shape="rectangular"
-  width="256"
-/>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="outline"
+                  size="large"
+                  shape="rectangular"
+                  width="100%"
+                />
               </div>
 
               <button
