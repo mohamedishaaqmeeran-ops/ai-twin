@@ -6,16 +6,12 @@ import App from "./App.jsx";
 import "./styles.css";
 
 const GOOGLE_CLIENT_ID =
-  "1064507568780-r2qfukp2fvdll7ahpkgklqlimbbusc1k.apps.googleusercontent.com";
-
-console.log("HARDCODED GOOGLE CLIENT:", GOOGLE_CLIENT_ID);
+  "1064507568780-r2qfukp2fvdll7ahpkglkqlimbbusc1k.apps.googleusercontent.com";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </GoogleOAuthProvider>
-  </React.StrictMode>
+  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </GoogleOAuthProvider>
 );
