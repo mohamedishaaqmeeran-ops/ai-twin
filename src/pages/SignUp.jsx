@@ -31,30 +31,75 @@ const [form, setForm] = useState({
     }));
   };
 
-  const handleSignup = (e) => {
-    e.preventDefault();
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState("");
 
-   if (
-  !form.name ||
-  !form.mobile ||
-  !form.email ||
-  !form.password ||
-  !form.confirmPassword
-) {
-  return;
-}
+const handleSignup = async (e) => {
+  e.preventDefault();
+  setError("");
 
-    if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match");
-      return;
+  if (
+    !form.name.trim() ||
+    !form.mobile.trim() ||
+    !form.email.trim() ||
+    !form.password.trim() ||
+    !form.confirmPassword.trim()
+  ) {
+    setError("Please fill all fields.");
+    return;
+  }
+
+  if (form.mobile.length !== 10) {
+    setError("Please enter a valid 10-digit mobile number.");
+    return;
+  }
+
+  if (form.password !== form.confirmPassword) {
+    setError("Passwords do not match.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const res = await fetch(
+      "https://twinbackend-production.up.railway.app/api/auth/register",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      body: JSON.stringify({
+  name: form.name,
+  email: form.email,
+  password: form.password,
+  confirmPassword: form.confirmPassword,
+  mobileNumber: form.mobile,
+}),
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Registration failed");
     }
 
-    localStorage.setItem("user", JSON.stringify(form));
+    localStorage.setItem("user", JSON.stringify(data.user || data));
     localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("role", "user");
+    localStorage.setItem("role", data.user?.role || "user");
+
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
 
     navigate("/app/twin/create");
-  };
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const inputClass =
     "flex items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3 transition focus-within:border-[var(--brand-pink)] focus-within:ring-2 focus-within:ring-pink-200 dark:focus-within:ring-pink-500/20";
@@ -154,7 +199,11 @@ const [form, setForm] = useState({
                   value={form.password}
                   onChange={(e) => handleChange("password", e.target.value)}
                 />
-
+{error && (
+  <div className="rounded-[5px] bg-red-50 p-3 text-sm font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">
+    {error}
+  </div>
+)}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -188,10 +237,14 @@ const [form, setForm] = useState({
                 <span>I agree to the Terms & Privacy Policy</span>
               </label>
 
-              <button className="brand-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90">
-                Create Account
-                <ArrowRight className="h-4 w-4" />
-              </button>
+              <button
+  disabled={loading}
+  className="brand-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {loading ? "Creating Account..." : "Create Account"}
+  <ArrowRight className="h-4 w-4" />
+</button>
+              
 
               <div className="mt-8 text-center text-sm text-muted-foreground">
                 Already have an account?

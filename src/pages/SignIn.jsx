@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import {
   Apple,
   Mail,
@@ -13,6 +14,12 @@ import {
 } from "lucide-react";
 import Logo from "../components/Logo";
 
+const LOGIN_API =
+  "https://twinbackend-production.up.railway.app/api/auth/login";
+
+const GOOGLE_LOGIN_API =
+  "https://twinbackend-production.up.railway.app/api/auth/google";
+
 export default function SignIn() {
   const navigate = useNavigate();
 
@@ -22,34 +29,120 @@ export default function SignIn() {
   const [showMore, setShowMore] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const login = (provider = "email") => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const redirectByRoleAndPlan = (user) => {
+    const role = user?.role || "user";
+    const plan = (user?.plan || "free").toLowerCase();
+
     localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("loginProvider", provider);
-
-    const role = email === "admin@aitwin.com" ? "admin" : "user";
-
+    localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("role", role);
+    localStorage.setItem("plan", plan);
 
     if (role === "admin") {
       navigate("/admin");
       return;
     }
 
-    const hasTwin = localStorage.getItem("hasTwin") === "true";
+    if (plan === "pro") {
+      navigate("/app/pro");
+      return;
+    }
 
-    if (hasTwin) {
-      navigate("/app");
-    } else {
-      navigate("/app/twin/create");
+    if (plan === "enterprise") {
+      navigate("/app/enterprise");
+      return;
+    }
+
+    navigate("/app");
+  };
+
+
+    const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter email and password.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await fetch(LOGIN_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Login failed");
+      }
+
+      localStorage.setItem("loginProvider", "email");
+      redirectByRoleAndPlan(data.user);
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEmailLogin = (e) => {
-    e.preventDefault();
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setLoading(true);
+      setError("");
 
-    if (!email.trim() || !password.trim()) return;
+      const res = await fetch(GOOGLE_LOGIN_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          token: credentialResponse.credential,
+        }),
+      });
 
-    login("email");
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Google login failed");
+      }
+
+      localStorage.setItem("loginProvider", "google");
+      redirectByRoleAndPlan(data.user);
+    } catch (err) {
+      setError(err.message || "Google login failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google login failed.");
+  };
+
+  const demoSocialLogin = (provider) => {
+    localStorage.setItem("loginProvider", provider);
+
+    redirectByRoleAndPlan({
+      name: "Demo User",
+      email: "demo@twinn.live",
+      role: "user",
+      plan: "free",
+    });
   };
 
   const socialButtonClass =
@@ -61,7 +154,8 @@ export default function SignIn() {
   const inputClass =
     "w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground";
 
-  return (
+
+      return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <div className="mx-auto grid min-h-screen max-w-7xl gap-8 px-4 py-10 lg:grid-cols-2 lg:items-stretch">
         {/* Left */}
@@ -83,19 +177,16 @@ export default function SignIn() {
               Your <span className="brand-text">AI Twin</span> is ready to sell.
             </h1>
 
-                        <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">
-              Sign in to create your twin, train it, add products,
-              connect social platforms and go live.
+            <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">
+              Sign in to create your twin, train it, add products, connect social
+              platforms and go live.
             </p>
           </div>
         </section>
 
         {/* Right */}
-
         <section className="mx-auto flex h-full w-full max-w-md flex-col">
-
           <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-6 shadow-xl sm:p-8">
-
             <Logo />
 
             <h1 className="mt-8 text-3xl font-black leading-tight tracking-tight text-foreground sm:text-4xl">
@@ -106,23 +197,21 @@ export default function SignIn() {
               Continue to your dashboard, products and live sessions.
             </p>
 
-            {/* Social Login */}
-
             <div className="mt-7 space-y-3">
+              <div className="overflow-hidden rounded-[5px]">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="outline"
+                  size="large"
+                  shape="rectangular"
+                  width="100%"
+                />
+              </div>
 
               <button
-                onClick={() => login("google")}
-                className={socialButtonClass}
-              >
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-sm font-black text-red-600 shadow-sm">
-                  G
-                </span>
-
-                Continue with Google
-              </button>
-
-              <button
-                onClick={() => login("apple")}
+                type="button"
+                onClick={() => demoSocialLogin("apple")}
                 className="flex h-12 w-full items-center justify-center gap-3 rounded-[5px] bg-[#0d0d12] text-sm font-bold tracking-wide text-white transition hover:opacity-90"
               >
                 <Apple className="h-5 w-5" />
@@ -132,7 +221,8 @@ export default function SignIn() {
               {showMore && (
                 <>
                   <button
-                    onClick={() => login("github")}
+                    type="button"
+                    onClick={() => demoSocialLogin("github")}
                     className={socialButtonClass}
                   >
                     <Github className="h-5 w-5" />
@@ -140,7 +230,8 @@ export default function SignIn() {
                   </button>
 
                   <button
-                    onClick={() => login("phone")}
+                    type="button"
+                    onClick={() => demoSocialLogin("phone")}
                     className={socialButtonClass}
                   >
                     <span className="text-sm font-black">+91</span>
@@ -150,39 +241,28 @@ export default function SignIn() {
               )}
 
               <button
+                type="button"
                 onClick={() => setShowMore(!showMore)}
                 className="w-full text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:underline"
               >
-                {showMore
-                  ? "Show less options"
-                  : "More login options"}
+                {showMore ? "Show less options" : "More login options"}
               </button>
-
             </div>
 
-            {/* Divider */}
-
             <div className="my-6 flex items-center gap-3">
-
               <div className="h-px flex-1 bg-border" />
-
               <span className="text-xs font-bold tracking-wide text-muted-foreground">
                 OR LOGIN WITH EMAIL
               </span>
-
               <div className="h-px flex-1 bg-border" />
-
             </div>
 
-            {/* Email Login */}
 
-            <form
+                        <form
               onSubmit={handleEmailLogin}
               className="mt-2 flex flex-1 flex-col justify-between"
             >
-
               <div className="space-y-4">
-
                 <div className={inputWrapperClass}>
                   <Mail className="h-5 w-5 text-[var(--brand-pink)]" />
 
@@ -196,7 +276,6 @@ export default function SignIn() {
                 </div>
 
                 <div className={inputWrapperClass}>
-
                   <Lock className="h-5 w-5 text-[var(--brand-pink)]" />
 
                   <input
@@ -209,9 +288,7 @@ export default function SignIn() {
 
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowPassword(!showPassword)
-                    }
+                    onClick={() => setShowPassword(!showPassword)}
                     className="text-muted-foreground transition hover:text-foreground"
                   >
                     {showPassword ? (
@@ -220,13 +297,15 @@ export default function SignIn() {
                       <Eye className="h-5 w-5" />
                     )}
                   </button>
-
                 </div>
 
+                {error && (
+                  <div className="rounded-[5px] bg-red-50 p-3 text-sm font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                    {error}
+                  </div>
+                )}
+              </div>
 
-                              </div>
-
-              {/* Bottom Section */}
               <div className="mt-6">
                 <div className="flex items-center justify-between gap-3 text-xs">
                   <label className="flex items-center gap-2 font-semibold tracking-wide text-muted-foreground">
@@ -243,10 +322,10 @@ export default function SignIn() {
                 </div>
 
                 <button
-                  disabled={!email.trim() || !password.trim()}
+                  disabled={loading || !email.trim() || !password.trim()}
                   className="brand-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Sign In
+                  {loading ? "Signing In..." : "Sign In"}
                   <ArrowRight className="h-4 w-4" />
                 </button>
 
