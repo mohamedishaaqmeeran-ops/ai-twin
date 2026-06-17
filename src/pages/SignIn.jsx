@@ -15,10 +15,10 @@ import {
 import Logo from "../components/Logo";
 
 const LOGIN_API =
-  "https://twinbackend-production.up.railway.app/api/auth/login";
+  "https://ai-twin-backend-4.onrender.com/api/auth/login";
 
 const GOOGLE_LOGIN_API =
-  "https://twinbackend-production.up.railway.app/api/auth/google";
+  "https://ai-twin-backend-4.onrender.com/api/auth/google";
 
 export default function SignIn() {
   const navigate = useNavigate();
