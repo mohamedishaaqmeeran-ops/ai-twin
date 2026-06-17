@@ -209,7 +209,7 @@ function Product({ name, sales, percent }) {
     </div>
   );
 }
-
+/*function*/
 function Live({
   title,
   viewers,
