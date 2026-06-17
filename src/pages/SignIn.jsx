@@ -78,10 +78,10 @@ export default function SignIn() {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+      body: JSON.stringify({
+  email: email.trim().toLowerCase(),
+  password,
+}),
       });
 
       const data = await res.json();
@@ -207,7 +207,7 @@ export default function SignIn() {
                   shape="rectangular"
                   width="100%"
                 />
-                /*5*/
+                
               </div>
 
               <button
@@ -268,12 +268,12 @@ export default function SignIn() {
                   <Mail className="h-5 w-5 text-[var(--brand-pink)]" />
 
                   <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={inputClass}
-                    placeholder="Email address"
-                    type="email"
-                  />
+  value={email}
+  onChange={(e) => setEmail(e.target.value.trimStart().toLowerCase())}
+  className={inputClass}
+  placeholder="Email address"
+  type="email"
+/>
                 </div>
 
                 <div className={inputWrapperClass}>

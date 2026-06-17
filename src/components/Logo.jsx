@@ -22,7 +22,7 @@ export default function Logo({ size = "md", showText = true }) {
           <span
             className={`${s.text} font-extrabold tracking-tight brand-text`}
           >
-            twin
+            twinn
           </span>
 
           <span className="text-[10px] font-medium text-muted-foreground leading-none ">

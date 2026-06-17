@@ -34,6 +34,14 @@ const [form, setForm] = useState({
 const [loading, setLoading] = useState(false);
 const [error, setError] = useState("");
 
+
+
+const validatePassword = (password) => {
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#()_\-+=])[A-Za-z\d@$!%*?&^#()_\-+=]{8,}$/;
+
+  return passwordRegex.test(password);
+};
 const handleSignup = async (e) => {
   e.preventDefault();
   setError("");
@@ -53,6 +61,12 @@ const handleSignup = async (e) => {
     setError("Please enter a valid 10-digit mobile number.");
     return;
   }
+  if (!validatePassword(form.password)) {
+  setError(
+    "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character."
+  );
+  return;
+}
 
   if (form.password !== form.confirmPassword) {
     setError("Passwords do not match.");
@@ -63,7 +77,7 @@ const handleSignup = async (e) => {
     setLoading(true);
 
     const res = await fetch(
-      "https://twinbackend-production.up.railway.app/api/auth/register",
+      "https://ai-twin-backend-4.onrender.com/api/auth/register",
       {
         method: "POST",
         headers: {
@@ -82,7 +96,7 @@ const handleSignup = async (e) => {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.message || "Registration failed");
+      throw new Error(data.error || data.message || "Registration failed");
     }
 
     localStorage.setItem("user", JSON.stringify(data.user || data));
@@ -199,11 +213,7 @@ const handleSignup = async (e) => {
                   value={form.password}
                   onChange={(e) => handleChange("password", e.target.value)}
                 />
-{error && (
-  <div className="rounded-[5px] bg-red-50 p-3 text-sm font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">
-    {error}
-  </div>
-)}
+
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -217,18 +227,25 @@ const handleSignup = async (e) => {
                 </button>
               </div>
 
-              <div className={inputClass}>
-                <Lock className="h-5 w-5 text-[var(--brand-pink)]" />
-                <input
-                  placeholder="Confirm Password"
-                  type="password"
-                  className={inputFieldClass}
-                  value={form.confirmPassword}
-                  onChange={(e) =>
-                    handleChange("confirmPassword", e.target.value)
-                  }
-                />
-              </div>
+             <div className={inputClass}>
+  <Lock className="h-5 w-5 text-[var(--brand-pink)]" />
+
+  <input
+    placeholder="Confirm Password"
+    type="password"
+    className={inputFieldClass}
+    value={form.confirmPassword}
+    onChange={(e) =>
+      handleChange("confirmPassword", e.target.value)
+    }
+  />
+</div>
+
+{error && (
+  <div className="rounded-[5px] bg-red-50 p-3 text-sm font-semibold text-red-600 dark:bg-red-500/10 dark:text-red-400">
+    {error}
+  </div>
+)}
             </div>
 
             <div className="mt-6">
