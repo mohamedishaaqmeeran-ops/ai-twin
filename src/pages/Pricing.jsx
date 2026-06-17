@@ -1,254 +1,381 @@
+// src/pages/Pricing.jsx
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Crown, Sparkles, Building2, ArrowRight, ChevronDown, Home } from "lucide-react";
-
+import {
+  Check,
+  X,
+  Crown,
+  Sparkles,
+  Rocket,
+  Building2,
+  Users,
+  HelpCircle,
+  ArrowRight,
+} from "lucide-react";
 import Logo from "../components/Logo";
+
+const plans = [
+  {
+    name: "Starter",
+    tag: "Try your AI Twin, on us.",
+    monthly: "₹0",
+    yearly: "₹0",
+    period: "Free forever",
+    button: "Get Started Free",
+    link: "/signup",
+    icon: Sparkles,
+    popular: false,
+    features: [
+      "1 AI Twin",
+      "1 connected live platform",
+      "Up to 10 products",
+      "Standard AI voice",
+      "Basic lip sync",
+      "100 AI replies / month",
+      "Community support",
+      "Powered by Twin badge",
+    ],
+  },
+  {
+    name: "Creator",
+    tag: "For creators ready to go live.",
+    monthly: "₹1,499",
+    yearly: "₹14,990",
+    period: "14-day free trial",
+    button: "Start",
+    link: "/signup",
+    icon: Crown,
+    popular: true,
+    features: [
+      "Everything in Starter",
+      "Up to 3 AI Twins",
+      "Connect up to 4 platforms",
+      "Up to 100 products",
+      "Custom voice cloning",
+      "Advanced lip sync",
+      "Unlimited AI replies",
+      "Live sales analytics",
+      "Remove Powered by Twin badge",
+      "Email support",
+    ],
+  },
+  {
+    name: "Business",
+    tag: "Scale across every channel.",
+    monthly: "₹4,999",
+    yearly: "₹49,990",
+    period: "14-day free trial",
+    button: "Start",
+    link: "/signup",
+    icon: Rocket,
+    popular: false,
+    features: [
+      "Everything in Creator",
+      "Unlimited AI Twins",
+      "Instagram, Facebook, YouTube, TikTok & LinkedIn",
+      "Unlimited products",
+      "Shopify, WooCommerce, WordPress integrations",
+      "Klaviyo, Zapier, Stripe support",
+      "Advanced analytics dashboard",
+      "Up to 5 team seats",
+      "Priority support + onboarding",
+    ],
+  },
+  {
+    name: "Agency",
+    tag: "Run AI Twins for every client.",
+    monthly: "Custom",
+    yearly: "Custom",
+    period: "Volume-based pricing",
+    button: "Contact Sales",
+    link: "/waitlist",
+    icon: Building2,
+    popular: false,
+    features: [
+      "Everything in Business",
+      "Multiple brand accounts",
+      "White-label branding",
+      "Custom integrations",
+      "API access",
+      "Dedicated account manager",
+      "SLA support",
+      "Volume-based pricing",
+    ],
+  },
+];
+
+const comparison = [
+  ["AI Twins", "1", "Up to 3", "Unlimited", "Unlimited"],
+  ["Connected platforms", "1", "Up to 4", "IG, FB, YouTube, TikTok, LinkedIn", "All + custom"],
+  ["Products", "Up to 10", "Up to 100", "Unlimited", "Unlimited"],
+  ["Voice", "Standard", "Custom cloning", "Custom cloning", "Custom cloning"],
+  ["Lip Sync", "Basic", "Advanced", "Advanced", "Advanced"],
+  ["AI replies", "100 / month", "Unlimited", "Unlimited", "Unlimited"],
+  ["Analytics", "—", "Live sales", "Advanced reports", "Advanced reports"],
+  ["Store integrations", "—", "—", "Shopify, WooCommerce, Stripe", "All + API"],
+  ["Team seats", "1", "1", "Up to 5", "Custom"],
+  ["Branding", "Twin badge", "No badge", "No badge", "White-label"],
+  ["Support", "Community", "Email", "Priority + onboarding", "Dedicated manager"],
+];
+
+const faqs = [
+  {
+    q: "Can I change my plan later?",
+    a: "Yes. You can upgrade, downgrade or cancel anytime from your dashboard.",
+  },
+  {
+    q: "Is there a free trial on paid plans?",
+    a: "Yes. Creator and Business plans include a 14-day free trial, no credit card required.",
+  },
+  {
+    q: "What happens if I reach my limit?",
+    a: "We will notify you before you hit your limit. You can upgrade anytime.",
+  },
+  {
+    q: "Do you offer annual billing discount?",
+    a: "Yes. Annual billing saves up to 20% compared to monthly billing.",
+  },
+  {
+    q: "What payment methods are accepted?",
+    a: "We accept major cards and UPI for customers in India.",
+  },
+  {
+    q: "Can I cancel anytime?",
+    a: "Yes. There is no lock-in period.",
+  },
+];
 
 export default function Pricing() {
   const [billing, setBilling] = useState("monthly");
-  const [selectedPlan, setSelectedPlan] = useState("pro");
-
-  const plans = [
-    {
-      id: "starter",
-      name: "Starter",
-      icon: Sparkles,
-      monthly: 999,
-      yearly: 799,
-      description: "Perfect for creators getting started with AI twins.",
-      features: [
-        "1 AI Twin",
-        "100 Monthly Conversations",
-        "Voice Cloning",
-        "Basic Analytics",
-        "Email Support",
-      ],
-    },
-    {
-      id: "pro",
-      name: "Pro",
-      icon: Crown,
-      monthly: 2999,
-      yearly: 2499,
-      popular: true,
-      description: "Best for influencers and growing brands.",
-      features: [
-        "5 AI Twins",
-        "Unlimited Conversations",
-        "Live Commerce",
-        "Lead Collection",
-        "Advanced Analytics",
-        "Priority Support",
-      ],
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      icon: Building2,
-      monthly: 9999,
-      yearly: 8999,
-      description: "For teams, agencies and enterprise businesses.",
-      features: [
-        "Unlimited AI Twins",
-        "Unlimited Conversations",
-        "White Label",
-        "CRM Integration",
-        "Dedicated Success Manager",
-        "API Access",
-      ],
-    },
-  ];
-
-  const faqs = [
-    {
-      q: "Can I upgrade later?",
-      a: "Yes, you can upgrade or downgrade your plan anytime.",
-    },
-    {
-      q: "Do all plans include voice cloning?",
-      a: "Yes. Voice cloning is included in every plan.",
-    },
-    {
-      q: "Is there a free trial?",
-      a: "Yes. New users can try Twin before subscribing.",
-    },
-    {
-      q: "Can I cancel anytime?",
-      a: "Absolutely. There are no long-term contracts.",
-    },
-  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+    <div className="min-h-screen bg-background/90 text-foreground">
+      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <Logo />
 
-          <Link to="/" className="rounded-[5px] border border-pink-500 px-5 py-2 text-sm font-bold">
-            Home
+          <Link
+            to="/signin"
+            className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+          >
+            Sign In
           </Link>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="mx-auto max-w-7xl px-4 py-14">
-        <div className="text-center">
-          <p className="text-xs font-extrabold tracking-widest text-[var(--brand-pink)]">
-            AI LIVE COMMERCE
+      <main>
+        <section className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
+          <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide">
+            <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+            PRICING
+          </span>
+
+          <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-6xl">
+            Simple Plans. <span className="brand-text">Sell Around the Clock.</span>
+          </h1>
+
+          <p className="mx-auto mt-5 max-w-2xl text-sm font-medium leading-7 text-muted-foreground sm:text-base">
+            Pick a plan that fits where you are today — and upgrade anytime as
+            you grow. Your AI Twin works 24/7, so your plan should too.
           </p>
 
-          <h1 className="mt-4 text-5xl font-black md:text-6xl">Choose Your Plan</h1>
+          <div className="mx-auto mt-8 flex w-fit rounded-full border border-border bg-card p-1 shadow-sm">
+            <button
+              onClick={() => setBilling("monthly")}
+              className={`rounded-full px-5 py-2 text-sm font-bold ${
+                billing === "monthly"
+                  ? "brand-gradient text-white"
+                  : "text-muted-foreground"
+              }`}
+            >
+              Monthly
+            </button>
 
-          <p className="mx-auto mt-4 max-w-2xl text-muted-foreground">
-            Create your AI sales twin, go live 24/7 and convert visitors into customers
-            automatically.
-          </p>
+            <button
+              onClick={() => setBilling("yearly")}
+              className={`rounded-full px-5 py-2 text-sm font-bold ${
+                billing === "yearly"
+                  ? "brand-gradient text-white"
+                  : "text-muted-foreground"
+              }`}
+            >
+              Annual · Save up to 20%
+            </button>
+          </div>
+        </section>
 
-          {/* Billing Toggle */}
-          <div className="mt-8 flex justify-center">
-            <div className="flex rounded-full border border-border bg-card p-1">
-              <button
-                onClick={() => setBilling("monthly")}
-                className={`rounded-full px-6 py-2 text-sm font-bold ${
-                  billing === "monthly" ? "brand-gradient text-white" : ""
-                }`}
-              >
-                Monthly
-              </button>
+        <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-16 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
+          {plans.map((plan) => (
+            <PlanCard key={plan.name} plan={plan} billing={billing} />
+          ))}
+        </section>
 
-              <button
-                onClick={() => setBilling("yearly")}
-                className={`rounded-full px-6 py-2 text-sm font-bold ${
-                  billing === "yearly" ? "brand-gradient text-white" : ""
-                }`}
-              >
-                Yearly
-              </button>
+        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+          <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
+            <h2 className="text-3xl font-black brand-text">Compare Plans</h2>
+
+            <div className="mt-6 overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="py-4 text-sm font-black">Feature</th>
+                    <th>Starter</th>
+                    <th>Creator</th>
+                    <th>Business</th>
+                    <th>Agency</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {comparison.map((row) => (
+                    <tr key={row[0]} className="border-b border-border">
+                      {row.map((item, index) => (
+                        <td
+                          key={index}
+                          className={`py-4 text-sm ${
+                            index === 0
+                              ? "font-black text-foreground"
+                              : "font-medium text-muted-foreground"
+                          }`}
+                        >
+                          {item}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Pricing Cards */}
-        <div className="mt-14 grid items-stretch gap-6 lg:grid-cols-3">
-          {plans.map((plan) => {
-            const Icon = plan.icon;
+        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+          <h2 className="text-center text-3xl font-black brand-text">
+            Frequently Asked Questions
+          </h2>
 
-            return (
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {faqs.map((faq) => (
               <div
-                key={plan.id}
-                onClick={() => setSelectedPlan(plan.id)}
-                className={`
-                  relative flex cursor-pointer flex-col rounded-3xl border bg-card p-7 shadow-lg transition-all duration-300
-                  ${
-                    selectedPlan === plan.id
-                      ? "border-pink-500 ring-2 ring-pink-200 scale-[1.02]"
-                      : "border-border hover:border-pink-300"
-                  }
-                `}
+                key={faq.q}
+                className="rounded-3xl border border-border bg-card p-6 shadow-sm"
               >
-                {plan.popular && (
-                  <span className="absolute right-5 top-5 rounded-full bg-[var(--brand-pink)] px-3 py-1 text-xs font-bold text-white">
-                    MOST POPULAR
-                  </span>
-                )}
+                <div className="flex gap-3">
+                  <HelpCircle className="mt-1 h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
 
-                {selectedPlan === plan.id && (
-                  <span className="absolute left-5 top-5 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white">
-                    Selected
-                  </span>
-                )}
-
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)]">
-                  <Icon className="h-7 w-7" />
-                </div>
-
-                <h3 className="mt-5 text-2xl font-black">{plan.name}</h3>
-
-                <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
-
-                <div className="mt-6">
-                  <span className="text-5xl font-black">
-                    ₹{billing === "monthly" ? plan.monthly : plan.yearly}
-                  </span>
-
-                  <span className="ml-1 text-muted-foreground">/month</span>
-                </div>
-
-                {billing === "yearly" && (
-                  <p className="mt-2 text-sm font-bold text-green-600">Save up to 20%</p>
-                )}
-
-                <div className="mt-8 space-y-4">
-                  {plan.features.map((feature) => (
-                    <div key={feature} className="flex items-center gap-3">
-                      <div className="grid h-5 w-5 place-items-center rounded-full bg-green-500 text-white">
-                        <Check className="h-3 w-3" />
-                      </div>
-
-                      <span className="text-sm">{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Aligned Button */}
-                <div className="mt-auto pt-8">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedPlan(plan.id);
-                    }}
-                    className={`w-full rounded-full py-4 font-bold text-white transition ${
-                      selectedPlan === plan.id ? "brand-gradient" : "bg-black hover:bg-black/90"
-                    }`}
-                  >
-                    {selectedPlan === plan.id ? "Selected Plan" : "Get Started"}
-                  </button>
+                  <div>
+                    <h3 className="font-black text-foreground">{faq.q}</h3>
+                    <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+                      {faq.a}
+                    </p>
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        </section>
 
-        {/* Continue */}
-        <Link
-          to={`/checkout?plan=${selectedPlan}`}
-          className="brand-gradient mx-auto mt-10 flex w-full max-w-md items-center justify-center gap-2 rounded-full py-4 font-bold text-white"
-        >
-          Continue With Selected Plan
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </section>
+        <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+          <div className="brand-gradient rounded-[40px] p-8 text-center text-white shadow-xl sm:p-12">
+            <h2 className="text-3xl font-black sm:text-5xl">
+              Ready to let your AI Twin sell for you?
+            </h2>
 
-      {/* CTA Banner */}
-      <section className="mx-auto max-w-7xl px-4 py-6">
-        <div className="brand-gradient rounded-3xl p-8 text-white">
-          <h2 className="text-4xl font-black">Your AI Twin Never Sleeps</h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm font-medium leading-7 text-white/90 sm:text-base">
+              Create your AI Twin in minutes. Go live in hours.
+            </p>
 
-          <p className="mt-3 max-w-xl text-white/90">
-            Go live, answer questions, showcase products and generate revenue 24/7.
-          </p>
-        </div>
-      </section>
+            <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+              <Link
+                to="/signup"
+                className="rounded-[5px] bg-white px-6 py-3 text-sm font-black text-[var(--brand-pink)]"
+              >
+                Get Started Free →
+              </Link>
 
-      {/* FAQ */}
-      <section className="mx-auto max-w-4xl px-4 py-14">
-        <h2 className="text-center text-4xl font-black">Frequently Asked Questions</h2>
-
-        <div className="mt-10 space-y-4">
-          {faqs.map((faq) => (
-            <div key={faq.q} className="rounded-2xl border border-border bg-card p-5">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold">{faq.q}</h3>
-
-                <ChevronDown className="h-4 w-4" />
-              </div>
-
-              <p className="mt-3 text-sm text-muted-foreground">{faq.a}</p>
+              <Link
+                to="/waitlist"
+                className="rounded-[5px] border border-white/40 px-6 py-3 text-sm font-black text-white"
+              >
+                Talk to Sales →
+              </Link>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
+      </main>
+      <footer className="border-t border-border bg-[#0d0d12] ">
+        <p className="px-4 py-5 text-center text-sm font-medium tracking-wide text-white/50">
+          © {new Date().getFullYear()} Twinn. All rights reserved.
+        </p>
+      </footer>
     </div>
+  );
+}
+
+function PlanCard({ plan, billing }) {
+  const Icon = plan.icon;
+
+  return (
+    <div
+      className={`relative flex flex-col rounded-[32px] border p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${
+        plan.popular
+          ? "border-[var(--brand-pink)] bg-pink-50 dark:bg-white/10"
+          : "border-border bg-card"
+      }`}
+    >
+      {plan.popular && (
+        <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-[var(--brand-pink)] px-4 py-2 text-xs font-black text-white shadow-md">
+          MOST POPULAR
+        </span>
+      )}
+
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+        <Icon className="h-7 w-7" />
+      </div>
+
+      <h3 className="mt-6 text-2xl font-black">{plan.name}</h3>
+
+      <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+        {plan.tag}
+      </p>
+
+      <div className="mt-6">
+        <p className="text-4xl font-black brand-text">
+          {billing === "monthly" ? plan.monthly : plan.yearly}
+        </p>
+
+        <p className="mt-1 text-sm font-bold text-muted-foreground">
+          {plan.name === "Agency"
+            ? plan.period
+            : billing === "monthly"
+            ? plan.period
+            : "/ year"}
+        </p>
+      </div>
+
+      <Link
+        to={plan.link}
+        className={`mt-6 flex h-12 items-center justify-center gap-2 rounded-[5px] text-sm font-black transition ${
+          plan.popular
+            ? "brand-gradient text-white"
+            : "border-2 border-[var(--brand-pink)] text-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10"
+        }`}
+      >
+        {plan.button}
+        <ArrowRight className="h-4 w-4" />
+      </Link>
+
+      <ul className="mt-6 flex-1 space-y-3">
+        {plan.features.map((feature) => (
+          <li key={feature} className="flex gap-3 text-sm font-medium leading-6">
+            <Check className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
+            <span>{feature}</span>
+          </li>
+        ))}
+      </ul>
+      
+    </div>
+    
   );
 }

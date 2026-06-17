@@ -56,27 +56,19 @@ import klaviyoLogo from "/images/ggg.png";
 import zapierLogo from "/images/hhh.png";
 import stripeLogo from "/images/iii.png";
 
-const exploreMenu = [
-  { icon: ShoppingBag, title: "Live Shopping", desc: "Discover live product selling" },
-  { icon: Users, title: "AI Creators", desc: "Explore AI-powered creators" },
-  { icon: Flame, title: "Trending Lives", desc: "See what is trending now" },
-  { icon: ShoppingBasket, title: "Popular Products", desc: "Products selling live" },
-  { icon: Crown, title: "Success Stories", desc: "Brands growing with AI Twin" },
-];
+
 
 const createMenu = [
   { icon: ScanFace, title: "Create AI Twin", desc: "Build your digital avatar" },
-  { icon: Mic, title: "Train Voice", desc: "Clone or select AI voice" },
+  { icon: Mic, title: "Train Your Voice", desc: "Clone or select AI voice" },
   { icon: ShoppingBag, title: "Add Products", desc: "Upload products to sell" },
   { icon: Radio, title: "Go Live", desc: "Launch your AI live session" },
-  { icon: BarChart3, title: "Track Analytics", desc: "Measure sales and engagement" },
+
 ];
 
-const businessMenu = [
-  { icon: Store, title: "For Shops", desc: "Sell products with AI live" },
-  { icon: Shirt, title: "For Fashion Brands", desc: "Showcase styles and offers" },
-  { icon: Sparkles, title: "For Beauty Brands", desc: "Demo products live" },
-  { icon: Users, title: "For Influencers", desc: "Earn with AI selling" },
+const solutionMenu = [
+    { icon: Users, title: "For Creators and Influencers", desc: "Earn with AI selling" },
+  { icon: Store, title: "For Brands and Shops", desc: "Sell products with AI live" },
   { icon: Briefcase, title: "For Agencies", desc: "Manage multiple brands" },
 ];
 
@@ -182,14 +174,14 @@ function Nav() {
               Home
             </a>
 
-            <DesktopDropdown label="Explore" items={exploreMenu} />
+             <a href="#discover" className="transition hover:text-[var(--brand-pink)]">
+              Discover
+            </a>
             <DesktopDropdown label="Create" items={createMenu} />
 
-            <a href="#live" className="transition hover:text-[var(--brand-pink)]">
-              Live
-            </a>
+           
 
-            <DesktopDropdown label="Business" items={businessMenu} />
+            <DesktopDropdown label="Business" items={solutionMenu} />
 
             <Link
               to="/pricing"
@@ -225,7 +217,7 @@ function Nav() {
 
         {open && (
           <div className="mt-4 space-y-4 rounded-2xl border border-border bg-background p-5 md:hidden">
-            {["Home", "Explore", "Create", "Live", "Business", "Pricing"].map(
+            {["Home", "Discover", "Create", "Solution", "Pricing"].map(
               (item) => (
                 <Link
                   key={item}
@@ -261,7 +253,7 @@ function Nav() {
 
 function Hero() {
   const avatars = ["/images/1.jpeg", "/images/2.jpeg", "/images/3.jpeg"];
-
+const [showVideo, setShowVideo] = useState(false);
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-pink-50/40 to-orange-50/30 py-16 dark:from-background dark:via-white/5 dark:to-white/5">
       <div className="mx-auto grid max-w-7xl gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_520px] lg:items-center lg:px-8">
@@ -291,12 +283,37 @@ function Hero() {
               <ArrowRight className="h-4 w-4" />
             </Link>
 
-            <button className="flex h-12 items-center justify-center gap-2 rounded-[5px] border border-border bg-card px-7 text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10">
-              <Play className="h-4 w-4" />
-              Watch Demo
-            </button>
+            <button
+  onClick={() => setShowVideo(true)}
+  className="flex h-12 items-center cursor-pointer justify-center gap-2 rounded-[5px] border border-border bg-card px-7 text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10"
+>
+  <Play className="h-4 w-4 fill-current" />
+  Watch Demo
+</button>
           </div>
+{showVideo && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+    <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl bg-black shadow-2xl">
 
+      <button
+        onClick={() => setShowVideo(false)}
+        className="absolute right-4 top-4 z-10 rounded-full bg-white p-2 text-black hover:bg-gray-200"
+      >
+        <X className="h-5 w-5" />
+      </button>
+
+      <video
+        controls
+        autoPlay
+        className="w-full rounded-2xl"
+      >
+        <source src="/videos/Demo.mp4" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+
+    </div>
+  </div>
+)}
           <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center lg:justify-start">
             <div className="flex -space-x-3">
               {avatars.map((src, i) => (
@@ -889,10 +906,45 @@ function SocialProof() {
 }
 function Footer() {
   const cols = [
-    [Box, "Product", ["AI Twin", "Live Shopping", "Product Training", "Analytics"]],
-    [Rocket, "Explore", ["Trending Lives", "AI Creators", "Popular Products", "Success Stories"]],
-    [Building2, "Business", ["For Shops", "For Brands", "For Influencers", "For Agencies"]],
-  ];
+  [
+    Box,
+    "Product",
+    [
+      { name: "Pricing", href: "/pricing" },
+      { name: "Create Twin", href: "/signup" },
+      { name: "Go Live", href: "/signin" },
+      { name: "Analytics", href: "/signin" },
+    ],
+  ],
+
+  [
+    Building2,
+    "Company",
+    [
+      { name: "About Us", href: "/about" },
+      { name: "Blog", href: "/blog" },
+    ],
+  ],
+
+  [
+    Rocket,
+    "Legal",
+    [
+      {
+        name: "Terms and Conditions",
+        href: "/terms-and-conditions",
+      },
+      {
+        name: "Cookie Policy",
+        href: "/cookie-policy",
+      },
+      {
+        name: "Refund Policy",
+        href: "/refund-policy",
+      },
+    ],
+  ],
+];
 
   return (
     <footer className="bg-[#0d0d12] text-white">
@@ -928,14 +980,16 @@ function Footer() {
             </div>
 
             <ul className="space-y-3">
-              {items.map((item) => (
-                <li
-                  key={item}
-                  className="text-sm font-medium leading-6 text-white/70 transition hover:text-white"
-                >
-                  {item}
-                </li>
-              ))}
+             {items.map((item) => (
+  <li key={item.name}>
+    <Link
+      to={item.href}
+      className="text-sm font-medium leading-6 text-white/70 transition hover:text-[var(--brand-pink)]"
+    >
+      {item.name}
+    </Link>
+  </li>
+))}
             </ul>
           </div>
         ))}
@@ -947,29 +1001,58 @@ function Footer() {
           </div>
 
           <ul className="space-y-4 text-sm font-medium leading-6 text-white/70">
-            <li className="flex items-center gap-3">
-              <Mail className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-              hello@twinn.live
-            </li>
-            <li className="flex items-center gap-3">
-              <Globe className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-              www.twinn.live
-            </li>
-            <li className="flex items-center gap-3">
-              <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-              +91 84285 27015
-            </li>
-            <li className="flex items-center gap-3">
-              <MapPin className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-              Chennai, India
-            </li>
+          
+  <li>
+    <a
+      href="mailto:hello@twinn.live"
+      className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+    >
+      <Mail className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+      hello@twinn.live
+    </a>
+  </li>
+
+  <li>
+    <a
+      href="https://twinn.live"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+    >
+      <Globe className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+      twinn.live
+    </a>
+  </li>
+
+  <li>
+    <a
+      href="tel:+918428527015"
+      className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+    >
+      <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+      +91 84285 27015
+    </a>
+  </li>
+
+  <li>
+    <a
+      href="https://maps.google.com/?q=Chennai,India"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+    >
+      <MapPin className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+      Chennai, India
+    </a>
+  </li>
+
           </ul>
         </div>
       </div>
 
       <div className="border-t border-white/10">
         <p className="py-5 text-center text-sm font-medium tracking-wide text-white/50">
-          © {new Date().getFullYear()} Twin. All rights reserved.
+          © {new Date().getFullYear()} Twinn. All rights reserved.
         </p>
       </div>
     </footer>

@@ -42,6 +42,8 @@ import AdminLives from "./admin/AdminLives";
 import AdminAnalytics from "./admin/AdminAnalytics";
 import AdminSettings from "./admin/AdminSettings";
 import SignUp from "./pages/SignUp";
+import Pricing from "./pages/Pricing";
+import TermsCondition from "./pages/TermsCondition";
 
 
 function RequireAdmin({ children }) {
@@ -107,6 +109,8 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<Signin />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/terms-and-conditions" element={<TermsCondition />} />
         <Route path="/waitlist" element={<WaitlistForm />} />
 
         <Route path="/app" element={<AppLayout />}>
