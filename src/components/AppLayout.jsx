@@ -73,8 +73,8 @@ const handleProtectedNav = (path) => {
 </div>
 
           <div>
-            <h1 className="text-3xl font-black leading-none tracking-tight">
-              twin
+            <h1 className="text-3xl font-black leading-none tracking-tight"  style={{fontWeight: 600,  fontFamily: "Poppins, sans-serif",}}>
+              twinn
             </h1>
             <p className="mt-1 text-xs font-medium text-pink-300">
               Never sleep. Never stop selling.
@@ -257,7 +257,7 @@ const handleProtectedNav = (path) => {
 </div>
 
           <div>
-            <h1 className="text-xl font-black leading-none">twin</h1>
+            <h1 className="text-xl font-black leading-none" style={{fontWeight: 600,  fontFamily: "Poppins, sans-serif"}}>twinn</h1>
            <p className="text-[10px] text-muted-foreground">Never Sleep. Never stop selling.</p>
           </div>
         </div>
@@ -290,7 +290,7 @@ const handleProtectedNav = (path) => {
 </div>
 
                 <div>
-                  <h1 className="text-2xl font-black">twin</h1>
+                  <h1 className="text-2xl font-black"  style={{fontWeight: 600,  fontFamily: "Poppins, sans-serif",}}>twinn</h1>
                   <p className="text-xs text-pink-300">AI Live Commerce</p>
                 </div>
               </div>

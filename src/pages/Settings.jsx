@@ -1,3 +1,5 @@
+// src/pages/Settings.jsx
+
 import { useEffect, useState } from "react";
 import {
   Settings as SettingsIcon,
@@ -13,24 +15,29 @@ import {
   Lock,
   Sun,
   Moon,
-   Trash2,
+  Trash2,
   AlertTriangle,
 } from "lucide-react";
 
+const ME_API = "https://ai-twin-backend-4.onrender.com/api/auth/me";
+
 export default function Settings() {
   const [saved, setSaved] = useState(false);
-const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [apiError, setApiError] = useState("");
+
   const [settings, setSettings] = useState({
-    name: "Ishaaq Meeran",
-    email: "ishaaqmeeran1@gmail.com",
+    name: "",
+    email: "",
     brand: "Twin Live",
     language: "English",
-    
     notifications: true,
     liveAlerts: true,
     orderAlerts: true,
     twoFactor: false,
     theme: "Light",
+    plan: "Free",
   });
 
   useEffect(() => {
@@ -39,7 +46,41 @@ const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     setSettings((prev) => ({ ...prev, ...old, theme }));
     applyTheme(theme);
+    fetchMe();
   }, []);
+
+  const fetchMe = async () => {
+    try {
+      setLoadingUser(true);
+      setApiError("");
+
+      const res = await fetch(ME_API, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Failed to fetch user");
+      }
+
+      const user = data.user || data;
+
+      setSettings((prev) => ({
+        ...prev,
+        name: user.name || prev.name,
+        email: user.email || prev.email,
+        plan: user.plan || prev.plan || "Free",
+      }));
+
+      localStorage.setItem("user", JSON.stringify(user));
+    } catch (err) {
+      setApiError(err.message);
+    } finally {
+      setLoadingUser(false);
+    }
+  };
 
   const applyTheme = (theme) => {
     if (theme === "Dark") {
@@ -60,18 +101,17 @@ const [showDeleteModal, setShowDeleteModal] = useState(false);
     }
   };
 
+  const deleteAccount = () => {
+    const theme = localStorage.getItem("theme");
+    localStorage.clear();
 
-const deleteAccount = () => {
-  const theme = localStorage.getItem("theme");
+    if (theme) {
+      localStorage.setItem("theme", theme);
+    }
 
-  localStorage.clear();
+    window.location.href = "/";
+  };
 
-  if (theme) {
-    localStorage.setItem("theme", theme);
-  }
-
-  window.location.href = "/";
-};
   const saveSettings = () => {
     localStorage.setItem("userSettings", JSON.stringify(settings));
     applyTheme(settings.theme);
@@ -82,7 +122,6 @@ const deleteAccount = () => {
 
   return (
     <div className="min-h-full space-y-6 bg-background text-foreground transition-colors duration-300">
-      {/* Header */}
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
           <SettingsIcon className="h-4 w-4 text-[var(--brand-pink)]" />
@@ -96,6 +135,18 @@ const deleteAccount = () => {
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
           Manage your profile, notifications, security and app preferences.
         </p>
+
+        {loadingUser && (
+          <p className="mt-4 text-sm font-bold text-[var(--brand-pink)]">
+            Loading account details...
+          </p>
+        )}
+
+        {apiError && (
+          <div className="mt-4 rounded-[5px] bg-red-50 p-3 text-sm font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">
+            {apiError}
+          </div>
+        )}
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
@@ -152,8 +203,6 @@ const deleteAccount = () => {
                 active={settings.liveAlerts}
                 onClick={() => update("liveAlerts", !settings.liveAlerts)}
               />
-
-             
             </div>
           </Card>
 
@@ -172,12 +221,12 @@ const deleteAccount = () => {
               </button>
 
               <button
-  onClick={() => setShowDeleteModal(true)}
-  className="flex h-12 w-full items-center justify-center gap-2 rounded-[5px] border-2 border-red-500 bg-red-50 text-sm font-bold tracking-wide text-red-600 transition hover:bg-red-500 hover:text-white dark:bg-red-500/10"
->
-  <Trash2 className="h-4 w-4" />
-  Delete Account
-</button>
+                onClick={() => setShowDeleteModal(true)}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-[5px] border-2 border-red-500 bg-red-50 text-sm font-bold tracking-wide text-red-600 transition hover:bg-red-500 hover:text-white dark:bg-red-500/10"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete Account
+              </button>
             </div>
           </Card>
         </section>
@@ -199,8 +248,6 @@ const deleteAccount = () => {
                 onClick={() => update("theme", "Dark")}
               />
             </div>
-
-          
           </Card>
 
           <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
@@ -209,7 +256,7 @@ const deleteAccount = () => {
             </h2>
 
             <div className="mt-5 space-y-3">
-              <Status label="Plan" value="Free" />
+              <Status label="Plan" value={settings.plan || "Free"} />
               <Status label="AI Twin" value="Active" />
               <Status label="Storage" value="2.4 GB used" />
               <Status label="Live Minutes" value="120 / month" />
@@ -225,47 +272,44 @@ const deleteAccount = () => {
           </section>
         </aside>
       </div>
-{
-  showDeleteModal && (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl">
 
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/10">
-          <AlertTriangle className="h-8 w-8 text-red-500" />
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-2xl">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-500/10">
+              <AlertTriangle className="h-8 w-8 text-red-500" />
+            </div>
+
+            <h2 className="mt-5 text-center text-2xl font-black tracking-tight">
+              Delete Account?
+            </h2>
+
+            <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">
+              This action cannot be undone.
+              <br />
+              Your AI Twin, Products, Live Sessions, Training Data and Settings
+              will be permanently removed.
+            </p>
+
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 rounded-[5px] border border-border py-3 text-sm font-bold transition hover:bg-muted"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={deleteAccount}
+                className="flex-1 rounded-[5px] bg-red-600 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
-        <h2 className="mt-5 text-center text-2xl font-black tracking-tight">
-          Delete Account?
-        </h2>
-
-        <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">
-          This action cannot be undone.
-          <br />
-          Your AI Twin, Products, Live Sessions,
-          Training Data and Settings will be permanently removed.
-        </p>
-
-        <div className="mt-8 flex gap-3">
-
-          <button
-            onClick={() => setShowDeleteModal(false)}
-            className="flex-1 rounded-[5px] border border-border py-3 text-sm font-bold transition hover:bg-muted"
-          >
-            Cancel
-          </button>
-
-          <button
-            onClick={deleteAccount}
-            className="flex-1 rounded-[5px] bg-red-600 py-3 text-sm font-bold text-white transition hover:bg-red-700"
-          >
-            Delete
-          </button>
-
-        </div>
-      </div>
-    </div>
-  )
-}
       {saved && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-border bg-card px-5 py-4 text-sm font-bold tracking-wide text-foreground shadow-xl">
           <CheckCircle2 className="h-5 w-5 text-green-400" />
@@ -380,7 +424,6 @@ function Status({ label, value }) {
   return (
     <div className="flex items-center justify-between rounded-xl border border-border bg-background p-4 text-sm">
       <span className="font-medium text-muted-foreground">{label}</span>
-
       <span className="font-black tracking-tight text-foreground">{value}</span>
     </div>
   );

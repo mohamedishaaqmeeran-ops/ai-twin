@@ -181,7 +181,7 @@ function Nav() {
 
            
 
-            <DesktopDropdown label="Business" items={solutionMenu} />
+            <DesktopDropdown label="Solution" items={solutionMenu} />
 
             <Link
               to="/pricing"
@@ -253,6 +253,36 @@ function Nav() {
 
 function Hero() {
   const avatars = ["/images/1.jpeg", "/images/2.jpeg", "/images/3.jpeg"];
+  const platforms = [
+  {
+    name: "Instagram",
+    username: "@yourbrand",
+    icon: Instagram,
+    color: "text-pink-500",
+    href: "https://www.instagram.com/",
+  },
+  {
+    name: "Facebook",
+    username: "Your Brand",
+    icon: Facebook,
+    color: "text-blue-600",
+    href: "https://www.facebook.com/",
+  },
+  {
+    name: "TikTok",
+    username: "@yourbrand",
+    icon: Music2,
+    color: "text-black dark:text-white",
+    href: "https://www.tiktok.com/",
+  },
+  {
+    name: "YouTube",
+    username: "Your Channel",
+    icon: Youtube,
+    color: "text-red-600",
+    href: "/sigin",
+  },
+];
 const [showVideo, setShowVideo] = useState(false);
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-pink-50/40 to-orange-50/30 py-16 dark:from-background dark:via-white/5 dark:to-white/5">
@@ -336,8 +366,8 @@ const [showVideo, setShowVideo] = useState(false);
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_190px]">
-          <div className="relative mx-auto w-full max-w-[360px] overflow-hidden rounded-[36px] border-[8px] border-white bg-[#0d0d12] shadow-2xl dark:border-white/10">
+       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-[280px_260px] xl:grid-cols-[300px_270px] items-start justify-center">
+         <div className="relative mx-auto w-full max-w-[420px] sm:max-w-[430px] lg:max-w-[450px] xl:max-w-[480px] overflow-hidden rounded-[40px] border-[8px] border-white bg-[#0d0d12] shadow-2xl dark:border-white/10">
             <img
               src="/images/bbb.png"
               alt="Live AI Twin"
@@ -386,44 +416,63 @@ const [showVideo, setShowVideo] = useState(false);
             </div>
           </div>
 
-    <div className="w-full space-y-6 lg:block">
-  <div className="w-full rounded-3xl border border-border bg-card p-4 shadow-xl sm:p-5 lg:w-[280px]">
-    <h3 className="mb-5 text-lg font-black text-foreground sm:text-xl">
-      Connected Platforms
-    </h3>
+    <div className="w-full space-y-6  lg:block">
+   <div className="mx-auto w-full max-w-[400px] md:max-w-[235px] rounded-[32px] border border-border bg-card p-4 shadow-xl transition duration-300 hover:-translate-y-1 hover:shadow-2xl">
 
-    <div className="space-y-3 sm:space-y-4">
-      {[
-        [Instagram, "Instagram"],
-        [Facebook, "Facebook"],
-        [Youtube, "YouTube"],
-        [Music2, "TikTok"],
-      ].map(([Icon, name]) => (
+  <h3 className="text-xl font-black text-foreground">
+    Connect Social Accounts
+  </h3>
+
+  <p className="mt-1 text-sm text-muted-foreground">
+    Auto-post & go live across platforms
+  </p>
+
+  <div className="mt-6 ">
+
+    {platforms.map((item) => {
+      const Icon = item.icon;
+
+      return (
         <div
-          key={name}
-          className="flex flex-col gap-3 rounded-2xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+          key={item.name}
+          className="flex items-center justify-between"
         >
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10 sm:h-12 sm:w-12">
-              <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+          <div className="flex items-center gap-3">
+
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 dark:bg-white/10">
+              <Icon className={`h-6 w-6 ${item.color}`} />
             </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-black text-foreground">{name}</p>
-              <p className="text-xs text-muted-foreground">Connect</p>
+            <div>
+              <h4 className="text-sm font-black text-foreground">
+                {item.name}
+              </h4>
+
+              <p className="text-xs text-muted-foreground">
+                {item.username}
+              </p>
             </div>
           </div>
 
           <Link
-            to="/signin"
-            className="flex h-10 w-full shrink-0 items-center justify-center rounded-full border border-[var(--brand-pink)] px-4 text-xs font-bold text-[var(--brand-pink)] transition hover:bg-[var(--brand-pink)] hover:text-white sm:w-auto"
-          >
-            Go Live
-          </Link>
+  to="/signin"
+  className="text-xs font-bold text-emerald-500 transition hover:text-emerald-600"
+>
+  Connect
+</Link>
         </div>
-      ))}
-    </div>
+      );
+    })}
   </div>
+
+  <a
+    href="/app/connect"
+    className="mt-7 flex h-12 w-full items-center justify-center rounded-xl border-2 border-pink-200 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+  >
+    Manage Accounts
+  </a>
+
+</div>
 </div>
         </div>
       </div>
@@ -923,6 +972,7 @@ function Footer() {
     [
       { name: "About Us", href: "/about" },
       { name: "Blog", href: "/blog" },
+      { name: "Careers", href: "/careers" },
     ],
   ],
 
