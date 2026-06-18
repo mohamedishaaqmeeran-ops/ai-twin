@@ -986,11 +986,11 @@ function Footer() {
       },
       {
         name: "Cookie Policy",
-        href: "/cookie-policy",
+        href: "/cookiepolicy",
       },
       {
         name: "Refund Policy",
-        href: "/refund-policy",
+        href: "/refundpolicy",
       },
     ],
   ],
