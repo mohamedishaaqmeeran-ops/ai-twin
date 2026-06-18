@@ -955,50 +955,51 @@ function SocialProof() {
 }
 function Footer() {
   const cols = [
-  [
-    Box,
-    "Product",
     [
-      { name: "Pricing", href: "/pricing" },
-      { name: "Create Twin", href: "/signup" },
-      { name: "Go Live", href: "/signin" },
-      { name: "Analytics", href: "/signin" },
+      Box,
+      "Product",
+      [
+        { name: "Pricing", link: "/pricing" },
+        { name: "Create Twin", link: "/signup" },
+        { name: "Go Live", link: "/signin" },
+        { name: "Analytics", link: "/signin" },
+      ],
     ],
-  ],
 
-  [
-    Building2,
-    "Company",
     [
-      { name: "About Us", href: "/about" },
-      { name: "Blog", href: "/blog" },
-      { name: "Careers", href: "/careers" },
+      Building2,
+      "Company",
+      [
+        { name: "About Us", link: "/about" },
+        { name: "Blog", link: "/blog" },
+        { name: "Careers", link: "/careers" },
+      ],
     ],
-  ],
 
-  [
-    Rocket,
-    "Legal",
     [
-      {
-        name: "Terms and Conditions",
-        href: "/terms-and-conditions",
-      },
-      {
-        name: "Cookie Policy",
-        href: "/cookiepolicy",
-      },
-      {
-        name: "Refund Policy",
-        href: "/refundpolicy",
-      },
+      Rocket,
+      "Legal",
+      [
+        {
+          name: "Terms and Conditions",
+          link: "/terms-and-conditions",
+        },
+        {
+          name: "Cookie Policy",
+          link: "/cookie-policy",
+        },
+        {
+          name: "Refund Policy",
+          link: "/refund-policy",
+        },
+      ],
     ],
-  ],
-];
+  ];
 
   return (
     <footer className="bg-[#0d0d12] text-white">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-5 lg:px-8">
+        {/* Left */}
         <div className="lg:col-span-1">
           <Logo />
 
@@ -1015,13 +1016,19 @@ function Footer() {
               [Music2, "https://www.tiktok.com"],
               [Linkedin, "https://www.linkedin.com/company/twinlive/"],
             ].map(([Icon, href], index) => (
-              <a key={index} href={href} target="_blank" rel="noopener noreferrer">
+              <a
+                key={index}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Icon className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
               </a>
             ))}
           </div>
         </div>
 
+        {/* Columns */}
         {cols.map(([Icon, title, items]) => (
           <div key={title}>
             <div className="mb-5 flex items-center gap-2">
@@ -1030,20 +1037,21 @@ function Footer() {
             </div>
 
             <ul className="space-y-3">
-             {items.map((item) => (
-  <li key={item.name}>
-    <Link
-      to={item.href}
-      className="text-sm font-medium leading-6 text-white/70 transition hover:text-[var(--brand-pink)]"
-    >
-      {item.name}
-    </Link>
-  </li>
-))}
+              {items.map((item) => (
+                <li key={item.name}>
+                  <Link
+                    to={item.link}
+                    className="text-sm font-medium leading-6 text-white/70 transition hover:text-[var(--brand-pink)]"
+                  >
+                    {item.name}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         ))}
 
+        {/* Contact */}
         <div>
           <div className="mb-5 flex items-center gap-2">
             <Mail className="h-4 w-4 text-[var(--brand-pink)]" />
@@ -1051,51 +1059,49 @@ function Footer() {
           </div>
 
           <ul className="space-y-4 text-sm font-medium leading-6 text-white/70">
-          
-  <li>
-    <a
-      href="mailto:hello@twinn.live"
-      className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
-    >
-      <Mail className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-      hello@twinn.live
-    </a>
-  </li>
+            <li>
+              <a
+                href="mailto:hello@twinn.live"
+                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+              >
+                <Mail className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+                hello@twinn.live
+              </a>
+            </li>
 
-  <li>
-    <a
-      href="https://twinn.live"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
-    >
-      <Globe className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-      twinn.live
-    </a>
-  </li>
+            <li>
+              <a
+                href="https://twinn.live"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+              >
+                <Globe className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+                twinn.live
+              </a>
+            </li>
 
-  <li>
-    <a
-      href="tel:+918428527015"
-      className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
-    >
-      <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-      +91 84285 27015
-    </a>
-  </li>
+            <li>
+              <a
+                href="tel:+918428527015"
+                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+              >
+                <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+                +91 84285 27015
+              </a>
+            </li>
 
-  <li>
-    <a
-      href="https://maps.google.com/?q=Chennai,India"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
-    >
-      <MapPin className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-      Chennai, India
-    </a>
-  </li>
-
+            <li>
+              <a
+                href="https://maps.google.com/?q=Chennai,India"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+              >
+                <MapPin className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+                Chennai, India
+              </a>
+            </li>
           </ul>
         </div>
       </div>

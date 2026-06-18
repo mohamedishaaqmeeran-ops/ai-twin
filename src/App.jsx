@@ -146,8 +146,8 @@ export default function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/terms-and-conditions" element={<TermsCondition />} />
         <Route path="/waitlist" element={<WaitlistForm />} />
-<Route path="/cookiepolicy" element={<CookiePolicy />} />
-<Route path="/refundpolicy" element={<RefundPolicy />} />
+        <Route path="/cookie-policy" element={<CookiePolicy/>}/>
+        <Route path="/refund-policy" element={<RefundPolicy/>}/>
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Dashboard />} />
 
