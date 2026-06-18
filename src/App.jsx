@@ -46,16 +46,16 @@ import Pricing from "./pages/Pricing";
 import TermsCondition from "./pages/TermsCondition";
 
 
-import ProDashboard from "./pages/pro/ProDashboard";
-import ProTwins from "./pages/pro/ProTwins";
-import ProCreateTwin from "./pages/pro/ProCreateTwin";
-import ProEditTwin from "./pages/pro/ProEditTwin";
-import ProTrainTwin from "./pages/pro/ProTrainTwin";
-import ProConnectSocial from "./pages/pro/ProConnectSocial";
-import ProProducts from "./pages/pro/ProProducts";
-import ProGoLive from "./pages/pro/ProGoLive";
-import ProAnalytics from "./pages/pro/ProAnalytics";
-import ProSettings from "./pages/pro/ProSettings";
+import ProDashboard from "./pages/Pro/ProDashboard";
+import ProTwins from "./pages/Pro/ProTwins";
+import ProCreateTwin from "./pages/Pro/ProCreateTwin";
+import ProEditTwin from "./pages/Pro/ProEditTwin";
+import ProTrainTwin from "./pages/Pro/ProTrainTwin";
+import ProConnectSocial from "./pages/Pro/ProConnectSocial";
+import ProProducts from "./pages/Pro/ProProducts";
+import ProGoLive from "./pages/Pro/ProGoLive";
+import ProAnalytics from "./pages/Pro/ProAnalytics";
+import ProSettings from "./pages/Pro/ProSettings";
 import CookiePolicy from "./pages/CookiePolicy";
 import RefundPolicy from "./pages/RefundPolicy";
 
