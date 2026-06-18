@@ -46,6 +46,21 @@ import Pricing from "./pages/Pricing";
 import TermsCondition from "./pages/TermsCondition";
 
 
+import ProDashboard from "./pages/pro/ProDashboard";
+import ProTwins from "./pages/pro/ProTwins";
+import ProCreateTwin from "./pages/pro/ProCreateTwin";
+import ProEditTwin from "./pages/pro/ProEditTwin";
+import ProTrainTwin from "./pages/pro/ProTrainTwin";
+import ProConnectSocial from "./pages/pro/ProConnectSocial";
+import ProProducts from "./pages/pro/ProProducts";
+import ProGoLive from "./pages/pro/ProGoLive";
+import ProAnalytics from "./pages/pro/ProAnalytics";
+import ProSettings from "./pages/pro/ProSettings";
+import CookiePolicy from "./pages/CookiePolicy";
+import RefundPolicy from "./pages/RefundPolicy";
+
+
+
 function RequireAdmin({ children }) {
   const role = localStorage.getItem("role");
 
@@ -55,6 +70,25 @@ function RequireAdmin({ children }) {
 
   return children;
 }
+
+
+function RequirePro({ children }) {
+  const role = localStorage.getItem("role");
+  const plan = (localStorage.getItem("plan") || "free").toLowerCase();
+
+  if (role === "admin") {
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (plan !== "pro") {
+    return <Navigate to="/app" replace />;
+  }
+
+  return children;
+}
+
+
+
 function applySavedTheme() {
   const theme = localStorage.getItem("theme") || "Light";
 
@@ -112,7 +146,8 @@ export default function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/terms-and-conditions" element={<TermsCondition />} />
         <Route path="/waitlist" element={<WaitlistForm />} />
-
+<Route path="/cookie-policy" element={<CookiePolicy />} />
+<Route path="/refund-policy" element={<RefundPolicy />} />
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<Dashboard />} />
 
@@ -121,6 +156,97 @@ export default function App() {
           <Route path="twin/edit" element={<EditTwin />} />
           <Route path="twin/train" element={<TrainTwin />} />
           <Route path="twin/test" element={<TestTwin />} />
+
+          
+<Route
+  path="pro"
+  element={
+    <RequirePro>
+      <ProDashboard />
+    </RequirePro>
+  }
+/>
+
+<Route
+  path="pro/twins"
+  element={
+    <RequirePro>
+      <ProTwins />
+    </RequirePro>
+  }
+/>
+
+<Route
+  path="pro/twins/create"
+  element={
+    <RequirePro>
+      <ProCreateTwin />
+    </RequirePro>
+  }
+/>
+
+<Route
+  path="pro/twins/edit/:id"
+  element={
+    <RequirePro>
+      <ProEditTwin />
+    </RequirePro>
+  }
+/>
+
+<Route
+  path="pro/twins/train/:id"
+  element={
+    <RequirePro>
+      <ProTrainTwin />
+    </RequirePro>
+  }
+/>
+
+<Route
+  path="pro/connect"
+  element={
+    <RequirePro>
+      <ProConnectSocial />
+    </RequirePro>
+  }
+/>
+
+<Route
+  path="pro/products"
+  element={
+    <RequirePro>
+      <ProProducts />
+    </RequirePro>
+  }
+/>
+
+<Route
+  path="pro/golive"
+  element={
+    <RequirePro>
+      <ProGoLive />
+    </RequirePro>
+  }
+/>
+
+<Route
+  path="pro/analytics"
+  element={
+    <RequirePro>
+      <ProAnalytics />
+    </RequirePro>
+  }
+/>
+
+<Route
+  path="pro/settings"
+  element={
+    <RequirePro>
+      <ProSettings />
+    </RequirePro>
+  }
+/>
 
           <Route
             path="products"
@@ -218,7 +344,11 @@ export default function App() {
   <Route path="lives" element={<AdminLives />} />
   <Route path="analytics" element={<AdminAnalytics />} />
   <Route path="settings" element={<AdminSettings />} />
+ 
+
 </Route>
+
+
       </Routes>
        <ToastContainer
         position="top-right"
