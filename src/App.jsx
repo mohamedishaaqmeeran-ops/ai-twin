@@ -333,7 +333,7 @@ export default function App() {
           <Route path="settings" element={<Settings />} />
         </Route>
 
-        <Route path="*" element={<NotFound />} />
+       
 
 
         <Route path="/admin" element={ <RequireAdmin><AdminLayout /></RequireAdmin>}>
@@ -347,7 +347,7 @@ export default function App() {
  
 
 </Route>
-
+ <Route path="*" element={<NotFound />} />
 
       </Routes>
        <ToastContainer
