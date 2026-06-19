@@ -46,6 +46,7 @@ import Pricing from "./pages/Pricing";
 import TermsCondition from "./pages/TermsCondition";
 import CookiePolicy from "./pages/CookiePolicy";
 import RefundPolicy from "./pages/RefundPolicy";
+import AboutUs from "./pages/AboutUs";
 
 
 function RequireAdmin({ children }) {
@@ -111,6 +112,7 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<Signin />} />
+        <Route path="/about" element={<AboutUs />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/cookie-policy" element={<CookiePolicy />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />

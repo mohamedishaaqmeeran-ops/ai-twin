@@ -423,7 +423,7 @@ const [showVideo, setShowVideo] = useState(false);
     Connect Social Accounts
   </h3>
 
-  <p className="mt-1 text-sm text-muted-foreground">
+  <p className="mt-1 text-sm text-base font-medium leading-7 text-muted-foreground">
     Auto-post & go live across platforms
   </p>
 
@@ -526,10 +526,11 @@ function HowItWorks() {
       id="how"
       className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"
     >
-      <div className="rounded-[32px] border border-border bg-card p-6 shadow-sm lg:p-8">
-        <h2 className="text-center text-3xl font-black uppercase tracking-tight brand-text md:text-4xl">
-          3 Simple Steps to Launch Your AI Twin
-        </h2>
+      <h2 className="text-center text-3xl font-black tracking-tight brand-text md:text-4xl">
+        How It Works
+      </h2>
+      <div className="mt-12 rounded-[32px] border border-border bg-card p-6 shadow-sm lg:p-4">
+       
 
         <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_auto_1fr_auto_1fr]">
 
@@ -543,12 +544,12 @@ function HowItWorks() {
 
               <div>
                 <h3 className="text-xl font-black text-foreground">
-                  CREATE YOUR AVATAR
+                  Create Your Avatar
                 </h3>
 
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 space-y-3 text-base font-medium leading-7 text-muted-foreground">
 
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-sm ">
                     <CheckCircle2 className="h-4 w-4 text-pink-500" />
                     Upload a video
                   </div>
@@ -596,9 +597,9 @@ function HowItWorks() {
                 2
               </div>
 
-              <div>
+              <div className="text-base font-medium leading-7 text-muted-foreground">
                 <h3 className="text-xl font-black text-foreground">
-                  EXPLAIN OR UPLOAD PRODUCTS
+                Upload Products
                 </h3>
 
                 <div className="mt-5 space-y-3">
@@ -632,7 +633,7 @@ function HowItWorks() {
 
   <ProductRow
     image="/images/5.jpeg"
-    name="Head Phones"
+    name="HeadPhones"
     price="₹499"
   />
 
@@ -653,7 +654,7 @@ function HowItWorks() {
 
           {/* STEP 3 */}
 
-          <div className="rounded-3xl border border-border bg-background p-6">
+          <div className="rounded-3xl border border-border bg-background p-6 text-foreground">
 
             <div className="flex items-start gap-4">
 
@@ -664,10 +665,10 @@ function HowItWorks() {
               <div>
 
                 <h3 className="text-xl font-black text-foreground">
-                  SCHEDULE YOUR AI LIVE
+                  Schedule Your Live
                 </h3>
 
-                <div className="mt-5 space-y-3">
+                <div className="mt-5 space-y-3 text-base font-medium leading-7 text-muted-foreground">
 
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="h-4 w-4 text-pink-500" />
@@ -708,7 +709,7 @@ function HowItWorks() {
 
               </div>
 
-              <div className="mt-5 space-y-3 text-sm">
+              <div className="mt-5 space-y-3 text-sm text-base font-medium leading-7 text-muted-foreground">
 
                 <div className="flex items-center gap-2">
 
