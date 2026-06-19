@@ -14,13 +14,15 @@ import {
   ArrowRight,
   Package,
   ScanFace,
+  Crown,
+  Lock,
 } from "lucide-react";
 
 const platforms = [
-  { name: "YouTube", icon: Youtube },
-  { name: "Facebook", icon: Facebook },
-  { name: "Instagram", icon: Instagram },
-  { name: "TikTok", icon: Music2 },
+  { name: "Instagram", icon: Instagram, pro: false },
+  { name: "YouTube", icon: Youtube, pro: true },
+  { name: "Facebook", icon: Facebook, pro: true },
+  { name: "TikTok", icon: Music2, pro: true },
 ];
 
 const defaultProducts = [
@@ -32,6 +34,10 @@ const defaultProducts = [
 export default function GoLive() {
   const navigate = useNavigate();
 
+  const plan = localStorage.getItem("plan") || "free";
+  const isPro = plan === "pro";
+  const maxPlatforms = isPro ? 4 : 1;
+
   const [twinName, setTwinName] = useState("My AI Twin");
   const [product, setProduct] = useState("Vitamin C Glow Serum");
   const [products, setProducts] = useState(defaultProducts);
@@ -40,10 +46,15 @@ export default function GoLive() {
     liveChat: true,
     productLink: true,
     autoAnswer: true,
+    multiPlatformSync: false,
   });
 
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
+
+  const upgradeToPro = () => {
+    navigate("/pricing");
+  };
 
   useEffect(() => {
     setTwinName(localStorage.getItem("twinName") || "My AI Twin");
@@ -67,25 +78,44 @@ export default function GoLive() {
     );
 
     if (savedPlatforms.length) {
-      setSelectedPlatforms(savedPlatforms);
+      setSelectedPlatforms(isPro ? savedPlatforms : savedPlatforms.slice(0, 1));
     } else if (connectedPlatforms.length) {
-      setSelectedPlatforms(
-        connectedPlatforms.map(
-          (item) => item.charAt(0).toUpperCase() + item.slice(1)
-        )
+      const formatted = connectedPlatforms.map(
+        (item) => item.charAt(0).toUpperCase() + item.slice(1)
       );
+
+      setSelectedPlatforms(isPro ? formatted : formatted.slice(0, 1));
     }
-  }, []);
+  }, [isPro]);
 
   const togglePlatform = (name) => {
-    setSelectedPlatforms((prev) =>
-      prev.includes(name)
-        ? prev.filter((item) => item !== name)
-        : [...prev, name]
-    );
+    const item = platforms.find((p) => p.name === name);
+    const active = selectedPlatforms.includes(name);
+
+    if (item?.pro && !isPro && !active) {
+      upgradeToPro();
+      return;
+    }
+
+    if (active) {
+      setSelectedPlatforms((prev) => prev.filter((item) => item !== name));
+      return;
+    }
+
+    if (!isPro && selectedPlatforms.length >= maxPlatforms) {
+      upgradeToPro();
+      return;
+    }
+
+    setSelectedPlatforms((prev) => [...prev, name]);
   };
 
-  const toggleSetting = (key) => {
+  const toggleSetting = (key, proOnly = false) => {
+    if (proOnly && !isPro) {
+      upgradeToPro();
+      return;
+    }
+
     setSettings((prev) => ({
       ...prev,
       [key]: !prev[key],
@@ -93,16 +123,21 @@ export default function GoLive() {
   };
 
   const continuePreview = () => {
+    const allowedPlatforms = isPro
+      ? selectedPlatforms
+      : selectedPlatforms.slice(0, 1);
+
     const liveSetup = {
       twinName,
       product,
-      platforms: selectedPlatforms,
+      platforms: allowedPlatforms,
       settings,
+      plan: isPro ? "pro" : "free",
       createdAt: new Date().toLocaleString(),
     };
 
     localStorage.setItem("selectedProduct", product);
-    localStorage.setItem("selectedPlatforms", JSON.stringify(selectedPlatforms));
+    localStorage.setItem("selectedPlatforms", JSON.stringify(allowedPlatforms));
     localStorage.setItem("liveSetup", JSON.stringify(liveSetup));
 
     navigate("/app/golive/preview");
@@ -112,25 +147,66 @@ export default function GoLive() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 bg-background text-foreground transition-colors duration-300">
-      {/* Header */}
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-          <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-          GO LIVE SETUP
-        </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
+            {isPro ? (
+              <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+            )}
+            {isPro ? "PRO GO LIVE SETUP" : "GO LIVE SETUP"}
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
+              isPro
+                ? "bg-pink-500 text-white"
+                : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+            }`}
+          >
+            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isPro ? "PRO PLAN ACTIVE" : "FREE PLAN"}
+          </span>
+        </div>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-          <span className="brand-text">Go Live</span> With Your AI Twin
+          <span className="brand-text">
+            {isPro ? "Go Pro Live" : "Go Live"}
+          </span>{" "}
+          With Your AI Twin
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-          Select one product and one or more platforms. Your AI Twin will focus
-          on selling the selected product during this live session.
+          {isPro
+            ? "Select product and launch your AI Twin live across multiple connected platforms with advanced selling options."
+            : "Free plan supports one product and one platform per live session. Upgrade for multi-platform live selling."}
         </p>
+
+        {!isPro && (
+          <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-black text-[var(--brand-pink)]">
+                  Free Live Limit
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  1 platform only. Upgrade to Pro for Instagram, YouTube, Facebook and TikTok together.
+                </p>
+              </div>
+
+              <button
+                onClick={upgradeToPro}
+                className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+              >
+                Upgrade
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        {/* Setup */}
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <Field icon={ScanFace} label="Select AI Twin">
@@ -162,31 +238,44 @@ export default function GoLive() {
             </h2>
 
             <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
-              Choose where your AI Twin should go live.
+              {isPro
+                ? "Choose one or more platforms for Pro live selling."
+                : "Free plan allows Instagram only."}
             </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {platforms.map(({ name, icon: Icon }) => {
+              {platforms.map(({ name, icon: Icon, pro }) => {
                 const active = selectedPlatforms.includes(name);
+                const locked = pro && !isPro;
 
                 return (
                   <button
                     key={name}
                     onClick={() => togglePlatform(name)}
-                    className={`rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
+                    className={`relative rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
                       active
                         ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
                         : "border-border bg-background text-foreground"
                     }`}
                   >
-                    <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
+                    {locked && (
+                      <span className="absolute right-3 top-3 rounded-full bg-pink-500 px-2 py-1 text-[10px] font-black text-white">
+                        PRO
+                      </span>
+                    )}
+
+                    {locked ? (
+                      <Lock className="h-6 w-6 text-[var(--brand-pink)]" />
+                    ) : (
+                      <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
+                    )}
 
                     <p className="mt-3 text-base font-black tracking-tight text-foreground">
                       {name}
                     </p>
 
                     <p className="mt-1 text-xs font-medium text-muted-foreground">
-                      {active ? "Selected" : "Click to select"}
+                      {active ? "Selected" : locked ? "Pro only" : "Click to select"}
                     </p>
                   </button>
                 );
@@ -218,6 +307,15 @@ export default function GoLive() {
               active={settings.autoAnswer}
               onClick={() => toggleSetting("autoAnswer")}
             />
+
+            <LiveToggle
+              icon={Radio}
+              title="Multi-Platform Sync"
+              desc="Sync AI Twin live flow across all selected platforms."
+              active={settings.multiPlatformSync}
+              proOnly={!isPro}
+              onClick={() => toggleSetting("multiPlatformSync", true)}
+            />
           </div>
 
           <button
@@ -230,7 +328,6 @@ export default function GoLive() {
           </button>
         </section>
 
-        {/* Preview */}
         <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-black tracking-tight brand-text">
             Live Setup Preview
@@ -250,6 +347,7 @@ export default function GoLive() {
             </p>
 
             <div className="mt-5 space-y-3">
+              <Info label="Plan" value={isPro ? "Pro Live" : "Free Live"} />
               <Info label="Platforms" value={selectedPlatforms.join(", ")} />
               <Info
                 label="Live Chat"
@@ -263,6 +361,16 @@ export default function GoLive() {
                 label="Auto Answer"
                 value={settings.autoAnswer ? "Enabled" : "Disabled"}
               />
+              <Info
+                label="Platform Sync"
+                value={
+                  settings.multiPlatformSync
+                    ? "Enabled"
+                    : isPro
+                    ? "Disabled"
+                    : "Pro only"
+                }
+              />
             </div>
           </div>
 
@@ -271,8 +379,9 @@ export default function GoLive() {
               <CheckCircle2 className="mt-0.5 h-5 w-5 text-[var(--brand-pink)]" />
 
               <p className="text-sm font-bold leading-6 text-foreground">
-                One AI Twin can sell all products. This live will focus only on
-                the selected product.
+                {isPro
+                  ? "Your Pro AI Twin can sell this product across multiple platforms."
+                  : "One AI Twin can sell all products. Free live will focus on one platform."}
               </p>
             </div>
           </div>
@@ -295,7 +404,7 @@ function Field({ icon: Icon, label, children }) {
   );
 }
 
-function LiveToggle({ icon: Icon, title, desc, active, onClick }) {
+function LiveToggle({ icon: Icon, title, desc, active, onClick, proOnly }) {
   return (
     <button
       onClick={onClick}
@@ -303,7 +412,7 @@ function LiveToggle({ icon: Icon, title, desc, active, onClick }) {
     >
       <div className="flex items-center gap-4">
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-          <Icon className="h-5 w-5" />
+          {proOnly ? <Lock className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
         </div>
 
         <div>
@@ -312,19 +421,21 @@ function LiveToggle({ icon: Icon, title, desc, active, onClick }) {
           </p>
 
           <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
-            {desc}
+            {proOnly ? "Unlock with Pro plan." : desc}
           </p>
         </div>
       </div>
 
       <span
         className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold tracking-wide ${
-          active
+          proOnly
+            ? "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+            : active
             ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
             : "bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400"
         }`}
       >
-        {active ? "ON" : "OFF"}
+        {proOnly ? "PRO" : active ? "ON" : "OFF"}
       </span>
     </button>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
@@ -12,6 +12,8 @@ import {
   Trash2,
   Save,
   X,
+  Crown,
+  Lock,
 } from "lucide-react";
 
 const defaultProducts = [
@@ -48,6 +50,12 @@ const defaultProducts = [
 ];
 
 export default function Products() {
+  const navigate = useNavigate();
+
+  const plan = localStorage.getItem("plan") || "free";
+  const isPro = plan === "pro";
+  const maxProducts = isPro ? 100 : 3;
+
   const [products, setProducts] = useState([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All Products");
@@ -63,6 +71,12 @@ export default function Products() {
       localStorage.setItem("products", JSON.stringify(defaultProducts));
     }
   }, []);
+
+  const upgradeToPro = () => {
+    navigate("/pricing");
+  };
+
+  const canAddProduct = products.length < maxProducts;
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
@@ -95,37 +109,96 @@ export default function Products() {
 
   return (
     <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
-      {/* Header */}
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-              <ShoppingBag className="h-4 w-4 text-[var(--brand-pink)]" />
-              AI TWIN PRODUCTS
-            </span>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
+                {isPro ? (
+                  <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+                ) : (
+                  <ShoppingBag className="h-4 w-4 text-[var(--brand-pink)]" />
+                )}
+                {isPro ? "PRO AI TWIN PRODUCTS" : "AI TWIN PRODUCTS"}
+              </span>
+
+              <span
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
+                  isPro
+                    ? "bg-pink-500 text-white"
+                    : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+                }`}
+              >
+                {isPro ? (
+                  <Crown className="h-4 w-4" />
+                ) : (
+                  <Lock className="h-4 w-4" />
+                )}
+                {isPro ? "PRO PLAN ACTIVE" : "FREE PLAN"}
+              </span>
+            </div>
 
             <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-              <span className="brand-text">Products</span>
+              <span className="brand-text">
+                {isPro ? "Pro Products" : "Products"}
+              </span>
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Add, edit and manage products your AI Twin can sell live.
+              {isPro
+                ? "Manage up to 100 products, live scripts, selling status and Pro live sales."
+                : "Free plan allows up to 3 products. Upgrade to Pro to add more products and advanced selling scripts."}
             </p>
+
+            {!isPro && (
+              <div className="mt-4 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-black text-[var(--brand-pink)]">
+                      Product limit: {products.length}/{maxProducts}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Upgrade to Pro for 100 products and advanced product scripts.
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={upgradeToPro}
+                    className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+                  >
+                    Upgrade
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <Link
-            to="/app/products/add"
-            className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-          >
-            <Plus className="h-4 w-4" />
-            Add Product
-          </Link>
+          {canAddProduct ? (
+            <Link
+              to="/app/products/add"
+              className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Link>
+          ) : (
+            <button
+              onClick={upgradeToPro}
+              className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+            >
+              <Lock className="h-4 w-4" />
+              Add More - Pro
+            </button>
+          )}
         </div>
       </section>
 
-      {/* Stats */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Package} label="Total Products" value={products.length} />
+        <StatCard
+          icon={Package}
+          label="Total Products"
+          value={`${products.length}/${maxProducts}`}
+        />
         <StatCard
           icon={Radio}
           label="Live Ready"
@@ -136,10 +209,13 @@ export default function Products() {
           label="Need Script"
           value={products.filter((p) => p.status === "Needs script").length}
         />
-        <StatCard icon={TrendingUp} label="Total Sales" value="₹2.4L" />
+        <StatCard
+          icon={TrendingUp}
+          label="Analytics"
+          value={isPro ? "Pro" : "Basic"}
+        />
       </section>
 
-      {/* Search */}
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row">
           <div className="flex flex-1 items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3">
@@ -165,7 +241,6 @@ export default function Products() {
         </div>
       </section>
 
-      {/* Products */}
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {filteredProducts.map((product) => (
           <div
@@ -174,6 +249,12 @@ export default function Products() {
           >
             <Link to={`/app/products/${product.id}`}>
               <div className="relative overflow-hidden rounded-2xl bg-pink-50 p-4 dark:bg-white/10">
+                {isPro && (
+                  <span className="absolute bottom-3 right-3 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
+                    PRO SELLING
+                  </span>
+                )}
+
                 <img
                   src={product.img}
                   alt={product.name}
@@ -233,7 +314,7 @@ export default function Products() {
                 className="brand-gradient flex h-11 items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white transition hover:opacity-90"
               >
                 <Radio className="h-4 w-4" />
-                Sell Live
+                {isPro ? "Pro Live" : "Sell Live"}
               </Link>
 
               <Link
@@ -256,7 +337,6 @@ export default function Products() {
         ))}
       </section>
 
-      {/* Empty State */}
       {filteredProducts.length === 0 && (
         <section className="rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
           <Package className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
@@ -269,7 +349,6 @@ export default function Products() {
         </section>
       )}
 
-      {/* Edit Modal */}
       {editingProduct && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
           <div className="w-full max-w-2xl rounded-3xl border border-border bg-card p-6 text-foreground shadow-xl">
@@ -334,7 +413,38 @@ export default function Products() {
                   setEditingProduct({ ...editingProduct, img: value })
                 }
               />
+
+              {isPro && (
+                <>
+                  <EditInput
+                    label="Live Sales Script"
+                    value={editingProduct.script || ""}
+                    onChange={(value) =>
+                      setEditingProduct({ ...editingProduct, script: value })
+                    }
+                  />
+
+                  <EditInput
+                    label="Discount Offer"
+                    value={editingProduct.offer || ""}
+                    onChange={(value) =>
+                      setEditingProduct({ ...editingProduct, offer: value })
+                    }
+                  />
+                </>
+              )}
             </div>
+
+            {!isPro && (
+              <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
+                <p className="text-sm font-black text-[var(--brand-pink)]">
+                  Pro fields locked
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Upgrade to add sales scripts and discount offers.
+                </p>
+              </div>
+            )}
 
             <button
               onClick={saveEdit}

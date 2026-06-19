@@ -13,10 +13,20 @@ import {
   Megaphone,
   CheckCircle2,
   Trash2,
+  Crown,
+  Lock,
+  Percent,
 } from "lucide-react";
 
 export default function AddProduct() {
   const navigate = useNavigate();
+
+  const plan = localStorage.getItem("plan") || "free";
+  const isPro = plan === "pro";
+  const maxProducts = isPro ? 100 : 3;
+
+  const existingProducts = JSON.parse(localStorage.getItem("products") || "[]");
+  const reachedLimit = existingProducts.length >= maxProducts;
 
   const [product, setProduct] = useState({
     name: "",
@@ -25,6 +35,8 @@ export default function AddProduct() {
     stock: "",
     description: "",
     script: "",
+    offer: "",
+    objectionHandling: "",
   });
 
   const [images, setImages] = useState([]);
@@ -36,6 +48,10 @@ export default function AddProduct() {
   const textareaClass =
     "w-full rounded-2xl border border-border bg-background p-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100 dark:focus:ring-pink-500/20";
 
+  const upgradeToPro = () => {
+    navigate("/pricing");
+  };
+
   const updateField = (field, value) => {
     setProduct((prev) => ({ ...prev, [field]: value }));
   };
@@ -46,6 +62,11 @@ export default function AddProduct() {
       url: URL.createObjectURL(file),
     }));
 
+    if (!isPro) {
+      setImages((prev) => [...prev, ...files].slice(0, 1));
+      return;
+    }
+
     setImages((prev) => [...prev, ...files]);
   };
 
@@ -54,13 +75,21 @@ export default function AddProduct() {
   };
 
   const saveProduct = () => {
+    if (reachedLimit) {
+      upgradeToPro();
+      return;
+    }
+
     const newProduct = {
       id: Date.now(),
       ...product,
       price: product.price || "₹0",
       stock: product.stock || "0",
       status: product.script.trim() ? "Ready to sell" : "Needs script",
+      sales: "0 sold",
       img: images[0]?.url || "/images/product1.png",
+      images: images.map((img) => img.url),
+      plan: isPro ? "pro" : "free",
       createdAt: new Date().toLocaleString(),
     };
 
@@ -80,11 +109,10 @@ export default function AddProduct() {
     }, 1000);
   };
 
-  const canSave = product.name.trim() && product.price.trim();
+  const canSave = product.name.trim() && product.price.trim() && !reachedLimit;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 text-foreground">
-      {/* Header */}
       <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <button
           onClick={() => navigate("/app/products")}
@@ -94,37 +122,89 @@ export default function AddProduct() {
           Back to Products
         </button>
 
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-semibold text-foreground">
-          <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-          ADD PRODUCT
-        </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-semibold text-foreground">
+            {isPro ? (
+              <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+            )}
+            {isPro ? "ADD PRO PRODUCT" : "ADD PRODUCT"}
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
+              isPro
+                ? "bg-pink-500 text-white"
+                : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+            }`}
+          >
+            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isPro ? "PRO PLAN ACTIVE" : `FREE ${existingProducts.length}/${maxProducts}`}
+          </span>
+        </div>
 
         <h1 className="mt-5 text-3xl font-black sm:text-4xl">
-          <span className="brand-text">Add New</span> Product
+          <span className="brand-text">
+            {isPro ? "Add Pro" : "Add New"}
+          </span>{" "}
+          Product
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Add product details, images and AI selling script. Your AI Twin will
-          use this information while selling live.
+          {isPro
+            ? "Add product details, multiple images, AI sales script, discount offer and objection handling for Pro live selling."
+            : "Free plan allows 3 products and 1 image per product. Upgrade to Pro for 100 products and advanced sales scripts."}
         </p>
+
+        {!isPro && (
+          <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-black text-[var(--brand-pink)]">
+                  Product Limit: {existingProducts.length}/{maxProducts}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Upgrade to Pro for 100 products, multiple images and advanced
+                  AI selling scripts.
+                </p>
+              </div>
+
+              <button
+                onClick={upgradeToPro}
+                className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+              >
+                Upgrade
+              </button>
+            </div>
+          </div>
+        )}
+
+        {reachedLimit && (
+          <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-bold text-orange-600 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-400">
+            Free product limit reached. Upgrade to Pro to add more products.
+          </div>
+        )}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        {/* Form */}
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          {/* Upload */}
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-background p-8 text-center transition hover:border-[var(--brand-pink)] hover:bg-accent">
             <Upload className="h-7 w-7 text-[var(--brand-pink)]" />
 
-            <p className="mt-3 text-base font-black">Upload product images</p>
+            <p className="mt-3 text-base font-black">
+              {isPro ? "Upload product images" : "Upload 1 product image"}
+            </p>
 
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              PNG, JPG, WEBP supported. You can upload multiple product images.
+              {isPro
+                ? "PNG, JPG, WEBP supported. You can upload multiple product images."
+                : "Free plan supports only 1 image per product."}
             </p>
 
             <input
               type="file"
-              multiple
+              multiple={isPro}
               accept="image/*"
               onChange={handleImageUpload}
               className="hidden"
@@ -156,7 +236,6 @@ export default function AddProduct() {
             </div>
           )}
 
-          {/* Inputs */}
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <Field icon={Package} label="Product Name">
               <input
@@ -215,26 +294,69 @@ export default function AddProduct() {
             />
           </Field>
 
+          {isPro ? (
+            <>
+              <Field icon={Percent} label="Pro Discount Offer">
+                <textarea
+                  value={product.offer}
+                  onChange={(e) => updateField("offer", e.target.value)}
+                  className={textareaClass}
+                  rows="4"
+                  placeholder="Example: Today only 10% off, free shipping, limited stock urgency..."
+                />
+              </Field>
+
+              <Field icon={Sparkles} label="Pro Objection Handling">
+                <textarea
+                  value={product.objectionHandling}
+                  onChange={(e) =>
+                    updateField("objectionHandling", e.target.value)
+                  }
+                  className={textareaClass}
+                  rows="4"
+                  placeholder="Example: If customer says price is high, explain value, quality and offer..."
+                />
+              </Field>
+            </>
+          ) : (
+            <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
+              <p className="flex items-center gap-2 text-sm font-black text-[var(--brand-pink)]">
+                <Lock className="h-4 w-4" />
+                Pro fields locked
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Upgrade to add discount offers and objection handling scripts.
+              </p>
+            </div>
+          )}
+
           <button
             onClick={saveProduct}
             disabled={!canSave}
             className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            Save Product
+            {reachedLimit ? "Upgrade Required" : "Save Product"}
           </button>
         </section>
 
-        {/* Preview */}
         <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-black brand-text">Product Preview</h2>
 
           <div className="mt-5 rounded-3xl border border-border bg-background p-4">
-            <img
-              src={images[0]?.url || "/images/product1.png"}
-              alt="Product Preview"
-              className="h-64 w-full rounded-2xl object-contain"
-            />
+            <div className="relative">
+              {isPro && (
+                <span className="absolute right-3 top-3 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
+                  PRO SELLING
+                </span>
+              )}
+
+              <img
+                src={images[0]?.url || "/images/product1.png"}
+                alt="Product Preview"
+                className="h-64 w-full rounded-2xl object-contain"
+              />
+            </div>
 
             <h3 className="mt-5 text-lg font-black text-foreground">
               {product.name || "Product Name"}
@@ -255,7 +377,9 @@ export default function AddProduct() {
 
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 {product.script.trim()
-                  ? "Ready to sell during live."
+                  ? isPro
+                    ? "Ready for Pro live selling with advanced scripts."
+                    : "Ready to sell during live."
                   : "Add sales script to make it live-ready."}
               </p>
             </div>
@@ -268,6 +392,15 @@ export default function AddProduct() {
                   "Your product description will appear here."}
               </p>
             </div>
+
+            {isPro && product.offer && (
+              <div className="mt-5 rounded-2xl border border-border bg-background p-4">
+                <p className="text-sm font-black">Pro Offer</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {product.offer}
+                </p>
+              </div>
+            )}
           </div>
 
           {saved && (

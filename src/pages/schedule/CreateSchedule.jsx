@@ -14,13 +14,15 @@ import {
   ArrowLeft,
   UserRound,
   Package,
+  Crown,
+  Lock,
 } from "lucide-react";
 
 const platforms = [
-  { name: "YouTube", icon: Youtube },
-  { name: "Facebook", icon: Facebook },
-  { name: "Instagram", icon: Instagram },
-  { name: "TikTok", icon: Music2 },
+  { name: "Instagram", icon: Instagram, pro: false },
+  { name: "YouTube", icon: Youtube, pro: true },
+  { name: "Facebook", icon: Facebook, pro: true },
+  { name: "TikTok", icon: Music2, pro: true },
 ];
 
 const defaultProducts = [
@@ -31,6 +33,16 @@ const defaultProducts = [
 
 export default function CreateSchedule() {
   const navigate = useNavigate();
+
+  const plan = localStorage.getItem("plan") || "free";
+  const isPro = plan === "pro";
+  const maxSchedules = isPro ? 50 : 1;
+  const maxPlatforms = isPro ? 4 : 1;
+
+  const existingSchedules = JSON.parse(
+    localStorage.getItem("liveSchedules") || "[]"
+  );
+  const reachedLimit = existingSchedules.length >= maxSchedules;
 
   const [twin, setTwin] = useState({
     id: 1,
@@ -51,6 +63,10 @@ export default function CreateSchedule() {
 
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
+
+  const upgradeToPro = () => {
+    navigate("/pricing");
+  };
 
   useEffect(() => {
     const savedTwin = JSON.parse(localStorage.getItem("aiTwin") || "{}");
@@ -74,12 +90,7 @@ export default function CreateSchedule() {
       setProducts([...new Set([...defaultProducts, ...productNames])]);
 
       const selectedProduct = localStorage.getItem("selectedProduct");
-
-      if (selectedProduct) {
-        setProduct(selectedProduct);
-      } else {
-        setProduct(productNames[0] || defaultProducts[0]);
-      }
+      setProduct(selectedProduct || productNames[0] || defaultProducts[0]);
     } else {
       const selectedProduct = localStorage.getItem("selectedProduct");
       if (selectedProduct) setProduct(selectedProduct);
@@ -90,23 +101,42 @@ export default function CreateSchedule() {
     );
 
     if (connectedPlatforms.length) {
-      setSelectedPlatforms(
-        connectedPlatforms.map(
-          (item) => item.charAt(0).toUpperCase() + item.slice(1)
-        )
+      const formatted = connectedPlatforms.map(
+        (item) => item.charAt(0).toUpperCase() + item.slice(1)
       );
+
+      setSelectedPlatforms(isPro ? formatted : formatted.slice(0, 1));
     }
-  }, []);
+  }, [isPro]);
 
   const togglePlatform = (name) => {
-    setSelectedPlatforms((prev) =>
-      prev.includes(name)
-        ? prev.filter((item) => item !== name)
-        : [...prev, name]
-    );
+    const item = platforms.find((p) => p.name === name);
+    const active = selectedPlatforms.includes(name);
+
+    if (item?.pro && !isPro && !active) {
+      upgradeToPro();
+      return;
+    }
+
+    if (active) {
+      setSelectedPlatforms((prev) => prev.filter((item) => item !== name));
+      return;
+    }
+
+    if (!isPro && selectedPlatforms.length >= maxPlatforms) {
+      upgradeToPro();
+      return;
+    }
+
+    setSelectedPlatforms((prev) => [...prev, name]);
   };
 
   const saveSchedule = () => {
+    if (reachedLimit) {
+      upgradeToPro();
+      return;
+    }
+
     const schedule = {
       id: Date.now(),
 
@@ -119,8 +149,9 @@ export default function CreateSchedule() {
       title: title || `${product} Live Sale`,
       date,
       time,
-      platforms: selectedPlatforms,
+      platforms: isPro ? selectedPlatforms : selectedPlatforms.slice(0, 1),
       description,
+      plan: isPro ? "pro" : "free",
       status: "Upcoming",
       createdAt: new Date().toLocaleString(),
     };
@@ -135,10 +166,7 @@ export default function CreateSchedule() {
     );
 
     localStorage.setItem("selectedProduct", product);
-    localStorage.setItem(
-      "selectedPlatforms",
-      JSON.stringify(selectedPlatforms)
-    );
+    localStorage.setItem("selectedPlatforms", JSON.stringify(schedule.platforms));
 
     localStorage.setItem(
       "selectedTwin",
@@ -168,19 +196,68 @@ export default function CreateSchedule() {
           Back to Schedule
         </button>
 
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-          <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-          CREATE LIVE SCHEDULE
-        </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
+            {isPro ? (
+              <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+            )}
+            {isPro ? "CREATE PRO LIVE SCHEDULE" : "CREATE LIVE SCHEDULE"}
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
+              isPro
+                ? "bg-pink-500 text-white"
+                : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+            }`}
+          >
+            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isPro ? "PRO PLAN ACTIVE" : `FREE ${existingSchedules.length}/${maxSchedules}`}
+          </span>
+        </div>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-          <span className="brand-text">Schedule</span> Your AI Twin Live
+          <span className="brand-text">
+            {isPro ? "Schedule Pro" : "Schedule"}
+          </span>{" "}
+          Your AI Twin Live
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-          Choose your AI Twin, product, platform and timing. Your AI Twin will
-          use the selected product knowledge during this live session.
+          {isPro
+            ? "Choose AI Twin, product, multiple platforms and timing for Pro live selling."
+            : "Free plan supports one schedule and one platform only. Upgrade to Pro for multi-platform scheduling."}
         </p>
+
+        {!isPro && (
+          <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-black text-[var(--brand-pink)]">
+                  Schedule Limit: {existingSchedules.length}/{maxSchedules}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Upgrade to Pro for 50 schedules and all platforms.
+                </p>
+              </div>
+
+              <button
+                onClick={upgradeToPro}
+                className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+              >
+                Upgrade
+              </button>
+            </div>
+          </div>
+        )}
+
+        {reachedLimit && (
+          <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-bold text-orange-600 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-400">
+            Free schedule limit reached. Upgrade to Pro to create more schedules.
+          </div>
+        )}
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
@@ -217,7 +294,7 @@ export default function CreateSchedule() {
                     </span>
 
                     <span className="inline-flex rounded-full bg-pink-100 px-3 py-1 text-xs font-bold tracking-wide text-[var(--brand-pink)] dark:bg-white/10">
-                      One Twin Account
+                      {isPro ? "Pro Twin Account" : "One Twin Account"}
                     </span>
                   </div>
                 </div>
@@ -279,31 +356,44 @@ export default function CreateSchedule() {
             </h2>
 
             <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
-              Choose where your AI Twin should go live.
+              {isPro
+                ? "Choose one or more platforms for Pro live."
+                : "Free plan allows Instagram only."}
             </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {platforms.map(({ name, icon: Icon }) => {
+              {platforms.map(({ name, icon: Icon, pro }) => {
                 const active = selectedPlatforms.includes(name);
+                const locked = pro && !isPro;
 
                 return (
                   <button
                     key={name}
                     onClick={() => togglePlatform(name)}
-                    className={`rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
+                    className={`relative rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
                       active
                         ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
                         : "border-border bg-background text-foreground"
                     }`}
                   >
-                    <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
+                    {locked && (
+                      <span className="absolute right-3 top-3 rounded-full bg-pink-500 px-2 py-1 text-[10px] font-black text-white">
+                        PRO
+                      </span>
+                    )}
+
+                    {locked ? (
+                      <Lock className="h-6 w-6 text-[var(--brand-pink)]" />
+                    ) : (
+                      <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
+                    )}
 
                     <p className="mt-3 text-base font-black tracking-tight text-foreground">
                       {name}
                     </p>
 
                     <p className="mt-1 text-xs font-medium text-muted-foreground">
-                      {active ? "Selected" : "Click to select"}
+                      {active ? "Selected" : locked ? "Pro only" : "Click to select"}
                     </p>
                   </button>
                 );
@@ -323,11 +413,11 @@ export default function CreateSchedule() {
 
           <button
             onClick={saveSchedule}
-            disabled={!date || !time || selectedPlatforms.length === 0}
+            disabled={!date || !time || selectedPlatforms.length === 0 || reachedLimit}
             className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            Save Schedule
+            {reachedLimit ? "Upgrade Required" : "Save Schedule"}
           </button>
         </section>
 

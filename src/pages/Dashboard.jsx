@@ -5,6 +5,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Crown,
   Facebook,
   Instagram,
   Music2,
@@ -21,10 +22,20 @@ import {
 export default function Dashboard() {
   const navigate = useNavigate();
 
+  const plan = localStorage.getItem("plan") || "free";
+  const isPro = plan === "pro";
+
   const hasTwin = localStorage.getItem("hasTwin") === "true";
   const isTrained = localStorage.getItem("isTwinTrained") === "true";
   const twinName = localStorage.getItem("twinName") || "My AI Twin";
   const twinImage = "/images/bb.png";
+
+  const maxTwins = isPro ? 3 : 1;
+  const maxProducts = isPro ? 100 : 10;
+  const maxPlatforms = isPro ? 4 : 1;
+
+  const products = JSON.parse(localStorage.getItem("products") || "[]");
+  const schedules = JSON.parse(localStorage.getItem("liveSchedules") || "[]");
 
   const goLive = () => {
     if (!hasTwin) {
@@ -34,8 +45,6 @@ export default function Dashboard() {
 
     navigate("/app/golive");
   };
-
-  const products = JSON.parse(localStorage.getItem("products") || "[]");
 
   const recentProducts = products.length
     ? products.slice(0, 3)
@@ -60,8 +69,6 @@ export default function Dashboard() {
         },
       ];
 
-  const schedules = JSON.parse(localStorage.getItem("liveSchedules") || "[]");
-
   const live = schedules[0] || {
     title: "Instagram Live",
     product: "Vitamin C Glow Serum",
@@ -85,24 +92,43 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-full space-y-6 bg-background text-foreground transition-colors duration-300">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <section
+        className={`relative overflow-hidden rounded-3xl border p-5 shadow-sm sm:p-6 ${
+          isPro
+            ? "border-[var(--brand-pink)] bg-pink-50/70 dark:bg-white/10"
+            : "border-border bg-card"
+        }`}
+      >
+        {isPro && (
+          <div className="absolute right-5 top-5 hidden rounded-full bg-[var(--brand-pink)] px-4 py-2 text-xs font-black text-white sm:flex sm:items-center sm:gap-2">
+            <Crown className="h-4 w-4" />
+            PRO PLAN ACTIVE
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr] lg:items-center">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-semibold text-foreground">
-              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-              AI LIVE COMMERCE DASHBOARD
+              {isPro ? (
+                <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+              )}
+              {isPro ? "PRO LIVE COMMERCE DASHBOARD" : "AI LIVE COMMERCE DASHBOARD"}
             </span>
 
             <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight sm:text-5xl">
-              <span className="brand-text">Never sleep.</span>
+              <span className="brand-text">
+                {isPro ? "Scale your lives." : "Never sleep."}
+              </span>
               <br />
-              Never stop selling.
+              {isPro ? "Sell without limits." : "Never stop selling."}
             </h1>
 
             <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Manage your AI Twin, train it with your brand knowledge, add
-              products, connect social platforms and start live selling.
+              {isPro
+                ? "Your Pro plan unlocks more AI Twins, more platforms, unlimited AI replies, analytics and advanced selling tools."
+                : "Manage your AI Twin, train it with your brand knowledge, add products, connect social platforms and start live selling."}
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -110,7 +136,7 @@ export default function Dashboard() {
                 onClick={goLive}
                 className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold text-white shadow-md transition hover:opacity-90"
               >
-                Go Live Now
+                {isPro ? "Start Pro Live" : "Go Live Now"}
                 <Radio className="h-4 w-4" />
               </button>
 
@@ -134,56 +160,65 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Stats */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Package} label="Products" value="24" change="+12%" />
-        <StatCard icon={Radio} label="Live Sessions" value="18" change="+8%" />
-        <StatCard icon={ShoppingBag} label="Orders" value="420" change="+22%" />
+        <StatCard
+          icon={Package}
+          label="Products"
+          value={`${products.length}/${maxProducts}`}
+          change={isPro ? "Pro limit" : "Free limit"}
+        />
+        <StatCard
+          icon={Radio}
+          label="Live Platforms"
+          value={isPro ? `${maxPlatforms}` : "1"}
+          change={isPro ? "Multi-platform" : "Free access"}
+        />
+        <StatCard
+          icon={ShoppingBag}
+          label="AI Replies"
+          value={isPro ? "Unlimited" : "100"}
+          change={isPro ? "Unlocked" : "Monthly"}
+        />
         <StatCard
           icon={TrendingUp}
-          label="Revenue"
-          value="₹2.4L"
-          change="+35%"
+          label="Analytics"
+          value={isPro ? "Advanced" : "Basic"}
+          change={isPro ? "Live sales" : "Limited"}
         />
       </section>
 
-      {/* Quick Actions + Twin Status */}
       <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-black tracking-tight brand-text">
-                Quick Actions
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Continue your AI Twin setup and selling flow.
-              </p>
-            </div>
-          </div>
+          <h2 className="text-xl font-black tracking-tight brand-text">
+            Quick Actions
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Continue your AI Twin setup and selling flow.
+          </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <ActionCard
               icon={ScanFace}
-              title="Create AI Twin"
-              desc="Create or edit your sales avatar."
+              title={isPro ? "Manage AI Twins" : "Create AI Twin"}
+              desc={isPro ? `Create up to ${maxTwins} AI Twins.` : "Create or edit your sales avatar."}
               to="/app/twin/create"
             />
             <ActionCard
               icon={Brain}
-              title="Train Twin"
-              desc="Upload files, links and brand knowledge."
+              title={isPro ? "Advanced Training" : "Train Twin"}
+              desc={isPro ? "Use brand knowledge and custom voice." : "Upload files, links and brand knowledge."}
               to="/app/twin/train"
             />
             <ActionCard
               icon={Package}
               title="Products"
-              desc="Add products your twin can sell."
+              desc={`Add up to ${maxProducts} products.`}
               to="/app/products"
             />
             <ActionCard
               icon={Instagram}
               title="Connect Social"
-              desc="Connect Instagram, YouTube, TikTok."
+              desc={isPro ? "Connect up to 4 platforms." : "Connect 1 live platform."}
               to="/app/connect"
             />
             <ActionCard
@@ -194,8 +229,8 @@ export default function Dashboard() {
             />
             <ActionCard
               icon={BarChart3}
-              title="Analytics"
-              desc="Track views, orders and revenue."
+              title={isPro ? "Pro Analytics" : "Analytics"}
+              desc={isPro ? "Track sales, revenue and live performance." : "Track basic views and activity."}
               to="/app/analytics"
             />
           </div>
@@ -221,14 +256,17 @@ export default function Dashboard() {
                 <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                   ● {hasTwin ? "Online" : "Not Created"}
                 </p>
+                <p className="mt-1 text-xs font-black text-[var(--brand-pink)]">
+                  {isPro ? "Pro Plan" : "Free Plan"}
+                </p>
               </div>
             </div>
 
             <div className="mt-5 space-y-4">
               <Progress label="Avatar Created" value={hasTwin ? 100 : 0} />
-              <Progress label="Voice Trained" value={hasTwin ? 80 : 0} />
+              <Progress label={isPro ? "Custom Voice" : "Standard Voice"} value={hasTwin ? 80 : 0} />
               <Progress label="Knowledge Added" value={isTrained ? 100 : 35} />
-              <Progress label="Products Added" value={70} />
+              <Progress label="Products Added" value={Math.min((products.length / maxProducts) * 100, 100)} />
             </div>
           </div>
 
@@ -250,7 +288,6 @@ export default function Dashboard() {
         </aside>
       </section>
 
-      {/* Recent Products + Upcoming Live */}
       <section className="grid gap-6 xl:grid-cols-3">
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6 xl:col-span-2">
           <div className="flex items-center justify-between gap-4">
@@ -288,18 +325,10 @@ export default function Dashboard() {
                     <h3 className="text-base font-black tracking-tight text-foreground">
                       {product.name}
                     </h3>
-
                     <p className="text-sm font-bold brand-text">
                       {product.price || "₹0"}
                     </p>
-
-                    <p
-                      className={`text-xs font-bold ${
-                        product.status === "Needs script"
-                          ? "text-orange-500"
-                          : "text-emerald-600 dark:text-emerald-400"
-                      }`}
-                    >
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
                       {product.status || "Ready to sell"}
                     </p>
                   </div>
@@ -343,33 +372,23 @@ export default function Dashboard() {
               <Info icon={Clock} label="Time" value={live.time || "Not set"} />
             </div>
 
-            <div className="mt-5 grid gap-3">
-              <Link
-                to="/app/schedule"
-                className="flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
-              >
-                Manage Schedule
-              </Link>
-
-              <button
-                onClick={() => {
-                  localStorage.setItem("selectedProduct", live.product);
-                  localStorage.setItem(
-                    "selectedPlatforms",
-                    JSON.stringify(live.platforms || [platform])
-                  );
-                  goLive();
-                }}
-                className="brand-gradient h-11 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90"
-              >
-                Start This Live
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                localStorage.setItem("selectedProduct", live.product);
+                localStorage.setItem(
+                  "selectedPlatforms",
+                  JSON.stringify(live.platforms || [platform])
+                );
+                goLive();
+              }}
+              className="brand-gradient mt-5 h-11 w-full rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90"
+            >
+              Start This Live
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Connected Accounts + Activity */}
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-black tracking-tight brand-text">
@@ -378,9 +397,9 @@ export default function Dashboard() {
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <SocialCard icon={Instagram} name="Instagram" connected />
-            <SocialCard icon={Facebook} name="Facebook" connected />
-            <SocialCard icon={Youtube} name="YouTube" connected />
-            <SocialCard icon={Music2} name="TikTok" />
+            <SocialCard icon={Facebook} name="Facebook" connected={isPro} />
+            <SocialCard icon={Youtube} name="YouTube" connected={isPro} />
+            <SocialCard icon={Music2} name="TikTok" connected={isPro} />
           </div>
         </div>
 
@@ -391,15 +410,15 @@ export default function Dashboard() {
 
           <div className="mt-5 space-y-4">
             <ActivityItem
-              title="AI answered 245 customer questions"
+              title={isPro ? "Unlimited AI replies enabled" : "AI answered 45 customer questions"}
               time="10:30 AM"
             />
             <ActivityItem
-              title="Product added: Vitamin C Glow Serum"
+              title={isPro ? "Advanced analytics unlocked" : "Product added: Vitamin C Glow Serum"}
               time="09:45 AM"
             />
             <ActivityItem
-              title="Instagram live completed successfully"
+              title={isPro ? "Multi-platform live ready" : "Instagram live completed successfully"}
               time="Yesterday"
             />
           </div>
@@ -450,19 +469,21 @@ function ActionCard({ icon: Icon, title, desc, to }) {
 }
 
 function Progress({ label, value }) {
+  const safeValue = Math.round(Number(value) || 0);
+
   return (
     <div>
       <div className="mb-2 flex justify-between text-sm">
         <span className="text-sm font-bold text-foreground">{label}</span>
         <span className="text-sm font-bold text-[var(--brand-pink)]">
-          {value}%
+          {safeValue}%
         </span>
       </div>
 
       <div className="h-2 rounded-full bg-pink-100 dark:bg-white/10">
         <div
           className="brand-gradient h-2 rounded-full"
-          style={{ width: `${value}%` }}
+          style={{ width: `${safeValue}%` }}
         />
       </div>
     </div>
@@ -496,7 +517,7 @@ function SocialCard({ icon: Icon, name, connected }) {
             : "bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400"
         }`}
       >
-        {connected ? "Connected" : "Not Connected"}
+        {connected ? "Connected" : "Upgrade"}
       </span>
     </div>
   );

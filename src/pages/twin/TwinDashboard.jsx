@@ -13,20 +13,47 @@ import {
   Instagram,
   ArrowRight,
   BadgeCheck,
+  Crown,
+  Plus,
 } from "lucide-react";
 
 export default function TwinDashboard() {
   const navigate = useNavigate();
 
+  const plan = localStorage.getItem("plan") || "free";
+  const isPro = plan === "pro";
+
+  const savedTwins = JSON.parse(localStorage.getItem("aiTwins") || "[]");
+
+  const fallbackTwin = {
+    id: "default",
+    name: localStorage.getItem("twinName") || "My AI Twin",
+    image: localStorage.getItem("twinImage") || "/images/bb.png",
+    voice: localStorage.getItem("voiceStyle") || "Warm Female",
+    status: "Active",
+  };
+
   const hasTwin = localStorage.getItem("hasTwin") === "true";
+  const twins = savedTwins.length ? savedTwins : hasTwin ? [fallbackTwin] : [];
+
+  const maxTwins = isPro ? 3 : 1;
+  const canCreateTwin = twins.length < maxTwins;
+
   const isTrained = localStorage.getItem("isTwinTrained") === "true";
-  const twinName = localStorage.getItem("twinName") || "My AI Twin";
-  const twinImage = "/images/bb.png";
   const selectedProduct =
     localStorage.getItem("selectedProduct") || "No product selected";
 
+  const activeTwin = twins[0] || fallbackTwin;
+  const twinName = activeTwin.name || "My AI Twin";
+  const twinImage = activeTwin.image || "/images/bb.png";
+
+  const handleCreateTwin = () => {
+    if (!canCreateTwin) return;
+    navigate("/app/twin/create");
+  };
+
   const handleGoLive = () => {
-    if (!hasTwin) {
+    if (!twins.length) {
       navigate("/app/twin/create");
       return;
     }
@@ -41,41 +68,67 @@ export default function TwinDashboard() {
 
   return (
     <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
-      <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <section
+        className={`relative overflow-hidden rounded-3xl border p-5 shadow-sm sm:p-6 ${
+          isPro
+            ? "border-[var(--brand-pink)] bg-pink-50/70 dark:bg-white/10"
+            : "border-border bg-card"
+        }`}
+      >
+        {isPro && (
+          <div className="absolute right-5 top-5 hidden rounded-full bg-[var(--brand-pink)] px-4 py-2 text-xs font-black text-white sm:flex sm:items-center sm:gap-2">
+            <Crown className="h-4 w-4" />
+            PRO PLAN ACTIVE
+          </div>
+        )}
+
         <div className="grid gap-6 xl:grid-cols-[1fr_360px] xl:items-center">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-semibold text-foreground">
-              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-              AI TWIN OVERVIEW
+              {isPro ? (
+                <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+              )}
+              {isPro ? "PRO AI TWIN OVERVIEW" : "AI TWIN OVERVIEW"}
             </span>
 
             <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight text-foreground sm:text-5xl">
-              <span className="brand-text">{twinName}</span>
+              <span className="brand-text">
+                {twins.length ? twinName : "Create Your AI Twin"}
+              </span>
               <br />
-              is ready to sell.
+              {isPro ? "Pro avatars ready." : "Ready to sell."}
             </h1>
 
             <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Manage your AI Twin, train it with brand knowledge, add products,
-              connect social media and start live selling.
+              {isPro
+                ? "Pro plan allows maximum 3 AI avatars. Create, train, test and launch each avatar for live selling."
+                : "Free plan allows 1 AI avatar. Create your avatar, train it and start selling live."}
+            </p>
+
+            <p className="mt-4 inline-flex rounded-full bg-pink-50 px-4 py-2 text-xs font-black text-[var(--brand-pink)] dark:bg-white/10">
+              Avatars Created: {twins.length}/{maxTwins}
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              {canCreateTwin && (
+                <button
+                  onClick={handleCreateTwin}
+                  className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold text-white shadow-md transition hover:opacity-90"
+                >
+                  <Plus className="h-4 w-4" />
+                  Create AI Twin
+                </button>
+              )}
+
               <button
                 onClick={handleGoLive}
-                className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold text-white shadow-md transition hover:opacity-90"
-              >
-                Go Live Now
-                <Radio className="h-4 w-4" />
-              </button>
-
-              <Link
-                to="/app/twin/train"
                 className="flex h-12 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] px-6 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
               >
-                Train Twin
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+                {isPro ? "Start Pro Live" : "Go Live Now"}
+                <Radio className="h-4 w-4" />
+              </button>
             </div>
           </div>
 
@@ -89,17 +142,110 @@ export default function TwinDashboard() {
         </div>
       </section>
 
+      <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-black tracking-tight brand-text">
+              Created Avatars
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isPro
+                ? "Pro users can create up to 3 avatars."
+                : "Free users can create 1 avatar."}
+            </p>
+          </div>
+
+          {canCreateTwin && (
+            <button
+              onClick={handleCreateTwin}
+              className="brand-gradient flex h-11 items-center justify-center gap-2 rounded-[5px] px-5 text-sm font-bold text-white"
+            >
+              <Plus className="h-4 w-4" />
+              Create Avatar
+            </button>
+          )}
+        </div>
+
+        <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {twins.map((twin, index) => (
+            <div
+              key={twin.id || index}
+              className="rounded-3xl border border-border bg-background p-5 transition hover:-translate-y-1 hover:border-[var(--brand-pink)] hover:shadow-lg"
+            >
+              <img
+                src={twin.image || "/images/bb.png"}
+                alt={twin.name}
+                className="h-64 w-full rounded-2xl bg-pink-50 object-cover dark:bg-white/10"
+              />
+
+              <h3 className="mt-4 text-lg font-black tracking-tight text-foreground">
+                {twin.name || `AI Twin ${index + 1}`}
+              </h3>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Voice: {twin.voice || "Warm Female"}
+              </p>
+
+              <p className="mt-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                ● Avatar Created
+              </p>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <Link
+                  to="/app/twin/edit"
+                  onClick={() => {
+                    localStorage.setItem("aiTwin", JSON.stringify(twin));
+                    localStorage.setItem("twinName", twin.name);
+                    localStorage.setItem("twinImage", twin.image);
+                  }}
+                  className="flex h-10 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)]"
+                >
+                  Edit
+                </Link>
+
+                <button
+                  onClick={() => {
+                    localStorage.setItem("aiTwin", JSON.stringify(twin));
+                    localStorage.setItem("twinName", twin.name);
+                    localStorage.setItem("twinImage", twin.image);
+                    handleGoLive();
+                  }}
+                  className="brand-gradient h-10 rounded-[5px] text-sm font-bold text-white"
+                >
+                  Go Live
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {canCreateTwin && (
+            <button
+              onClick={handleCreateTwin}
+              className="flex min-h-[360px] flex-col items-center justify-center rounded-3xl border-2 border-dashed border-[var(--brand-pink)] bg-pink-50 p-5 text-center transition hover:-translate-y-1 hover:shadow-lg dark:bg-white/10"
+            >
+              <Plus className="h-10 w-10 text-[var(--brand-pink)]" />
+              <h3 className="mt-4 text-lg font-black text-foreground">
+                Create New Avatar
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {twins.length}/{maxTwins} avatars created
+              </p>
+            </button>
+          )}
+        </div>
+      </section>
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatusCard
           icon={ScanFace}
           label="Avatar"
-          value={hasTwin ? "Created" : "Missing"}
-          active={hasTwin}
+          value={`${twins.length}/${maxTwins}`}
+          active={twins.length > 0}
         />
         <StatusCard
           icon={Brain}
           label="Training"
-          value={isTrained ? "Completed" : "Draft"}
+          value={isTrained ? (isPro ? "Advanced" : "Completed") : "Draft"}
           active={isTrained}
         />
         <StatusCard
@@ -111,31 +257,28 @@ export default function TwinDashboard() {
         <StatusCard
           icon={Radio}
           label="Live Status"
-          value="Ready"
-          active={hasTwin}
+          value={isPro ? "Pro Ready" : "Ready"}
+          active={twins.length > 0}
         />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-black tracking-tight brand-text">
-            Twin Actions
+            {isPro ? "Pro Twin Actions" : "Twin Actions"}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Complete these steps before launching your live session.
-          </p>
 
           <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-           <ActionCard
-  to="/app/twin/edit"
-  icon={Sparkles}
-  title="Edit AI Twin"
-  desc="Update face, voice, appearance and personality."
-/>
+            <ActionCard
+              to="/app/twin/edit"
+              icon={Sparkles}
+              title="Edit AI Twin"
+              desc="Update face, voice, appearance and personality."
+            />
             <ActionCard
               to="/app/twin/train"
               icon={Database}
-              title="Train Twin"
+              title={isPro ? "Advanced Training" : "Train Twin"}
               desc="Add FAQs, PDFs and brand knowledge."
             />
             <ActionCard
@@ -154,7 +297,7 @@ export default function TwinDashboard() {
               to="/app/connect"
               icon={Mic}
               title="Connect Social"
-              desc="Connect YouTube, Instagram and TikTok."
+              desc="Connect social platforms."
             />
 
             <button
@@ -166,7 +309,7 @@ export default function TwinDashboard() {
               </div>
 
               <h3 className="mt-5 text-base font-black tracking-tight text-foreground">
-                Go Live
+                {isPro ? "Go Pro Live" : "Go Live"}
               </h3>
 
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -216,16 +359,16 @@ export default function TwinDashboard() {
           <div className="mt-5 space-y-4">
             <ChecklistItem
               title="AI Twin Created"
-              desc="Face, style and basic identity completed."
-              done={hasTwin}
+              desc={`${twins.length}/${maxTwins} avatars created.`}
+              done={twins.length > 0}
             />
             <ChecklistItem
-              title="Voice Selected"
+              title={isPro ? "Custom Voice Enabled" : "Voice Selected"}
               desc="Voice tone selected for live selling."
-              done={hasTwin}
+              done={twins.length > 0}
             />
             <ChecklistItem
-              title="Knowledge Added"
+              title={isPro ? "Advanced Knowledge Added" : "Knowledge Added"}
               desc="Brand files, links and FAQs uploaded."
               done={isTrained}
             />
@@ -250,7 +393,7 @@ export default function TwinDashboard() {
 
               <div>
                 <h3 className="text-base font-black tracking-tight text-foreground">
-                  Instagram Live
+                  {isPro ? "Multi-Platform Live" : "Instagram Live"}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {selectedProduct}
@@ -260,7 +403,11 @@ export default function TwinDashboard() {
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Info icon={Calendar} label="Date" value="Today" />
-              <Info icon={BadgeCheck} label="Status" value="Scheduled" />
+              <Info
+                icon={BadgeCheck}
+                label="Status"
+                value={isPro ? "Pro Scheduled" : "Scheduled"}
+              />
             </div>
 
             <Link

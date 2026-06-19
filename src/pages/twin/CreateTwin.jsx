@@ -16,50 +16,81 @@ import {
   Volume2,
   Globe,
   Link2,
+  Crown,
+  Lock,
 } from "lucide-react";
 
 const avatars = [
-  { name: "Beauty Creator", image: "/images/bb.png" },
-  { name: "Sales Expert", image: "/images/dd.png" },
-  { name: "Fashion Host", image: "/images/1.jpeg" },
-  { name: "Tech Reviewer", image: "/images/2.jpeg" },
+  { name: "Beauty Creator", image: "/images/bb.png", pro: false },
+  { name: "Sales Expert", image: "/images/dd.png", pro: false },
+  { name: "Fashion Host", image: "/images/1.jpeg", pro: true },
+  { name: "Tech Reviewer", image: "/images/2.jpeg", pro: true },
 ];
 
 const backgrounds = [
-  { name: "Pink Store", image: "/images/hh.png" },
-  { name: "Studio", image: "/images/ff.png" },
-  { name: "Luxury", image: "/images/ee.png" },
-  { name: "Live Stage", image: "/images/gg.png" },
+  { name: "Pink Store", image: "/images/hh.png", pro: false },
+  { name: "Studio", image: "/images/ff.png", pro: false },
+  { name: "Luxury", image: "/images/ee.png", pro: true },
+  { name: "Live Stage", image: "/images/gg.png", pro: true },
 ];
 
-const outfits = ["Professional", "Casual", "Creator", "Luxury", "Business"];
-const gestures = ["Friendly", "Energetic", "Confident", "Expressive"];
+const outfits = [
+  { name: "Professional", pro: false },
+  { name: "Casual", pro: false },
+  { name: "Creator", pro: true },
+  { name: "Luxury", pro: true },
+  { name: "Business", pro: true },
+];
 
-const languages = [
-  "English", "Arabic", "Hindi", "Tamil", "Telugu", "Kannada", "Malayalam",
-  "Marathi", "Gujarati", "Punjabi", "Bengali", "Urdu", "Odia", "Assamese",
-  "Nepali", "Sinhala", "Chinese (Mandarin)", "Chinese (Cantonese)", "Japanese",
-  "Korean", "Thai", "Vietnamese", "Indonesian", "Malay", "Filipino",
-  "Burmese", "Khmer", "Lao", "Mongolian", "Spanish", "Portuguese", "French",
-  "German", "Italian", "Dutch", "Russian", "Ukrainian", "Polish", "Turkish",
-  "Greek", "Romanian", "Hungarian", "Czech", "Slovak", "Swedish", "Norwegian",
-  "Danish", "Finnish", "Icelandic", "Irish", "Welsh", "Hebrew",
-  "Persian (Farsi)", "Pashto", "Kurdish", "Swahili", "Amharic", "Yoruba",
-  "Igbo", "Zulu", "Afrikaans", "Hausa", "Somali", "Latin",
+const gestures = [
+  { name: "Friendly", pro: false },
+  { name: "Energetic", pro: false },
+  { name: "Confident", pro: true },
+  { name: "Expressive", pro: true },
+];
+
+const freeLanguages = ["English", "Hindi", "Tamil", "Malayalam", "Arabic"];
+
+const proLanguages = [
+  "English",
+  "Arabic",
+  "Hindi",
+  "Tamil",
+  "Telugu",
+  "Kannada",
+  "Malayalam",
+  "Marathi",
+  "Gujarati",
+  "Punjabi",
+  "Bengali",
+  "Urdu",
+  "Chinese (Mandarin)",
+  "Japanese",
+  "Korean",
+  "Spanish",
+  "French",
+  "German",
+  "Russian",
+  "Turkish",
 ];
 
 const voices = [
-  "Warm Female",
-  "Soft Female",
-  "Luxury Female",
-  "Young Male",
-  "Professional Male",
-  "Energetic Creator",
+  { name: "Warm Female", pro: false },
+  { name: "Soft Female", pro: false },
+  { name: "Luxury Female", pro: true },
+  { name: "Young Male", pro: true },
+  { name: "Professional Male", pro: true },
+  { name: "Energetic Creator", pro: true },
 ];
 
 export default function CreateTwin() {
   const navigate = useNavigate();
 
+  const plan = localStorage.getItem("plan") || "free";
+  const isPro = plan === "pro";
+  const savedTwins = JSON.parse(localStorage.getItem("aiTwins") || "[]");
+const maxTwins = isPro ? 3 : 1;
+const canCreateTwin = savedTwins.length < maxTwins;
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
@@ -74,6 +105,8 @@ export default function CreateTwin() {
   );
   const [trainingText, setTrainingText] = useState("");
 
+  const languages = isPro ? proLanguages : freeLanguages;
+
   const steps = [
     { title: "Basic Info", icon: UserCircle2 },
     { title: "Appearance", icon: ScanFace },
@@ -86,39 +119,121 @@ export default function CreateTwin() {
   const backgroundName =
     backgrounds.find((item) => item.image === background)?.name || "Selected";
 
-  const finishCreate = () => {
-    localStorage.setItem("hasTwin", "true");
-    localStorage.setItem("twinName", name || "My AI Twin");
-    localStorage.setItem("twinBrand", brand || "My Brand");
-    localStorage.setItem("twinImage", avatar);
-    localStorage.setItem("twinBackground", background);
-    localStorage.setItem("twinOutfit", style);
-    localStorage.setItem("gestureStyle", gesture);
-    localStorage.setItem("voiceStyle", voice);
-    localStorage.setItem("voiceLanguage", language);
-    localStorage.setItem("lipSyncEnabled", "true");
-    localStorage.setItem("trainingText", trainingText);
-    localStorage.setItem("isTwinTrained", trainingText.trim() ? "true" : "false");
-
-    navigate("/app/twin");
+  const upgradeToPro = () => {
+    navigate("/pricing");
   };
+
+  const finishCreate = () => {
+  const oldTwins = JSON.parse(localStorage.getItem("aiTwins") || "[]");
+  const maxTwins = isPro ? 3 : 1;
+
+  if (oldTwins.length >= maxTwins) {
+    if (isPro) {
+      alert("Pro plan allows maximum 3 avatars.");
+    } else {
+      navigate("/pricing");
+    }
+    return;
+  }
+
+  const newTwin = {
+    id: Date.now(),
+    name: name || `AI Twin ${oldTwins.length + 1}`,
+    brand: brand || "My Brand",
+    image: avatar,
+    background,
+    outfit: style,
+    gesture,
+    voice,
+    language,
+    trainingText,
+    plan: isPro ? "pro" : "free",
+    createdAt: new Date().toLocaleString(),
+  };
+
+  const updatedTwins = [...oldTwins, newTwin];
+
+  localStorage.setItem("aiTwins", JSON.stringify(updatedTwins));
+  localStorage.setItem("hasTwin", "true");
+
+  localStorage.setItem("aiTwin", JSON.stringify(newTwin));
+  localStorage.setItem("twinName", newTwin.name);
+  localStorage.setItem("twinBrand", newTwin.brand);
+  localStorage.setItem("twinImage", newTwin.image);
+  localStorage.setItem("twinBackground", newTwin.background);
+  localStorage.setItem("twinOutfit", newTwin.outfit);
+  localStorage.setItem("gestureStyle", newTwin.gesture);
+  localStorage.setItem("voiceStyle", newTwin.voice);
+  localStorage.setItem("voiceLanguage", newTwin.language);
+  localStorage.setItem("trainingText", newTwin.trainingText);
+  localStorage.setItem(
+    "isTwinTrained",
+    trainingText.trim() ? "true" : "false"
+  );
+
+  navigate("/app/twin");
+};
 
   return (
     <div className="grid gap-6 bg-background text-foreground transition-colors duration-300 xl:grid-cols-[1fr_380px]">
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-          <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-          CREATE AI TWIN
-        </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
+            {isPro ? (
+              <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+            )}
+            {isPro ? "CREATE PRO AI TWIN" : "CREATE AI TWIN"}
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
+              isPro
+                ? "bg-pink-500 text-white"
+                : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+            }`}
+          >
+            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isPro ? "PRO PLAN ACTIVE" : "FREE PLAN"}
+          </span>
+        </div>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-          <span className="brand-text">Create / Train</span> Your AI Twin
+          <span className="brand-text">
+            {isPro ? "Create / Pro Train" : "Create / Train"}
+          </span>{" "}
+          Your AI Twin
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Create your avatar, choose background, voice, lip sync and train it
-          with your brand knowledge.
+          {isPro
+            ? "Create your Pro avatar with premium backgrounds, custom voice, advanced lip sync and complete brand training."
+            : "Create your avatar, choose background, voice, lip sync and train it with your brand knowledge."}
         </p>
+
+        {!isPro && (
+          <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-black text-[var(--brand-pink)]">
+                  Unlock Pro Features
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Premium avatars, custom voice, advanced training and more
+                  languages.
+                </p>
+              </div>
+
+              <button
+                onClick={upgradeToPro}
+                className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+              >
+                Upgrade
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {steps.map(({ title, icon: Icon }, index) => (
@@ -170,18 +285,23 @@ export default function CreateTwin() {
           {step === 2 && (
             <StepCard
               title="Appearance"
-              desc="Choose avatar, background, outfit and gesture style."
+              desc={
+                isPro
+                  ? "Choose premium avatar, background, outfit and gesture style."
+                  : "Choose avatar, background, outfit and gesture style."
+              }
             >
               <div className="mt-5 flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-border bg-card p-8 text-center transition hover:border-[var(--brand-pink)] hover:bg-accent sm:p-10">
                 <Upload className="h-12 w-12 text-[var(--brand-pink)]" />
 
                 <p className="mt-4 text-lg font-black tracking-tight text-foreground">
-                  Upload Photo or Video
+                  {isPro ? "Upload Photo or Video" : "Upload Photo"}
                 </p>
 
                 <p className="mt-2 max-w-md text-center text-sm leading-6 text-muted-foreground">
-                  JPG, PNG or MP4 supported. Optional, you can use default
-                  avatars below.
+                  {isPro
+                    ? "JPG, PNG or MP4 supported. Pro users can upload video avatars."
+                    : "JPG and PNG supported. Video avatar is available in Pro plan."}
                 </p>
               </div>
 
@@ -194,7 +314,14 @@ export default function CreateTwin() {
                     active={avatar === item.image}
                     image={item.image}
                     title={item.name}
-                    onClick={() => setAvatar(item.image)}
+                    locked={item.pro && !isPro}
+                    onClick={() => {
+                      if (item.pro && !isPro) {
+                        upgradeToPro();
+                        return;
+                      }
+                      setAvatar(item.image);
+                    }}
                   />
                 ))}
               </div>
@@ -208,7 +335,14 @@ export default function CreateTwin() {
                     active={background === item.image}
                     image={item.image}
                     title={item.name}
-                    onClick={() => setBackground(item.image)}
+                    locked={item.pro && !isPro}
+                    onClick={() => {
+                      if (item.pro && !isPro) {
+                        upgradeToPro();
+                        return;
+                      }
+                      setBackground(item.image);
+                    }}
                   />
                 ))}
               </div>
@@ -219,6 +353,8 @@ export default function CreateTwin() {
                 items={outfits}
                 selected={style}
                 setSelected={setStyle}
+                isPro={isPro}
+                onLockedClick={upgradeToPro}
               />
 
               <SectionTitle icon={Hand} title="Gesture Style" />
@@ -227,6 +363,8 @@ export default function CreateTwin() {
                 items={gestures}
                 selected={gesture}
                 setSelected={setGesture}
+                isPro={isPro}
+                onLockedClick={upgradeToPro}
               />
             </StepCard>
           )}
@@ -234,27 +372,49 @@ export default function CreateTwin() {
           {step === 3 && (
             <StepCard
               title="Voice Setup"
-              desc="Choose your AI Twin voice and language."
+              desc={
+                isPro
+                  ? "Choose premium voice, custom style and language."
+                  : "Choose your AI Twin voice and language."
+              }
             >
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {voices.map((x) => (
-                  <button
-                    key={x}
-                    onClick={() => setVoice(x)}
-                    className={`rounded-2xl border p-4 text-left transition hover:-translate-y-1 hover:shadow-md ${
-                      voice === x
-                        ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
-                        : "border-border bg-card text-foreground hover:border-[var(--brand-pink)]"
-                    }`}
-                  >
-                    <Mic className="mb-3 h-5 w-5 text-[var(--brand-pink)]" />
-                    <p className="text-base font-black tracking-tight">{x}</p>
+                {voices.map((x) => {
+                  const locked = x.pro && !isPro;
 
-                    <p className="mt-2 text-xs font-bold text-muted-foreground">
-                      Play sample
-                    </p>
-                  </button>
-                ))}
+                  return (
+                    <button
+                      key={x.name}
+                      onClick={() => {
+                        if (locked) {
+                          upgradeToPro();
+                          return;
+                        }
+                        setVoice(x.name);
+                      }}
+                      className={`relative rounded-2xl border p-4 text-left transition hover:-translate-y-1 hover:shadow-md ${
+                        voice === x.name
+                          ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+                          : "border-border bg-card text-foreground hover:border-[var(--brand-pink)]"
+                      }`}
+                    >
+                      {locked && (
+                        <span className="absolute right-3 top-3 rounded-full bg-pink-500 px-2 py-1 text-[10px] font-black text-white">
+                          PRO
+                        </span>
+                      )}
+
+                      <Mic className="mb-3 h-5 w-5 text-[var(--brand-pink)]" />
+                      <p className="text-base font-black tracking-tight">
+                        {x.name}
+                      </p>
+
+                      <p className="mt-2 text-xs font-bold text-muted-foreground">
+                        {locked ? "Unlock with Pro" : "Play sample"}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="mt-6">
@@ -273,11 +433,25 @@ export default function CreateTwin() {
                     </option>
                   ))}
                 </select>
+
+                {!isPro && (
+                  <p className="mt-2 text-xs font-bold text-orange-500">
+                    Free plan supports limited languages. Upgrade for global
+                    language support.
+                  </p>
+                )}
               </div>
 
-              <button className="mt-6 flex items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] px-5 py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10">
-                <Mic className="h-4 w-4" />
-                Record Voice Sample
+              <button
+                onClick={() => {
+                  if (!isPro) {
+                    upgradeToPro();
+                  }
+                }}
+                className="mt-6 flex items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] px-5 py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+              >
+                {isPro ? <Mic className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {isPro ? "Record Voice Sample" : "Voice Cloning - Pro"}
               </button>
             </StepCard>
           )}
@@ -285,7 +459,11 @@ export default function CreateTwin() {
           {step === 4 && (
             <StepCard
               title="Lip Sync Setup"
-              desc="Test how mouth movement matches the selected voice."
+              desc={
+                isPro
+                  ? "HD lip sync enabled for realistic live selling."
+                  : "Basic lip sync preview is available. HD lip sync is Pro."
+              }
             >
               <div className="mt-5 grid gap-5 lg:grid-cols-2">
                 <div className="rounded-2xl border border-border bg-card p-5">
@@ -307,8 +485,9 @@ export default function CreateTwin() {
                     </p>
 
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      Voice and face movement will be synced during live
-                      sessions.
+                      {isPro
+                        ? "HD face and voice movement sync is enabled during live sessions."
+                        : "Basic sync enabled. Upgrade to Pro for HD realistic lip sync."}
                     </p>
                   </div>
                 </div>
@@ -326,8 +505,13 @@ export default function CreateTwin() {
                   />
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <button className="brand-gradient rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90">
-                      Generate Preview
+                    <button
+                      onClick={() => {
+                        if (!isPro) upgradeToPro();
+                      }}
+                      className="brand-gradient rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+                    >
+                      {isPro ? "Generate HD Preview" : "Generate Preview"}
                     </button>
 
                     <button className="flex items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10">
@@ -343,13 +527,40 @@ export default function CreateTwin() {
           {step === 5 && (
             <StepCard
               title="Train Your AI"
-              desc="Add knowledge sources for better product selling and customer answers."
+              desc={
+                isPro
+                  ? "Use all knowledge sources for smarter product selling and live customer answers."
+                  : "Add basic training text. Uploads and website import are Pro features."
+              }
             >
               <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                <TrainingCard icon={Upload} title="Upload Files" desc="PDF, DOCX, TXT, CSV" />
-                <TrainingCard icon={Link2} title="Website URL" desc="Import brand website" />
-                <TrainingCard icon={Globe} title="FAQ / Policies" desc="Shipping, refund, COD" />
-                <TrainingCard icon={Volume2} title="Voice Notes" desc="Train using speech notes" />
+                <TrainingCard
+                  icon={Upload}
+                  title="Upload Files"
+                  desc="PDF, DOCX, TXT, CSV"
+                  locked={!isPro}
+                  onClick={upgradeToPro}
+                />
+                <TrainingCard
+                  icon={Link2}
+                  title="Website URL"
+                  desc="Import brand website"
+                  locked={!isPro}
+                  onClick={upgradeToPro}
+                />
+                <TrainingCard
+                  icon={Globe}
+                  title="FAQ / Policies"
+                  desc="Shipping, refund, COD"
+                  locked={false}
+                />
+                <TrainingCard
+                  icon={Volume2}
+                  title="Voice Notes"
+                  desc="Train using speech notes"
+                  locked={!isPro}
+                  onClick={upgradeToPro}
+                />
               </div>
 
               <textarea
@@ -387,6 +598,12 @@ export default function CreateTwin() {
                     <div className="absolute left-4 top-4 z-20 rounded-full bg-green-100 px-3 py-1 text-xs font-bold tracking-wide text-green-700 dark:bg-green-900/30 dark:text-green-300">
                       ● Ready
                     </div>
+
+                    {isPro && (
+                      <div className="absolute right-4 top-4 z-20 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
+                        PRO TWIN
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -396,12 +613,13 @@ export default function CreateTwin() {
                   </h2>
 
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    Your AI Twin is trained to engage customers, answer
-                    questions and sell products automatically across live
-                    platforms.
+                    {isPro
+                      ? "Your Pro AI Twin is trained to engage customers, answer questions, pitch products and sell across multiple live platforms."
+                      : "Your AI Twin is trained to engage customers, answer questions and sell products automatically across live platforms."}
                   </p>
 
                   <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    <Info label="Plan" value={isPro ? "Pro" : "Free"} />
                     <Info label="Brand" value={brand || "My Brand"} />
                     <Info label="Avatar" value="Selected" />
                     <Info label="Background" value={backgroundName} />
@@ -409,7 +627,7 @@ export default function CreateTwin() {
                     <Info label="Gesture Style" value={gesture} />
                     <Info label="Voice" value={voice} />
                     <Info label="Language" value={language} />
-                    <Info label="Lip Sync" value="Enabled" />
+                    <Info label="Lip Sync" value={isPro ? "HD Enabled" : "Basic Enabled"} />
                     <Info
                       label="Training"
                       value={
@@ -430,7 +648,10 @@ export default function CreateTwin() {
                     <Capability title="Live Product Selling" value="Enabled" />
                     <Capability title="Customer Q&A" value="Enabled" />
                     <Capability title="Multilingual Voice" value={language} />
-                    <Capability title="AI Personalization" value="Active" />
+                    <Capability
+                      title="AI Personalization"
+                      value={isPro ? "Pro Active" : "Basic"}
+                    />
                   </div>
                 </div>
               </div>
@@ -447,20 +668,38 @@ export default function CreateTwin() {
           </button>
 
           {step < 6 ? (
-            <button
-              onClick={() => setStep(step + 1)}
-              className="brand-gradient flex items-center gap-2 rounded-[5px] px-6 py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-            >
-              Next <ArrowRight size={18} />
-            </button>
-          ) : (
-            <button
-              onClick={finishCreate}
-              className="brand-gradient rounded-[5px] px-6 py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-            >
-              Finalize & Save Twin
-            </button>
-          )}
+           <button
+  onClick={() => setStep(step + 1)}
+  className="brand-gradient flex items-center gap-2 rounded-[5px] px-6 py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+>
+  Next <ArrowRight size={18} />
+</button>
+) : (
+  (() => {
+    const twins = JSON.parse(localStorage.getItem("aiTwins") || "[]");
+    const maxTwins = isPro ? 3 : 1;
+    const canCreate = twins.length < maxTwins;
+
+    return canCreate ? (
+      <button
+        onClick={finishCreate}
+        className="brand-gradient rounded-[5px] px-6 py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+      >
+        Finalize & Save Twin
+      </button>
+    ) : (
+      <button
+        disabled
+        className="cursor-not-allowed rounded-[5px] border-2 border-gray-300 bg-gray-100 px-6 py-3 text-sm font-bold tracking-wide text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-400"
+      >
+        {isPro
+          ? "Maximum 3 Avatars Created"
+          : "Avatar Already Created"}
+      </button>
+    );
+  })()
+)}
+          
         </div>
       </section>
 
@@ -483,6 +722,12 @@ export default function CreateTwin() {
             alt="AI Twin"
             className="relative z-10 h-96 w-full object-contain"
           />
+
+          {isPro && (
+            <div className="absolute right-3 top-3 z-20 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
+              PRO
+            </div>
+          )}
         </div>
 
         <div className="mt-5 rounded-2xl border border-border bg-background p-4">
@@ -491,18 +736,20 @@ export default function CreateTwin() {
           </p>
 
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Ready to engage customers, answer questions and sell products
-            automatically.
+            {isPro
+              ? "Ready to sell with advanced voice, HD lip sync and multi-language support."
+              : "Ready to engage customers, answer questions and sell products automatically."}
           </p>
         </div>
 
         <div className="mt-5 space-y-3">
+          <Info label="Plan" value={isPro ? "Pro Plan" : "Free Plan"} />
           <Info label="Background" value={backgroundName} />
           <Info label="Style" value={style} />
           <Info label="Voice" value={voice} />
           <Info label="Language" value={language} />
           <Info label="Gesture" value={gesture} />
-          <Info label="Lip Sync" value="Enabled" />
+          <Info label="Lip Sync" value={isPro ? "HD Enabled" : "Basic Enabled"} />
         </div>
 
         <button
@@ -527,14 +774,33 @@ function StepCard({ title, desc, children }) {
   );
 }
 
-function TrainingCard({ icon: Icon, title, desc }) {
+function TrainingCard({ icon: Icon, title, desc, locked, onClick }) {
   return (
-    <button className="rounded-2xl border-2 border-dashed border-border bg-card p-6 text-left transition hover:border-pink-400 hover:bg-pink-50 dark:hover:bg-white/10">
-      <Icon className="h-7 w-7 text-[var(--brand-pink)]" />
+    <button
+      onClick={() => {
+        if (locked && onClick) onClick();
+      }}
+      className="relative rounded-2xl border-2 border-dashed border-border bg-card p-6 text-left transition hover:border-pink-400 hover:bg-pink-50 dark:hover:bg-white/10"
+    >
+      {locked && (
+        <span className="absolute right-3 top-3 rounded-full bg-pink-500 px-2 py-1 text-[10px] font-black text-white">
+          PRO
+        </span>
+      )}
+
+      {locked ? (
+        <Lock className="h-7 w-7 text-[var(--brand-pink)]" />
+      ) : (
+        <Icon className="h-7 w-7 text-[var(--brand-pink)]" />
+      )}
+
       <h3 className="mt-4 text-base font-black tracking-tight text-foreground">
         {title}
       </h3>
-      <p className="mt-1 text-sm leading-6 text-muted-foreground">{desc}</p>
+
+      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+        {locked ? "Unlock with Pro plan" : desc}
+      </p>
     </button>
   );
 }
@@ -570,45 +836,68 @@ function SectionTitle({ icon: Icon, title }) {
   );
 }
 
-function ChoiceImage({ image, title, active, onClick }) {
+function ChoiceImage({ image, title, active, onClick, locked }) {
   return (
     <button
       onClick={onClick}
-      className={`rounded-2xl border p-3 text-left transition hover:-translate-y-1 hover:shadow-md ${
+      className={`relative rounded-2xl border p-3 text-left transition hover:-translate-y-1 hover:shadow-md ${
         active
           ? "border-[var(--brand-pink)] bg-pink-50 shadow-sm dark:bg-white/10"
           : "border-border bg-card"
       }`}
     >
-      <img
-        src={image}
-        alt={title}
-        className="h-28 w-full rounded-xl object-cover"
-      />
+      {locked && (
+        <span className="absolute right-3 top-3 z-10 rounded-full bg-pink-500 px-2 py-1 text-[10px] font-black text-white">
+          PRO
+        </span>
+      )}
 
-      <p className="mt-3 text-sm font-black tracking-tight text-foreground">
-        {title}
-      </p>
+      <div className={locked ? "opacity-60" : ""}>
+        <img
+          src={image}
+          alt={title}
+          className="h-28 w-full rounded-xl object-cover"
+        />
+
+        <p className="mt-3 text-sm font-black tracking-tight text-foreground">
+          {title}
+        </p>
+      </div>
     </button>
   );
 }
 
-function ButtonGrid({ items, selected, setSelected }) {
+function ButtonGrid({ items, selected, setSelected, isPro, onLockedClick }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
-        <button
-          key={item}
-          onClick={() => setSelected(item)}
-          className={`rounded-[5px] border px-4 py-3 text-sm font-bold tracking-wide transition ${
-            selected === item
-              ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
-              : "border-border bg-card text-foreground hover:border-[var(--brand-pink)]"
-          }`}
-        >
-          {item}
-        </button>
-      ))}
+      {items.map((item) => {
+        const locked = item.pro && !isPro;
+
+        return (
+          <button
+            key={item.name}
+            onClick={() => {
+              if (locked) {
+                onLockedClick();
+                return;
+              }
+              setSelected(item.name);
+            }}
+            className={`relative rounded-[5px] border px-4 py-3 text-sm font-bold tracking-wide transition ${
+              selected === item.name
+                ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+                : "border-border bg-card text-foreground hover:border-[var(--brand-pink)]"
+            }`}
+          >
+            {locked && (
+              <span className="mr-2 inline-flex align-middle">
+                <Lock className="inline h-3 w-3" />
+              </span>
+            )}
+            {item.name}
+          </button>
+        );
+      })}
     </div>
   );
 }

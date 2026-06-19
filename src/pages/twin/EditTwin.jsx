@@ -15,61 +15,83 @@ import {
   Upload,
   UserCircle2,
   Volume2,
+  Crown,
+  Lock,
 } from "lucide-react";
 
 const avatars = [
-  { name: "Beauty Creator", image: "/images/bb.png" },
-  { name: "Sales Expert", image: "/images/dd.png" },
-  { name: "Fashion Host", image: "/images/1.jpeg" },
-  { name: "Tech Reviewer", image: "/images/2.jpeg" },
+  { name: "Beauty Creator", image: "/images/bb.png", pro: false },
+  { name: "Sales Expert", image: "/images/dd.png", pro: false },
+  { name: "Fashion Host", image: "/images/1.jpeg", pro: true },
+  { name: "Tech Reviewer", image: "/images/2.jpeg", pro: true },
 ];
 
 const backgrounds = [
-  { name: "Studio", image: "/images/ff.png" },
-  { name: "Pink Store", image: "/images/hh.png" },
-  { name: "Luxury", image: "/images/gg.png" },
-  
-  { name: "Live Stage", image: "/images/ee.png" },
+  { name: "Studio", image: "/images/ff.png", pro: false },
+  { name: "Pink Store", image: "/images/hh.png", pro: false },
+  { name: "Luxury", image: "/images/gg.png", pro: true },
+  { name: "Live Stage", image: "/images/ee.png", pro: true },
 ];
 
 const voices = [
-  "Warm Female",
-  "Soft Female",
-  "Luxury Female",
-  "Young Male",
-  "Professional Male",
-  "Energetic Creator",
+  { name: "Warm Female", pro: false },
+  { name: "Soft Female", pro: false },
+  { name: "Luxury Female", pro: true },
+  { name: "Young Male", pro: true },
+  { name: "Professional Male", pro: true },
+  { name: "Energetic Creator", pro: true },
 ];
 
-const languages = [
-  "English",
-  "Tamil",
-  "Hindi",
-  "Malayalam",
-  "Telugu",
-  "Kannada",
-  "Arabic",
-  "French",
-  "German",
-  "Spanish",
+const freeLanguages = [
+  { name: "English", pro: false },
+  { name: "Tamil", pro: false },
+  { name: "Hindi", pro: false },
+  { name: "Malayalam", pro: false },
+  { name: "Arabic", pro: false },
 ];
 
-const outfits = ["Professional", "Casual", "Creator", "Luxury", "Business"];
-const gestures = ["Friendly", "Energetic", "Confident", "Expressive"];
+const proLanguages = [
+  ...freeLanguages,
+  { name: "Telugu", pro: true },
+  { name: "Kannada", pro: true },
+  { name: "French", pro: true },
+  { name: "German", pro: true },
+  { name: "Spanish", pro: true },
+];
+
+const outfits = [
+  { name: "Professional", pro: false },
+  { name: "Casual", pro: false },
+  { name: "Creator", pro: true },
+  { name: "Luxury", pro: true },
+  { name: "Business", pro: true },
+];
+
+const gestures = [
+  { name: "Friendly", pro: false },
+  { name: "Energetic", pro: false },
+  { name: "Confident", pro: true },
+  { name: "Expressive", pro: true },
+];
 
 export default function EditTwin() {
   const navigate = useNavigate();
+
+  const plan = localStorage.getItem("plan") || "free";
+  const isPro = plan === "pro";
 
   const [saved, setSaved] = useState(false);
   const [name, setName] = useState("My AI Twin");
   const [brand, setBrand] = useState("My Brand");
   const [avatar, setAvatar] = useState("/images/bb.png");
-  const [background, setBackground] = useState("/images/bg1.jpg");
+  const [background, setBackground] = useState("/images/ff.png");
   const [voice, setVoice] = useState("Warm Female");
   const [language, setLanguage] = useState("English");
   const [style, setStyle] = useState("Professional");
   const [gesture, setGesture] = useState("Friendly");
   const [trainingText, setTrainingText] = useState("");
+
+  const languages = isPro ? proLanguages : freeLanguages;
 
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-semibold leading-6 text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
@@ -80,13 +102,17 @@ export default function EditTwin() {
     setName(savedTwin?.name || localStorage.getItem("twinName") || "My AI Twin");
     setBrand(savedTwin?.brand || localStorage.getItem("twinBrand") || "My Brand");
     setAvatar(savedTwin?.image || localStorage.getItem("twinImage") || "/images/bb.png");
-    setBackground(savedTwin?.background || localStorage.getItem("twinBackground") || "/images/bg1.jpg");
+    setBackground(savedTwin?.background || localStorage.getItem("twinBackground") || "/images/ff.png");
     setVoice(savedTwin?.voice || localStorage.getItem("voiceStyle") || "Warm Female");
     setLanguage(savedTwin?.language || localStorage.getItem("twinLanguage") || "English");
     setStyle(savedTwin?.style || localStorage.getItem("twinOutfit") || "Professional");
     setGesture(savedTwin?.gesture || localStorage.getItem("gestureStyle") || "Friendly");
     setTrainingText(savedTwin?.trainingText || localStorage.getItem("trainingText") || "");
   }, []);
+
+  const upgradeToPro = () => {
+    navigate("/pricing");
+  };
 
   const saveTwin = () => {
     const updatedTwin = {
@@ -100,6 +126,7 @@ export default function EditTwin() {
       style,
       gesture,
       trainingText: trainingText.trim(),
+      plan: isPro ? "pro" : "free",
       status: "Active",
       updatedAt: new Date().toLocaleString(),
     };
@@ -112,9 +139,11 @@ export default function EditTwin() {
     localStorage.setItem("twinBackground", updatedTwin.background);
     localStorage.setItem("voiceStyle", updatedTwin.voice);
     localStorage.setItem("twinLanguage", updatedTwin.language);
+    localStorage.setItem("voiceLanguage", updatedTwin.language);
     localStorage.setItem("twinOutfit", updatedTwin.style);
     localStorage.setItem("gestureStyle", updatedTwin.gesture);
     localStorage.setItem("trainingText", updatedTwin.trainingText);
+    localStorage.setItem("isTwinTrained", updatedTwin.trainingText ? "true" : "false");
 
     setSaved(true);
 
@@ -135,18 +164,59 @@ export default function EditTwin() {
           Back to AI Twin
         </button>
 
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-          <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-          EDIT AI TWIN
-        </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
+            {isPro ? (
+              <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+            )}
+            {isPro ? "EDIT PRO AI TWIN" : "EDIT AI TWIN"}
+          </span>
+
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
+              isPro
+                ? "bg-pink-500 text-white"
+                : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+            }`}
+          >
+            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isPro ? "PRO PLAN ACTIVE" : "FREE PLAN"}
+          </span>
+        </div>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-          Edit Your <span className="brand-text">AI Twin</span>
+          Edit Your <span className="brand-text">{isPro ? "Pro AI Twin" : "AI Twin"}</span>
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-          Update your single AI Twin identity, voice, language, appearance and brand style.
+          {isPro
+            ? "Update premium avatar, voice, language, appearance and advanced brand style."
+            : "Update your single AI Twin identity, voice, language, appearance and brand style."}
         </p>
+
+        {!isPro && (
+          <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-black text-[var(--brand-pink)]">
+                  Unlock Pro Editing
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Premium avatars, luxury backgrounds, advanced voices and more languages.
+                </p>
+              </div>
+
+              <button
+                onClick={upgradeToPro}
+                className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+              >
+                Upgrade
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 space-y-6">
           <Card icon={UserCircle2} title="Basic Info">
@@ -182,15 +252,26 @@ export default function EditTwin() {
           </Card>
 
           <Card icon={ScanFace} title="Avatar Appearance">
-            <div className="rounded-2xl border-2 border-dashed border-border bg-background p-6 text-center transition hover:border-[var(--brand-pink)]">
-              <Upload className="mx-auto h-8 w-8 text-[var(--brand-pink)]" />
+            <div
+              onClick={() => {
+                if (!isPro) upgradeToPro();
+              }}
+              className="cursor-pointer rounded-2xl border-2 border-dashed border-border bg-background p-6 text-center transition hover:border-[var(--brand-pink)]"
+            >
+              {isPro ? (
+                <Upload className="mx-auto h-8 w-8 text-[var(--brand-pink)]" />
+              ) : (
+                <Lock className="mx-auto h-8 w-8 text-[var(--brand-pink)]" />
+              )}
 
               <p className="mt-3 text-sm font-black tracking-tight text-foreground">
-                Upload New Photo / Video
+                {isPro ? "Upload New Photo / Video" : "Upload Video Avatar - Pro"}
               </p>
 
               <p className="mt-1 text-xs font-medium leading-5 text-muted-foreground">
-                Optional. Use default avatars below if you do not upload.
+                {isPro
+                  ? "Upload new photo or video avatar."
+                  : "Free users can use default avatars only."}
               </p>
             </div>
 
@@ -203,7 +284,14 @@ export default function EditTwin() {
                   active={avatar === item.image}
                   image={item.image}
                   title={item.name}
-                  onClick={() => setAvatar(item.image)}
+                  locked={item.pro && !isPro}
+                  onClick={() => {
+                    if (item.pro && !isPro) {
+                      upgradeToPro();
+                      return;
+                    }
+                    setAvatar(item.image);
+                  }}
                 />
               ))}
             </div>
@@ -217,7 +305,14 @@ export default function EditTwin() {
                   active={background === item.image}
                   image={item.image}
                   title={item.name}
-                  onClick={() => setBackground(item.image)}
+                  locked={item.pro && !isPro}
+                  onClick={() => {
+                    if (item.pro && !isPro) {
+                      upgradeToPro();
+                      return;
+                    }
+                    setBackground(item.image);
+                  }}
                 />
               ))}
             </div>
@@ -225,23 +320,43 @@ export default function EditTwin() {
 
           <Card icon={Mic} title="Voice, Language & Style">
             <SectionTitle icon={Volume2} title="Voice" />
-            <ButtonGrid items={voices} selected={voice} setSelected={setVoice} />
+
+            <ButtonGrid
+              items={voices}
+              selected={voice}
+              setSelected={setVoice}
+              isPro={isPro}
+              onLockedClick={upgradeToPro}
+            />
 
             <SectionTitle icon={Languages} title="AI Language" />
+
             <ButtonGrid
               items={languages}
               selected={language}
               setSelected={setLanguage}
+              isPro={isPro}
+              onLockedClick={upgradeToPro}
             />
 
             <SectionTitle icon={Shirt} title="Outfit Style" />
-            <ButtonGrid items={outfits} selected={style} setSelected={setStyle} />
+
+            <ButtonGrid
+              items={outfits}
+              selected={style}
+              setSelected={setStyle}
+              isPro={isPro}
+              onLockedClick={upgradeToPro}
+            />
 
             <SectionTitle icon={BadgeCheck} title="Gesture Style" />
+
             <ButtonGrid
               items={gestures}
               selected={gesture}
               setSelected={setGesture}
+              isPro={isPro}
+              onLockedClick={upgradeToPro}
             />
           </Card>
 
@@ -273,6 +388,12 @@ export default function EditTwin() {
             alt="AI Twin"
             className="relative z-10 mx-auto h-96 object-contain"
           />
+
+          {isPro && (
+            <span className="absolute right-3 top-3 z-20 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
+              PRO
+            </span>
+          )}
         </div>
 
         <div className="mt-5 rounded-3xl border border-border bg-background p-5 shadow-sm">
@@ -289,11 +410,12 @@ export default function EditTwin() {
           <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 dark:bg-emerald-900/20">
             <div className="h-2 w-2 rounded-full bg-emerald-500" />
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              Active AI Twin
+              {isPro ? "Active Pro AI Twin" : "Active AI Twin"}
             </span>
           </div>
 
           <div className="mt-4 space-y-3">
+            <Info label="Plan" value={isPro ? "Pro" : "Free"} />
             <Info label="Voice" value={voice} />
             <Info label="Language" value={language} />
             <Info label="Style" value={style} />
@@ -363,55 +485,75 @@ function SectionTitle({ icon: Icon, title }) {
   );
 }
 
-function ChoiceImage({ image, title, active, onClick }) {
+function ChoiceImage({ image, title, active, onClick, locked }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`overflow-hidden rounded-2xl border p-3 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
+      className={`relative overflow-hidden rounded-2xl border p-3 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
         active
           ? "border-[var(--brand-pink)] bg-pink-50 dark:bg-white/10"
           : "border-border bg-card"
       }`}
     >
-      <img
-        src={image}
-        alt={title}
-        className="h-32 w-full rounded-xl object-cover"
-      />
+      {locked && (
+        <span className="absolute right-3 top-3 z-10 rounded-full bg-pink-500 px-2 py-1 text-[10px] font-black text-white">
+          PRO
+        </span>
+      )}
 
-      <p className="mt-3 text-sm font-black tracking-tight text-foreground">
-        {title}
-      </p>
+      <div className={locked ? "opacity-60" : ""}>
+        <img
+          src={image}
+          alt={title}
+          className="h-32 w-full rounded-xl object-cover"
+        />
 
-      <div className="mt-2 flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">
-          {active ? "Selected" : "Click to select"}
+        <p className="mt-3 text-sm font-black tracking-tight text-foreground">
+          {title}
         </p>
 
-        {active && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+        <div className="mt-2 flex items-center justify-between">
+          <p className="text-xs font-medium text-muted-foreground">
+            {active ? "Selected" : locked ? "Pro only" : "Click to select"}
+          </p>
+
+          {active && <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+        </div>
       </div>
     </button>
   );
 }
 
-function ButtonGrid({ items, selected, setSelected }) {
+function ButtonGrid({ items, selected, setSelected, isPro, onLockedClick }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {items.map((item) => (
-        <button
-          type="button"
-          key={item}
-          onClick={() => setSelected(item)}
-          className={`rounded-[5px] border px-4 py-3 text-sm font-bold tracking-wide transition ${
-            selected === item
-              ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
-              : "border-border bg-card text-foreground hover:border-[var(--brand-pink)]"
-          }`}
-        >
-          {item}
-        </button>
-      ))}
+      {items.map((item) => {
+        const locked = item.pro && !isPro;
+
+        return (
+          <button
+            type="button"
+            key={item.name}
+            onClick={() => {
+              if (locked) {
+                onLockedClick();
+                return;
+              }
+
+              setSelected(item.name);
+            }}
+            className={`rounded-[5px] border px-4 py-3 text-sm font-bold tracking-wide transition ${
+              selected === item.name
+                ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+                : "border-border bg-card text-foreground hover:border-[var(--brand-pink)]"
+            }`}
+          >
+            {locked && <Lock className="mr-2 inline h-3 w-3" />}
+            {item.name}
+          </button>
+        );
+      })}
     </div>
   );
 }

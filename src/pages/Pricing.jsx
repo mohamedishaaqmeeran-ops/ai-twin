@@ -17,7 +17,7 @@ import Logo from "../components/Logo";
 
 const plans = [
   {
-    name: "Starter",
+    name: "Free",
     tag: "Try your AI Twin, on us.",
     monthly: "₹0",
     yearly: "₹0",
@@ -38,7 +38,7 @@ const plans = [
     ],
   },
   {
-    name: "Creator",
+    name: "Pro",
     tag: "For creators ready to go live.",
     monthly: "₹1,499",
     yearly: "₹14,990",

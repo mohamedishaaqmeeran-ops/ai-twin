@@ -21,6 +21,8 @@ import {
   Youtube,
   Instagram,
   MessageCircle,
+  Crown,
+  Lock,
 } from "lucide-react";
 
 const defaultComments = [
@@ -33,7 +35,10 @@ const defaultComments = [
 export default function LiveStream() {
   const navigate = useNavigate();
 
-  const twinImage = "/images/bb.png";
+  const plan = localStorage.getItem("plan") || "free";
+  const isPro = plan === "pro";
+
+  const twinImage = localStorage.getItem("twinImage") || "/images/bb.png";
   const twinName = localStorage.getItem("twinName") || "My AI Twin";
 
   const liveSetup = JSON.parse(localStorage.getItem("liveSetup") || "{}");
@@ -43,9 +48,11 @@ export default function LiveStream() {
     localStorage.getItem("selectedProduct") ||
     "Vitamin C Glow Serum";
 
-  const platforms =
+  const rawPlatforms =
     liveSetup.platforms ||
     JSON.parse(localStorage.getItem("selectedPlatforms") || '["Instagram"]');
+
+  const platforms = isPro ? rawPlatforms : rawPlatforms.slice(0, 1);
 
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
@@ -55,10 +62,11 @@ export default function LiveStream() {
   const [comments, setComments] = useState(defaultComments);
   const [message, setMessage] = useState("");
 
-  const [viewers, setViewers] = useState(4800);
-  const [orders, setOrders] = useState(85);
-  const [revenue, setRevenue] = useState(58900);
-   const [liveStartedAt, setLiveStartedAt] = useState("");
+  const [viewers, setViewers] = useState(isPro ? 12800 : 4800);
+  const [orders, setOrders] = useState(isPro ? 210 : 85);
+  const [revenue, setRevenue] = useState(isPro ? 158900 : 58900);
+
+  const [liveStartedAt, setLiveStartedAt] = useState("");
   const [ended, setEnded] = useState(false);
   const [liveLink, setLiveLink] = useState("");
   const [showShareModal, setShowShareModal] = useState(true);
@@ -67,48 +75,49 @@ export default function LiveStream() {
   useEffect(() => {
     const oldSession = JSON.parse(localStorage.getItem("liveSession") || "{}");
 
-   if (oldSession.url) {
-  setLiveLink(oldSession.url);
-  setLiveStartedAt(oldSession.startedAt);
-} else {
+    if (oldSession.url) {
+      setLiveLink(oldSession.url);
+      setLiveStartedAt(oldSession.startedAt);
+    } else {
       const liveId = crypto.randomUUID().slice(0, 8).toUpperCase();
       const url = `${window.location.origin}/live/${liveId}`;
 
-     const startTime = new Date().toLocaleString("en-IN", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: true,
-});
+      const startTime = new Date().toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
 
-const session = {
-  id: liveId,
-  url,
-  twinName,
-  product,
-  platforms,
-  startedAt: startTime,
-  status: "live",
-};
+      const session = {
+        id: liveId,
+        url,
+        twinName,
+        product,
+        platforms,
+        plan: isPro ? "pro" : "free",
+        startedAt: startTime,
+        status: "live",
+      };
 
-localStorage.setItem("liveSession", JSON.stringify(session));
+      localStorage.setItem("liveSession", JSON.stringify(session));
 
-setLiveLink(url);
-setLiveStartedAt(startTime);
+      setLiveLink(url);
+      setLiveStartedAt(startTime);
     }
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setViewers((prev) => prev + Math.floor(Math.random() * 12));
-      setOrders((prev) => prev + Math.floor(Math.random() * 2));
-      setRevenue((prev) => prev + Math.floor(Math.random() * 500));
+      setViewers((prev) => prev + Math.floor(Math.random() * (isPro ? 30 : 12)));
+      setOrders((prev) => prev + Math.floor(Math.random() * (isPro ? 4 : 2)));
+      setRevenue((prev) => prev + Math.floor(Math.random() * (isPro ? 1200 : 500)));
     }, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isPro]);
 
   const formattedViewers = useMemo(() => {
     if (viewers >= 1000) return `${(viewers / 1000).toFixed(1)}K`;
@@ -181,6 +190,7 @@ setLiveStartedAt(startTime);
       orders,
       revenue,
       liveLink,
+      plan: isPro ? "pro" : "free",
       endedAt: new Date().toLocaleString(),
     };
 
@@ -221,6 +231,12 @@ setLiveStartedAt(startTime);
             LIVE
           </span>
 
+          {isPro && (
+            <span className="rounded-[5px] bg-pink-500 px-4 py-2 text-sm font-black tracking-wide text-white">
+              PRO
+            </span>
+          )}
+
           <span className="rounded-[5px] bg-black/60 px-4 py-2 text-sm font-black tracking-wide text-white backdrop-blur">
             👁 {formattedViewers}
           </span>
@@ -241,13 +257,14 @@ setLiveStartedAt(startTime);
           </p>
 
           <p className="mt-1 text-sm font-medium leading-6 text-gray-700">
-            Today I’m showing you why {product} is perfect for your daily
-            routine. Drop your questions in the chat!
+            {isPro
+              ? `Pro live selling mode active. Today I’m presenting ${product} with offers, objections handling and instant answers.`
+              : `Today I’m showing you why ${product} is perfect for your daily routine. Drop your questions in the chat!`}
           </p>
         </div>
 
         <div className="absolute left-5 top-56 max-w-md space-y-3">
-          {comments.slice(0, 4).map((msg, index) => (
+          {comments.slice(0, isPro ? 5 : 4).map((msg, index) => (
             <div
               key={`${msg}-${index}`}
               className="rounded-2xl bg-black/60 px-4 py-3 text-sm font-medium leading-6 text-white backdrop-blur"
@@ -274,7 +291,9 @@ setLiveStartedAt(startTime);
                 </p>
 
                 <p className="text-xs font-medium leading-5 text-muted-foreground">
-                  Limited live offer available now
+                  {isPro
+                    ? "Pro live offer: discount + free shipping active"
+                    : "Limited live offer available now"}
                 </p>
               </div>
             </div>
@@ -304,7 +323,8 @@ setLiveStartedAt(startTime);
 
       <aside className="space-y-6">
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black tracking-tight brand-text">
+          <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
+            {isPro && <Crown className="h-5 w-5" />}
             Live Link
           </h2>
 
@@ -371,40 +391,21 @@ setLiveStartedAt(startTime);
 
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-black tracking-tight brand-text">
-            Live Stats
+            {isPro ? "Pro Live Stats" : "Live Stats"}
           </h2>
 
-         <div className="mt-5 space-y-3">
-  <Stat
-    icon={CheckCircle2}
-    label="Started"
-    value={liveStartedAt}
-  />
-
-  <Stat
-    icon={Eye}
-    label="Viewers"
-    value={formattedViewers}
-  />
-
-  <Stat
-    icon={ShoppingCart}
-    label="Orders"
-    value={orders}
-  />
-
-  <Stat
-    icon={IndianRupee}
-    label="Revenue"
-    value={`₹${revenue.toLocaleString("en-IN")}`}
-  />
-
-  <Stat
-    icon={Users}
-    label="Platforms"
-    value={platforms.join(", ")}
-  />
-</div>
+          <div className="mt-5 space-y-3">
+            <Stat icon={CheckCircle2} label="Started" value={liveStartedAt} />
+            <Stat icon={Eye} label="Viewers" value={formattedViewers} />
+            <Stat icon={ShoppingCart} label="Orders" value={orders} />
+            <Stat
+              icon={IndianRupee}
+              label="Revenue"
+              value={`₹${revenue.toLocaleString("en-IN")}`}
+            />
+            <Stat icon={Users} label="Platforms" value={platforms.join(", ")} />
+            <Stat icon={Crown} label="Plan" value={isPro ? "Pro" : "Free"} />
+          </div>
         </div>
 
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
@@ -429,6 +430,16 @@ setLiveStartedAt(startTime);
           </div>
         </div>
 
+        {!isPro && rawPlatforms.length > 1 && (
+          <button
+            onClick={() => navigate("/pricing")}
+            className="brand-gradient flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white"
+          >
+            <Lock className="h-4 w-4" />
+            Unlock Multi-Platform Live
+          </button>
+        )}
+
         <button
           onClick={endLive}
           className="w-full rounded-[5px] bg-red-600 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-red-700"
@@ -438,16 +449,17 @@ setLiveStartedAt(startTime);
       </aside>
 
       {showShareModal && (
-       <ShareLiveModal
-  liveLink={liveLink}
-  product={product}
-  platforms={platforms}
-  liveStartedAt={liveStartedAt}
-  copied={copied}
-  onCopy={copyLiveLink}
-  onClose={() => setShowShareModal(false)}
-  onShare={shareLive}
-/>
+        <ShareLiveModal
+          liveLink={liveLink}
+          product={product}
+          platforms={platforms}
+          liveStartedAt={liveStartedAt}
+          copied={copied}
+          onCopy={copyLiveLink}
+          onClose={() => setShowShareModal(false)}
+          onShare={shareLive}
+          isPro={isPro}
+        />
       )}
     </div>
   );
@@ -462,6 +474,7 @@ function ShareLiveModal({
   onCopy,
   onClose,
   onShare,
+  isPro,
 }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
@@ -469,7 +482,7 @@ function ShareLiveModal({
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-black tracking-tight brand-text">
-              Live Started
+              {isPro ? "Pro Live Started" : "Live Started"}
             </h2>
 
             <p className="mt-1 text-sm font-medium text-muted-foreground">
@@ -493,15 +506,17 @@ function ShareLiveModal({
           <p className="mt-1 text-sm font-medium text-muted-foreground">
             {product}
           </p>
-<div className="mt-4 rounded-xl border border-border bg-background p-3">
-  <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
-    Live Started
-  </p>
 
-  <p className="mt-1 text-sm font-black text-foreground">
-    {liveStartedAt}
-  </p>
-</div>
+          <div className="mt-4 rounded-xl border border-border bg-background p-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+              Live Started
+            </p>
+
+            <p className="mt-1 text-sm font-black text-foreground">
+              {liveStartedAt}
+            </p>
+          </div>
+
           <div className="mt-4 rounded-xl bg-card p-3">
             <p className="break-all text-sm font-medium text-foreground">
               {liveLink}
