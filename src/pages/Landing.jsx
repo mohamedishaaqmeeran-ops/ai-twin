@@ -1061,14 +1061,16 @@ function Footer() {
 
           <ul className="space-y-4 text-sm font-medium leading-6 text-white/70">
             <li>
-              <a
-                href="mailto:hello@twinn.live"
-                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
-              >
-                <Mail className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-                hello@twinn.live
-              </a>
-            </li>
+  <a
+    href="https://mail.google.com/mail/?view=cm&fs=1&to=twinn.support@gmail.com"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+  >
+    <Mail className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+    twinn.support@gmail.com
+  </a>
+</li>
 
             <li>
               <a
