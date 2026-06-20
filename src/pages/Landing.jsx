@@ -59,17 +59,17 @@ import stripeLogo from "/images/iii.png";
 
 
 const createMenu = [
-  { icon: ScanFace, title: "Create AI Twin", desc: "Build your digital avatar" },
-  { icon: Mic, title: "Train Your Voice", desc: "Clone or select AI voice" },
-  { icon: ShoppingBag, title: "Add Products", desc: "Upload products to sell" },
-  { icon: Radio, title: "Go Live", desc: "Launch your AI live session" },
+  { icon: ScanFace, title: "Create AI Twin", desc: "Build your digital avatar" , link:"/creators"},
+  { icon: Mic, title: "Train Your Voice", desc: "Clone or select AI voice" , link:"/creators"},
+  { icon: ShoppingBag, title: "Add Products", desc: "Upload products to sell", link:"/creators" },
+  { icon: Radio, title: "Go Live", desc: "Launch your AI live session" , link:"/creators"},
 
 ];
 
 const solutionMenu = [
-    { icon: Users, title: "For Creators and Influencers", desc: "Earn with AI selling" },
-  { icon: Store, title: "For Brands and Shops", desc: "Sell products with AI live" },
-  { icon: Briefcase, title: "For Agencies", desc: "Manage multiple brands" },
+    { icon: Users, title: "For Creators and Influencers", desc: "Earn with AI selling", link:"/creators" },
+  { icon: Store, title: "For Brands and Shops", desc: "Sell products with AI live" , link:"/brand"},
+  { icon: Briefcase, title: "For Agencies", desc: "Manage multiple brands", link:"/agency"},
 ];
 
 function TopBanner() {
@@ -134,10 +134,10 @@ function DesktopDropdown({ label, items }) {
 
       <div className="absolute left-0 top-full z-50 hidden w-[310px] rounded-3xl border border-border bg-background p-3 shadow-2xl group-hover:block">
         <div className="space-y-1">
-          {items.map(({ icon: Icon, title, desc }) => (
+          {items.map(({ icon: Icon, title, desc, link }) => (
             <Link
               key={title}
-              to="/signin"
+              to={link}
               className="flex gap-3 rounded-2xl p-3 transition hover:bg-pink-50 dark:hover:bg-white/10"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
@@ -1011,10 +1011,10 @@ function Footer() {
 
           <div className="mt-6 flex items-center gap-5">
             {[
-              [Instagram, "https://www.instagram.com"],
-              [Facebook, "https://www.facebook.com"],
-              [Youtube, "https://www.youtube.com"],
-              [Music2, "https://www.tiktok.com"],
+              [Instagram, "https://www.instagram.com/twinnlive?igsh=ZTJoa2w1azB4Y3dt"],
+              [Facebook, "https://www.facebook.com/share/195z5rKVqA/"],
+              [Youtube, "https://youtube.com/@twinn-live?si=nHpcUbploHZBNPJf"],
+              
               [Linkedin, "https://www.linkedin.com/company/twinlive/"],
             ].map(([Icon, href], index) => (
               <a
@@ -1023,7 +1023,7 @@ function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Icon className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-white" />
+                <Icon className="h-5 w-5 cursor-pointer text-white/70 transition hover:text-pink-600" />
               </a>
             ))}
           </div>

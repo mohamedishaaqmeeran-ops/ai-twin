@@ -30,7 +30,7 @@ import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 import WaitlistForm from "./pages/WaitlistForm";
 import Settings from "./pages/Settings";
-
+import creators from "./pages/Creators";
 
 
 import AdminLayout from "./components/AdminLayout";
@@ -47,6 +47,9 @@ import TermsCondition from "./pages/TermsCondition";
 import CookiePolicy from "./pages/CookiePolicy";
 import RefundPolicy from "./pages/RefundPolicy";
 import AboutUs from "./pages/AboutUs";
+import Creators from "./pages/Creators";
+import Brands from "./pages/Brand";
+import Agency from "./pages/Agency";
 
 
 function RequireAdmin({ children }) {
@@ -113,6 +116,9 @@ export default function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<Signin />} />
         <Route path="/about" element={<AboutUs />} />
+        <Route path="/creators" element={<Creators />} />
+        <Route path="/brand" element={<Brands />} />
+        <Route path="/agency" element={<Agency />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/cookie-policy" element={<CookiePolicy />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
