@@ -125,28 +125,28 @@ function Hero() {
   const platforms = [
   {
     name: "Instagram",
-    username: "@yourbrand",
+    username: "@twinnlive",
     icon: Instagram,
     color: "text-pink-500",
     href: "https://www.instagram.com/",
   },
   {
     name: "Facebook",
-    username: "Your Brand",
+    username: "@twinnlive",
     icon: Facebook,
     color: "text-blue-600",
     href: "https://www.facebook.com/",
   },
   {
     name: "TikTok",
-    username: "@yourbrand",
+    username: "@twinnlive",
     icon: Music2,
     color: "text-black dark:text-white",
     href: "https://www.tiktok.com/",
   },
   {
     name: "YouTube",
-    username: "Your Channel",
+    username: "@twinn-live",
     icon: Youtube,
     color: "text-red-600",
     href: "/sigin",
