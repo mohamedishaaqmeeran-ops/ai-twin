@@ -310,7 +310,7 @@ const [showVideo, setShowVideo] = useState(false);
           key={item.name}
           className="flex items-center justify-between"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 py-2">
 
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 dark:bg-white/10">
               <Icon className={`h-6 w-6 ${item.color}`} />
