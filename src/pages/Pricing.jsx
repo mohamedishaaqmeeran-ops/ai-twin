@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Logo from "../components/Logo";
+import Nav from "../components/Nav";
 
 const plans = [
   {
@@ -150,19 +151,8 @@ export default function Pricing() {
   const [billing, setBilling] = useState("monthly");
 
   return (
-    <div className="min-h-screen bg-background/90 text-foreground">
-      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Logo />
-
-          <Link
-            to="/signin"
-            className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
-          >
-            Sign In
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+                 <Nav />
 
       <main>
         <section className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">

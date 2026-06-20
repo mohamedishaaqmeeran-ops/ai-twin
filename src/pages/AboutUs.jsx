@@ -17,6 +17,7 @@ import {
   Building2,
 } from "lucide-react";
 import Logo from "../components/Logo";
+import Nav from "../components/Nav";
 
 export default function AboutUs() {
   const stats = [
@@ -57,19 +58,7 @@ export default function AboutUs() {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Logo />
-
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-[5px] border border-border px-4 py-2 text-sm font-bold text-foreground transition hover:border-[var(--brand-pink)] hover:text-[var(--brand-pink)]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back Home
-          </Link>
-        </div>
-      </header>
+                 <Nav />
 
       <main className="bg-background text-foreground">
         <section className="border-b border-border bg-gradient-to-br from-pink-50/60 via-background to-orange-50/40 px-4 py-16 dark:from-white/5 dark:via-background dark:to-white/5">

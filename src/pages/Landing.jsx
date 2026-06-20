@@ -2,6 +2,12 @@ import { Link } from "react-router-dom";
 import {
   Activity,
   X,
+  Megaphone,
+  Target,
+  
+
+  
+  BadgeIndianRupee,
   CheckCircle2,
   CalendarDays,
   Star,
@@ -48,7 +54,7 @@ import {
 } from "lucide-react";
 import Logo from "../components/Logo";
 import { useState } from "react";
-
+import Nav from "../components/Nav";
 import shopifyLogo from "/images/eee.png";
 import wordpressLogo from "/images/ddd.png";
 import woocommerceLogo from "/images/fff.png";
@@ -58,19 +64,7 @@ import stripeLogo from "/images/iii.png";
 
 
 
-const createMenu = [
-  { icon: ScanFace, title: "Create AI Twin", desc: "Build your digital avatar" , link:"/creators"},
-  { icon: Mic, title: "Train Your Voice", desc: "Clone or select AI voice" , link:"/creators"},
-  { icon: ShoppingBag, title: "Add Products", desc: "Upload products to sell", link:"/creators" },
-  { icon: Radio, title: "Go Live", desc: "Launch your AI live session" , link:"/creators"},
 
-];
-
-const solutionMenu = [
-    { icon: Users, title: "For Creators and Influencers", desc: "Earn with AI selling", link:"/creators" },
-  { icon: Store, title: "For Brands and Shops", desc: "Sell products with AI live" , link:"/brand"},
-  { icon: Briefcase, title: "For Agencies", desc: "Manage multiple brands", link:"/agency"},
-];
 
 function TopBanner() {
   const [open, setOpen] = useState(true);
@@ -124,132 +118,7 @@ function TopBanner() {
   );
 }
 
-function DesktopDropdown({ label, items }) {
-  return (
-    <div className="group relative">
-      <button className="inline-flex items-center gap-1 transition hover:text-[var(--brand-pink)]">
-        {label}
-        <ChevronDown className="h-4 w-4" />
-      </button>
-
-      <div className="absolute left-0 top-full z-50 hidden w-[310px] rounded-3xl border border-border bg-background p-3 shadow-2xl group-hover:block">
-        <div className="space-y-1">
-          {items.map(({ icon: Icon, title, desc, link }) => (
-            <Link
-              key={title}
-              to={link}
-              className="flex gap-3 rounded-2xl p-3 transition hover:bg-pink-50 dark:hover:bg-white/10"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-                <Icon className="h-5 w-5" />
-              </div>
-
-              <div>
-                <p className="text-sm font-black tracking-tight text-foreground">
-                  {title}
-                </p>
-                <p className="mt-1 text-xs font-medium text-muted-foreground">
-                  {desc}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Nav() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
-      <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between">
-          <Logo />
-
-          <nav className="hidden items-center gap-8 text-sm font-bold tracking-wide text-foreground/80 lg:flex">
-            <a href="#" className="transition hover:text-[var(--brand-pink)]">
-              Home
-            </a>
-
-             <a href="#discover" className="transition hover:text-[var(--brand-pink)]">
-              Discover
-            </a>
-            <DesktopDropdown label="Create" items={createMenu} />
-
-           
-
-            <DesktopDropdown label="Solution" items={solutionMenu} />
-
-            <Link
-              to="/pricing"
-              className="transition hover:text-[var(--brand-pink)]"
-            >
-              Pricing
-            </Link>
-          </nav>
-
-          <div className="hidden items-center gap-3 md:flex">
-            <Link
-              to="/signin"
-              className="flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] px-5 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
-            >
-              Log In
-            </Link>
-
-            <Link
-              to="/signup"
-              className="brand-gradient flex h-11 items-center justify-center rounded-[5px] px-5 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-            >
-            Get Started
-            </Link>
-          </div>
-
-          <button
-            onClick={() => setOpen(!open)}
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border md:hidden"
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-
-        {open && (
-          <div className="mt-4 space-y-4 rounded-2xl border border-border bg-background p-5 md:hidden">
-            {["Home", "Discover", "Create", "Solution", "Pricing"].map(
-              (item) => (
-                <Link
-                  key={item}
-                  to={item === "Pricing" ? "/pricing" : "/signin"}
-                  className="block text-sm font-bold tracking-wide text-foreground transition hover:text-[var(--brand-pink)]"
-                >
-                  {item}
-                </Link>
-              )
-            )}
-
-            <div className="flex flex-col gap-3 pt-3">
-              <Link
-                to="/signin"
-                className="flex h-11 items-center justify-center rounded-lg border-2 border-[var(--brand-pink)] text-sm font-bold tracking-wide text-[var(--brand-pink)]"
-              >
-                Log In
-              </Link>
-
-              <Link
-                to="/signup"
-                className="brand-gradient flex h-11 items-center justify-center rounded-lg text-sm font-bold tracking-wide text-white"
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
-        )}
-      </div>
-    </header>
-  );
-}
+<Nav/>
 
 function Hero() {
   const avatars = ["/images/1.jpeg", "/images/2.jpeg", "/images/3.jpeg"];
@@ -283,6 +152,10 @@ function Hero() {
     href: "/sigin",
   },
 ];
+
+const [platform, setPlatform] = useState("Facebook & Instagram");
+const [objective, setObjective] = useState("Conversions");
+const [budget, setBudget] = useState("₹1,000 / day");
 const [showVideo, setShowVideo] = useState(false);
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-pink-50/40 to-orange-50/30 py-16 dark:from-background dark:via-white/5 dark:to-white/5">
@@ -456,7 +329,7 @@ const [showVideo, setShowVideo] = useState(false);
 
           <Link
   to="/signin"
-  className="text-xs font-bold text-emerald-500 transition hover:text-emerald-600"
+  className="text-xs font-bold text-red-500 transition hover:text-emerald-600"
 >
   Connect
 </Link>
@@ -473,7 +346,9 @@ const [showVideo, setShowVideo] = useState(false);
   </a>
 
 </div>
+
 </div>
+
         </div>
       </div>
     </section>
@@ -754,6 +629,194 @@ function HowItWorks() {
   );
 }
 
+
+
+
+
+function MetaAds() {
+  const features = [
+    {
+      icon: Target,
+      title: "Reach the Right Audience",
+      desc: "Target shoppers based on interests, behaviour and demographics across Facebook & Instagram.",
+    },
+    {
+      icon: TrendingUp,
+      title: "Boost Live Sales",
+      desc: "Promote your AI Twin live sessions and convert viewers into customers with optimized campaigns.",
+    },
+    {
+      icon: Users,
+      title: "Scale Your Brand",
+      desc: "Increase followers, engagement and product sales without spending hours managing ads.",
+    },
+  ];
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+
+          {/* Left */}
+
+          <div className="p-8 lg:p-12">
+
+            <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-black tracking-wide text-foreground">
+              <Megaphone className="h-4 w-4 text-[var(--brand-pink)]" />
+              META ADS
+            </span>
+
+            <h2 className="mt-6 text-4xl font-black leading-tight tracking-tight text-foreground">
+              <span className="brand-text">
+                Promote Your AI Twin
+              </span>
+              <br />
+              Reach More Customers.
+            </h2>
+
+            <p className="mt-5 max-w-xl text-sm font-medium leading-7 text-muted-foreground">
+              Launch Facebook and Instagram campaigns directly from Twin.
+              Drive traffic to your AI live sessions, increase product
+              visibility and generate more sales with AI-powered advertising.
+            </p>
+
+            <div className="mt-8 space-y-5">
+
+              {features.map(({ icon: Icon, title, desc }) => (
+                <div
+                  key={title}
+                  className="flex gap-4 rounded-2xl border border-border bg-background p-4"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+                    <Icon className="h-6 w-6" />
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-black tracking-tight text-foreground">
+                      {title}
+                    </h3>
+
+                    <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+                      {desc}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+            </div>
+
+            <Link
+              to="/signup"
+              className="brand-gradient mt-8 inline-flex items-center gap-2 rounded-[5px] px-6 py-3 text-sm font-black tracking-wide text-white shadow-md transition hover:opacity-90"
+            >
+              Launch Your First Campaign
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+
+          </div>
+
+          {/* Right */}
+
+          <div className="brand-gradient flex items-center justify-center p-8">
+
+            <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50">
+                  <Megaphone className="h-6 w-6 text-[var(--brand-pink)]" />
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-black tracking-tight text-gray-900">
+                    Run Ads (Meta)
+                  </h3>
+
+                  <p className="text-sm font-medium text-gray-500">
+                    Promote your AI Twin live sessions
+                  </p>
+                </div>
+
+              </div>
+
+              <div className="mt-8 space-y-5">
+
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide text-gray-500">
+                    Platform
+                  </p>
+
+                  <div className="mt-2 rounded-xl border p-4 text-sm font-bold">
+                    Facebook & Instagram
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide text-gray-500">
+                    Objective
+                  </p>
+
+                  <div className="mt-2 rounded-xl border p-4 text-sm font-bold">
+                    Conversions
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-xs font-black uppercase tracking-wide text-gray-500">
+                    Daily Budget
+                  </p>
+
+                  <div className="mt-2 rounded-xl border p-4 text-sm font-black text-[var(--brand-pink)]">
+                    ₹1,000 / day
+                  </div>
+                </div>
+
+              </div>
+
+              <button className="brand-gradient mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-black tracking-wide text-white">
+
+                <Megaphone className="h-5 w-5" />
+
+                Launch Ad
+
+              </button>
+
+              <div className="mt-6 space-y-2">
+
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  AI Audience Targeting
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Real-time Performance Tracking
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                  Optimized for Live Shopping
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+  );
+}
+
+
+
+
+
+
 function ProductRow({ image, name, price }) {
   return (
     <div className="flex items-center justify-between rounded-xl border border-border bg-white p-3 transition hover:shadow-sm dark:bg-card">
@@ -860,6 +923,18 @@ function Tools() {
 }
 
 function SocialProof() {
+
+  const languages = [
+  "English",
+  "हिंदी",
+  "தமிழ்",
+  "తెలుగు",
+  "ಕನ್ನಡ",
+  "മലയാളം",
+  "Español",
+  "العربية",
+  "বাংলা",
+];
   const testimonials = [
     ["This AI twin helped me double my engagement in 2 weeks!", "Ananya", "Fashion Creator", "/images/2.jpeg"],
     ["I started getting clients even while I was offline.", "Rahul", "Digital Marketer", "/images/1.jpeg"],
@@ -951,6 +1026,34 @@ function SocialProof() {
           />
         </div>
       </div>
+      <div className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-sm">
+  <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+    <div className="shrink-0">
+      <h3 className="text-base font-black tracking-tight brand-text">
+        One Twin. All Languages.
+      </h3>
+
+      <p className="mt-1 text-xs font-medium text-muted-foreground">
+        Talk to your audience in their language.
+      </p>
+    </div>
+
+    <div className="flex flex-1 flex-wrap gap-3">
+      {languages.map((lang) => (
+        <span
+          key={lang}
+          className="rounded-[5px] border border-border bg-background px-5 py-2 text-xs font-bold tracking-wide text-foreground shadow-sm"
+        >
+          {lang}
+        </span>
+      ))}
+
+      <span className="rounded-[5px] border border-border bg-background px-5 py-2 text-xs font-black tracking-wide text-foreground shadow-sm">
+        + 40 More
+      </span>
+    </div>
+  </div>
+</div>
     </section>
   );
 }
@@ -1012,7 +1115,7 @@ function Footer() {
           <div className="mt-6 flex items-center gap-5">
             {[
               [Instagram, "https://www.instagram.com/twinnlive?igsh=ZTJoa2w1azB4Y3dt"],
-              [Facebook, "https://www.facebook.com/share/195z5rKVqA/"],
+              [Facebook, "https://www.facebook.com/share/16wPoHUvA2/"],
               [Youtube, "https://youtube.com/@twinn-live?si=nHpcUbploHZBNPJf"],
               
               [Linkedin, "https://www.linkedin.com/company/twinlive/"],
@@ -1126,6 +1229,7 @@ export default function Landing() {
       <Hero />
       <FeatureRow />
       <HowItWorks />
+      <MetaAds />
       <PerfectFor />
       <Tools />
       <SocialProof />

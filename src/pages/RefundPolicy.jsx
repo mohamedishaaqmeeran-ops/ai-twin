@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Logo from "../components/Logo";
+import Nav from "../components/Nav";
 
 const sections = [
   {
@@ -87,19 +88,7 @@ const scenarios = [
 export default function RefundPolicy() {
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Logo />
-
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-[5px] border border-border px-4 py-2 text-sm font-bold text-foreground transition hover:border-[var(--brand-pink)] hover:text-[var(--brand-pink)]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back Home
-          </Link>
-        </div>
-      </header>
+                 <Nav />
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <section className="brand-gradient rounded-[40px] p-6 text-white shadow-xl sm:p-10 lg:p-12">

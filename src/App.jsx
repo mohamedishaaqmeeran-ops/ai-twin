@@ -50,6 +50,11 @@ import AboutUs from "./pages/AboutUs";
 import Creators from "./pages/Creators";
 import Brands from "./pages/Brand";
 import Agency from "./pages/Agency";
+import Createai from "./pages/CreateAI.jsx";
+import CreateAI from "./pages/CreateAI.jsx";
+import TrainVoice from "./pages/TrainVoice.jsx";
+import AddProd from "./pages/AddProd.jsx";
+import GoLives from "./pages/GoLives.jsx";
 
 
 function RequireAdmin({ children }) {
@@ -117,11 +122,15 @@ export default function App() {
         <Route path="/signin" element={<Signin />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/creators" element={<Creators />} />
+        <Route path="/createai" element={<CreateAI />} />
         <Route path="/brand" element={<Brands />} />
         <Route path="/agency" element={<Agency />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/go-live" element={<GoLives />} />
         <Route path="/cookie-policy" element={<CookiePolicy />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
+        <Route path="/trainvoice" element={<TrainVoice />} />
+        <Route path="/add-products" element={<AddProd />} />
         <Route path="/terms-and-conditions" element={<TermsCondition />} />
         <Route path="/waitlist" element={<WaitlistForm />} />
 
