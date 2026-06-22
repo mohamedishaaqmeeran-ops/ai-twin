@@ -5,7 +5,9 @@ import {
   Megaphone,
   Target,
   Twitter,
-
+ MessageCircle,
+  
+  ShoppingCart,
   
   BadgeIndianRupee,
   CheckCircle2,
@@ -363,6 +365,118 @@ const [showVideo, setShowVideo] = useState(false);
   );
 }
 
+
+
+function FounderVision() {
+  const pillars = [
+    {
+      icon: MessageCircle,
+      title: "Live",
+      desc: "Go live across platforms instantly.",
+    },
+    {
+      icon: Play,
+      title: "Engage",
+      desc: "Real-time AI conversations that connect and convert.",
+    },
+    {
+      icon: ShoppingCart,
+      title: "Sell",
+      desc: "Turn every interaction into revenue 24/7.",
+    },
+  ];
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-4 lg:py-4">
+      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:rounded-[40px]">
+        <div className="grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:p-4">
+          {/* Left */}
+          <div className="order-2 lg:order-1">
+            <h2 className="text-center text-3xl font-black tracking-tight brand-text sm:text-4xl lg:text-left">
+              The next billion sales conversations won't be handled by humans
+              alone.
+            </h2>
+
+            <p className="mt-5  text-base font-black tracking-tight text-foreground">
+              They'll be powered by{" "}
+              <span className="brand-text">AI Twins</span> that can{" "}
+              <span className="brand-text">live, engage, and sell</span>{" "}
+              instantly.
+            </p>
+
+            <p className="mt-4  text-base font-black tracking-tight text-foreground">
+              That's the future we're building at{" "}
+              <span className="brand-text">twinn.live</span>.
+            </p>
+
+            <div className="mx-auto mt-8 h-1 w-20 rounded-full brand-gradient lg:mx-0" />
+
+            <div className="mt-8 grid gap-5 sm:grid-cols-3 text-center mx-auto">
+              {pillars.map(({ icon: Icon, title, desc }) => (
+                <div
+                  key={title}
+                  className="rounded-3xl mx-auto border border-border bg-card p-5 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg sm:p-6 lg:text-left"
+                >
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center text-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10 ">
+                    <Icon className="h-7 w-7" />
+                  </div>
+
+                  <p className="mt-5 text-base font-black tracking-tight text-foreground text-center">
+                    {title}
+                  </p>
+
+                  <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground text-center">
+                    {desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right */}
+          <div className="relative order-1 flex min-h-[520px] flex-col items-center justify-center overflow-hidden rounded-3xl bg-background px-4 pt-12 sm:min-h-[600px] lg:order-2 lg:bg-transparent lg:px-0 lg:pt-10">
+            <div className="absolute mx-auto top-4 z-20 sm:right-6 sm:top-6 lg:right-0 lg:top-18">
+              <span className="text-base font-black tracking-tight text-foreground text-pink-600">
+                Founder's Vision
+              </span>
+            </div>
+
+            <div className="absolute top-30 h-40 w-40 rounded-full bg-gradient-to-br from-pink-500 via-pink-400 to-orange-400 sm:h-72 sm:w-72 lg:top-40 lg:h-70 lg:w-70" />
+
+            <div className="relative z-10 flex justify-center">
+              <div className="relative">
+                <img
+                  src="/images/Founder.png"
+                  alt="Founder"
+                  className="h-[300px] object-cover sm:h-[430px] lg:h-[400px]"
+                />
+
+                <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-background dark:via-background/95" />
+
+                <div className="absolute -bottom-8 left-1/2 h-28 w-[130%] -ranslate-x-1/2 rounded-[100%] bg-white blur-[55px] dark:bg-background" />
+              </div>
+            </div>
+
+            <div className="relative z-20 -mt-2 text-center sm:-mt-4">
+              <h3 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+                Arunkumar S
+              </h3>
+
+              <p className="mt-2 text-sm font-medium text-muted-foreground sm:text-base">
+                Founder & CEO, Twinn.live
+              </p>
+
+              <div className="mx-auto mt-4 h-1 w-24 rounded-full brand-gradient" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+
 function FeatureRow() {
   const items = [
     [UserCircle2, "Create AI Twin", "Build your digital twin that looks, speaks and sells like you."],
@@ -382,9 +496,9 @@ function FeatureRow() {
         {items.map(([Icon, t, d]) => (
           <div
             key={t}
-            className="rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+            className="rounded-3xl border border-border text-center bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+            <div className="flex h-14 w-14 mx-auto items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
               <Icon className="h-7 w-7" />
             </div>
 
@@ -407,233 +521,169 @@ function HowItWorks() {
   return (
     <section
       id="how"
-      className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8"
+      className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8"
     >
       <h2 className="text-center text-3xl font-black tracking-tight brand-text md:text-4xl">
         How It Works
       </h2>
-      <div className="mt-12 rounded-[32px] border border-border bg-card p-6 shadow-sm lg:p-4">
-       
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_auto_1fr_auto_1fr]">
-
+      <div className="mt-10 rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:rounded-[32px] lg:p-4">
+        <div className="grid gap-6 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-stretch">
           {/* STEP 1 */}
-
-          <div className="rounded-3xl border border-border bg-background p-6">
+          <div className="rounded-3xl border border-border bg-background p-5 sm:p-6">
             <div className="flex items-start gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full brand-gradient text-xl font-black text-white">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full brand-gradient text-lg font-black text-white sm:h-12 sm:w-12 sm:text-xl">
                 1
               </div>
 
               <div>
-                <h3 className="text-xl font-black text-foreground">
+                <h3 className="text-lg font-black text-foreground sm:text-xl">
                   Create Your Avatar
                 </h3>
 
-                <div className="mt-5 space-y-3 text-base font-medium leading-7 text-muted-foreground">
-
-                  <div className="flex items-center gap-2 text-sm ">
-                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
-                    Upload a video
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
-                    Clone your voice
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
-                    Choose your style
-                  </div>
-
+                <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-muted-foreground">
+                  <StepCheck text="Upload a video" />
+                  <StepCheck text="Clone your voice" />
+                  <StepCheck text="Choose your style" />
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-center">
+            <div className="mt-6 flex justify-center rounded-2xl bg-pink-50 p-4 dark:bg-white/10">
               <img
                 src="/images/bb.png"
-                alt=""
-                className="h-64 object-contain"
+                alt="AI Twin Avatar"
+                className="h-52 object-contain sm:h-64"
               />
             </div>
 
-            <div className="mx-auto mt-4 w-fit rounded-full border bg-white dark:bg-white/10 px-5 py-2 shadow">
-              <span className="font-black text-[var(--brand-pink)]">
+            <div className="mx-auto mt-4 w-fit rounded-full border border-border bg-card px-5 py-2 shadow-sm">
+              <span className="text-sm font-black text-[var(--brand-pink)]">
                 ✓ Avatar Ready!
               </span>
             </div>
           </div>
 
-          {/* Arrow */}
-
-          <div className="hidden items-center justify-center lg:flex">
-            <ArrowRight className="h-10 w-10 text-[var(--brand-pink)]" />
-          </div>
+          <StepArrow />
 
           {/* STEP 2 */}
-
-          <div className="rounded-3xl border border-border bg-background p-6">
+          <div className="rounded-3xl border border-border bg-background p-5 sm:p-6">
             <div className="flex items-start gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full brand-gradient text-xl font-black text-white">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full brand-gradient text-lg font-black text-white sm:h-12 sm:w-12 sm:text-xl">
                 2
               </div>
 
-              <div className="text-base font-medium leading-7 text-muted-foreground">
-                <h3 className="text-xl font-black text-foreground">
-                Upload Products
+              <div>
+                <h3 className="text-lg font-black text-foreground sm:text-xl">
+                  Upload Products
                 </h3>
 
-                <div className="mt-5 space-y-3">
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
-                    Upload products
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
-                    Explain in your own words
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
-                    AI learns everything
-                  </div>
-
+                <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-muted-foreground">
+                  <StepCheck text="Upload products" />
+                  <StepCheck text="Explain in your own words" />
+                  <StepCheck text="AI learns everything" />
                 </div>
               </div>
             </div>
 
-           <div className="mt-6 space-y-3 rounded-2xl border border-border bg-card p-4">
+            <div className="mt-6 space-y-3 rounded-2xl border border-border bg-card p-4">
+              <ProductRow
+                image="/images/6.jpeg"
+                name="Vitamin C Serum"
+                price="₹799"
+              />
 
-  <ProductRow
-    image="/images/6.jpeg"
-    name="Vitamin C Serum"
-    price="₹799"
-  />
+              <ProductRow
+                image="/images/5.jpeg"
+                name="Headphones"
+                price="₹499"
+              />
 
-  <ProductRow
-    image="/images/5.jpeg"
-    name="HeadPhones"
-    price="₹499"
-  />
-
-  <ProductRow
-    image="/images/7.jpeg"
-    name="Smart Watch"
-    price="₹599"
-  />
-
-</div>
+              <ProductRow
+                image="/images/7.jpeg"
+                name="Smart Watch"
+                price="₹599"
+              />
+            </div>
           </div>
 
-          {/* Arrow */}
-
-          <div className="hidden items-center justify-center lg:flex">
-            <ArrowRight className="h-10 w-10 text-[var(--brand-pink)]" />
-          </div>
+          <StepArrow />
 
           {/* STEP 3 */}
-
-          <div className="rounded-3xl border border-border bg-background p-6 text-foreground">
-
+          <div className="rounded-3xl border border-border bg-background p-5 text-foreground sm:p-6">
             <div className="flex items-start gap-4">
-
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full brand-gradient text-xl font-black text-white">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full brand-gradient text-lg font-black text-white sm:h-12 sm:w-12 sm:text-xl">
                 3
               </div>
 
               <div>
-
-                <h3 className="text-xl font-black text-foreground">
+                <h3 className="text-lg font-black text-foreground sm:text-xl">
                   Schedule Your Live
                 </h3>
 
-                <div className="mt-5 space-y-3 text-base font-medium leading-7 text-muted-foreground">
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
-                    Choose platform
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
-                    Pick date & time
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-pink-500" />
-                    AI Twin sells automatically
-                  </div>
-
+                <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-muted-foreground">
+                  <StepCheck text="Choose platform" />
+                  <StepCheck text="Pick date & time" />
+                  <StepCheck text="AI Twin sells automatically" />
                 </div>
-
               </div>
-
             </div>
 
-            <div className="mt-6 rounded-2xl border bg-card p-5">
-
-              <p className="text-center font-black">
+            <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+              <p className="text-center text-base font-black text-foreground">
                 Schedule Live
               </p>
 
-              <div className="mt-4 flex justify-center gap-3">
-
-                <Instagram className="text-pink-500" />
-
-                <Facebook className="text-blue-600" />
-
-                <Youtube className="text-red-500" />
-
-                <Music2 />
-
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
+                <Instagram className="h-5 w-5 text-pink-500" />
+                <Facebook className="h-5 w-5 text-blue-600" />
+                <Youtube className="h-5 w-5 text-red-500" />
+                <Music2 className="h-5 w-5 text-foreground" />
               </div>
 
-              <div className="mt-5 space-y-3 text-sm text-base font-medium leading-7 text-muted-foreground">
-
-                <div className="flex items-center gap-2">
-
-                  <CalendarDays className="h-4 w-4 text-pink-500" />
-
-                  May 25, 2026
-
-                </div>
-
-                <div className="flex items-center gap-2">
-
-                  <CalendarDays className="h-4 w-4 text-pink-500" />
-
-                  07:30 PM
-
-                </div>
-
-                <div className="flex items-center gap-2">
-
-                  <CalendarDays className="h-4 w-4 text-pink-500" />
-
-                  2 Hours
-
-                </div>
-
+              <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-muted-foreground">
+                <ScheduleInfo text="May 25, 2026" />
+                <ScheduleInfo text="07:30 PM" />
+                <ScheduleInfo text="2 Hours" />
               </div>
 
-             <Link
-  to="/signin"
-  className="brand-gradient mt-6 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white transition hover:opacity-90"
->
-  Schedule Live
-</Link>
-
+              <Link
+                to="/signin"
+                className="brand-gradient mt-6 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white transition hover:opacity-90"
+              >
+                Schedule Live
+              </Link>
             </div>
-
           </div>
-
         </div>
       </div>
     </section>
+  );
+}
+
+function StepCheck({ text }) {
+  return (
+    <div className="flex items-center gap-2">
+      <CheckCircle2 className="h-4 w-4 shrink-0 text-pink-500" />
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function ScheduleInfo({ text }) {
+  return (
+    <div className="flex items-center gap-2">
+      <CalendarDays className="h-4 w-4 shrink-0 text-pink-500" />
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function StepArrow() {
+  return (
+    <div className="hidden items-center justify-center lg:flex">
+      <ArrowRight className="h-10 w-10 text-[var(--brand-pink)]" />
+    </div>
   );
 }
 
@@ -827,30 +877,22 @@ function MetaAds() {
 
 function ProductRow({ image, name, price }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-white p-3 transition hover:shadow-sm dark:bg-card">
+    <div className="flex items-center gap-4 rounded-3xl border border-border bg-background p-3 shadow-sm sm:p-4">
+      <img
+        src={image}
+        alt={name}
+        className="h-16 w-16 shrink-0 rounded-2xl object-cover sm:h-20 sm:w-20"
+      />
 
-      <div className="flex items-center gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="break-words text-base font-black leading-snug tracking-tight text-foreground sm:text-lg">
+          {name}
+        </p>
 
-        <img
-          src={image}
-          alt={name}
-          className="h-14 w-14 rounded-lg border object-contain bg-white p-1"
-        />
-
-        <div>
-          <p className="text-sm font-black text-foreground">
-            {name}
-          </p>
-
-          <p className="mt-1 text-xs font-semibold brand-text">
-            {price}
-          </p>
-        </div>
-
+        <p className="mt-1 text-sm font-black tracking-tight text-[var(--brand-pink)] sm:text-base">
+          {price}
+        </p>
       </div>
-
-      
-
     </div>
   );
 }
@@ -1205,10 +1247,18 @@ function Footer() {
                 className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
               >
                 <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-                +91 84285 27015 , +44 7423 021644
+                +91 84285 27015
               </a>
             </li>
-
+ <li>
+              <a
+                href="tel:+447423021644"
+                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+              >
+                <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+                +44 7423 021644
+              </a>
+            </li>
             <li>
               <a
                 href="https://maps.google.com/?q=Chennai,India"
@@ -1250,6 +1300,7 @@ export default function Landing() {
       <TopBanner />
       <Nav />
       <Hero />
+      <FounderVision />
       <FeatureRow />
       <HowItWorks />
       <MetaAds />
