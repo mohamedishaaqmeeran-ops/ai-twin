@@ -11,7 +11,7 @@ export default function Logo({ size = "md", showText = true }) {
     <div className="flex items-center gap-3">
       <div className={`${s.box} grid place-items-center`}>
   <img
-    src="../images/logo.jpg"
+    src="../images/logos.jpeg"
     alt="Logo"
     className="h-12 w-12 object-contain rounded-[6px]"
   />

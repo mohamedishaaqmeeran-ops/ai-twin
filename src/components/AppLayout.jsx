@@ -74,15 +74,15 @@ export default function AppLayout() {
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center">
             <img
-              src="/images/logo.jpg"
+              src="/images/logos.jpeg"
               alt="Twin Logo"
-              className="h-13 w-13 rounded-[5px] object-cover"
+              className="h-13 w-13 rounded-xl object-contain"
             />
           </div>
 
           <div>
-            <h1 className="text-3xl font-black leading-none tracking-tight">
-              twin
+            <h1 className="text-2xl font-black leading-none tracking-tight">
+              twinn
             </h1>
             <p className="mt-1 text-xs font-medium text-pink-300">
               Never sleep. Never stop selling.
@@ -240,14 +240,14 @@ export default function AppLayout() {
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center">
             <img
-              src="/images/logo.jpg"
+              src="/images/logos.jpeg"
               alt="Twin Logo"
-              className="h-10 w-10 rounded-[5px] object-contain"
+              className="h-10 w-10 rounded-xl object-contain"
             />
           </div>
 
           <div>
-            <h1 className="text-xl font-black leading-none">twin</h1>
+            <h1 className="text-xl font-black leading-none">twinn</h1>
             <p className="text-[10px] text-muted-foreground">
               {isPro ? "Pro Live Commerce" : "Never Sleep. Never stop selling."}
             </p>
@@ -275,14 +275,14 @@ export default function AppLayout() {
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center">
                   <img
-                    src="/images/logo.jpg"
+                    src="/images/logos.jpeg"
                     alt="Twin Logo"
-                    className="h-11 w-11 rounded-[5px] object-contain"
+                    className="h-11 w-11 rounded-xl object-contain"
                   />
                 </div>
 
                 <div>
-                  <h1 className="text-2xl font-black">twin</h1>
+                  <h1 className="text-2xl font-black">twinn</h1>
                   <p className="text-xs text-pink-300">
                     {isPro ? "Pro AI Live Commerce" : "AI Live Commerce"}
                   </p>
