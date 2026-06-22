@@ -74,7 +74,7 @@ export default function AppLayout() {
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center">
             <img
-              src="/images/logos.jpeg"
+              src="/images/logos.png"
               alt="Twin Logo"
               className="h-13 w-13 rounded-xl object-contain"
             />
@@ -240,7 +240,7 @@ export default function AppLayout() {
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center">
             <img
-              src="/images/logos.jpeg"
+              src="/images/logos.png"
               alt="Twin Logo"
               className="h-10 w-10 rounded-xl object-contain"
             />
@@ -275,7 +275,7 @@ export default function AppLayout() {
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center">
                   <img
-                    src="/images/logos.jpeg"
+                    src="/images/logos.png"
                     alt="Twin Logo"
                     className="h-11 w-11 rounded-xl object-contain"
                   />

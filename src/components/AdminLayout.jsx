@@ -81,9 +81,9 @@ export default function AdminLayout() {
         <div className="flex items-center gap-3">
          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[5px] bg-white">
   <img
-    src="/images/logos.jpeg"
+    src="/images/logos.png"
     alt="Twin Logo"
-    className="h-full w-full object-cover"
+    className="h-full w-full object-contain"
   />
 </div>
 
@@ -237,7 +237,7 @@ function AdminBrand({ compact = false }) {
   }`}
 >
   <img
-    src="/images/logos.jpeg"
+    src="/images/logos.png"
     alt="Twin Logo"
     className="h-full w-full object-contain"
   />

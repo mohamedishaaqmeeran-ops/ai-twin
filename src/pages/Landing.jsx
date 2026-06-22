@@ -175,9 +175,9 @@ const [showVideo, setShowVideo] = useState(false);
           </span>
 
           <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Your AI Twin.
+            Your AI Twin
             <br />
-            <span className="brand-text">Live. Engage. Sell.</span>
+            <span className="brand-text">Live Engage Sell</span>
           </h1>
 
           <p className="mx-auto mt-5 max-w-xl text-base font-medium leading-7 text-muted-foreground lg:mx-0">
