@@ -55,6 +55,11 @@ import CreateAI from "./pages/CreateAI.jsx";
 import TrainVoice from "./pages/TrainVoice.jsx";
 import AddProd from "./pages/AddProd.jsx";
 import GoLives from "./pages/GoLives.jsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
+import MultiStreaming from "./pages/MultiStreaming.jsx";
+import UploadAndStream from "./pages/UploadAndStream.jsx";
+import ShortClips from "./pages/ShortClips.jsx";
+import AITwins from "./pages/AITwins.jsx";
 
 
 function RequireAdmin({ children }) {
@@ -126,8 +131,13 @@ export default function App() {
         <Route path="/brand" element={<Brands />} />
         <Route path="/agency" element={<Agency />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/aitwins" element={<AITwins />} />
+         <Route path="/shortclips" element={<ShortClips />} />
+        <Route path="/multistreaming" element={<MultiStreaming />} />
+        <Route path="/uploadandstream" element={<UploadAndStream />} />
         <Route path="/go-live" element={<GoLives />} />
         <Route path="/cookie-policy" element={<CookiePolicy />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/refund-policy" element={<RefundPolicy />} />
         <Route path="/trainvoice" element={<TrainVoice />} />
         <Route path="/add-products" element={<AddProd />} />

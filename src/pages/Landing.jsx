@@ -4,7 +4,7 @@ import {
   X,
   Megaphone,
   Target,
-  
+  Twitter,
 
   
   BadgeIndianRupee,
@@ -151,6 +151,14 @@ function Hero() {
     color: "text-red-600",
     href: "/sigin",
   },
+   {
+    name: "X",
+    username: "@twinn-live",
+    icon: X,
+    color: "text-black-600",
+    href: "/sigin",
+  },
+  
 ];
 
 const [platform, setPlatform] = useState("Facebook & Instagram");
@@ -1089,6 +1097,10 @@ function Footer() {
           link: "/terms-and-conditions",
         },
         {
+          name: "Privacy Policy",
+          link: "/privacy-policy",
+        },
+        {
           name: "Cookie Policy",
           link: "/cookie-policy",
         },
@@ -1193,7 +1205,7 @@ function Footer() {
                 className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
               >
                 <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-                +91 84285 27015
+                +91 84285 27015 , +44 7423 021644
               </a>
             </li>
 
@@ -1206,6 +1218,17 @@ function Footer() {
               >
                 <MapPin className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
                 Chennai, India
+              </a>
+            </li>
+             <li>
+              <a
+                href="https://maps.google.com/?q=London,UnitedKingdom"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+              >
+                <MapPin className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+                London, United Kingdom
               </a>
             </li>
           </ul>

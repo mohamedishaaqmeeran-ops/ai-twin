@@ -16,6 +16,7 @@ import {
   Quote,
 } from "lucide-react";
 import Logo from "../components/Logo";
+import Nav from "../components/Nav";
 
 export default function Creators() {
   const stats = [
@@ -81,27 +82,7 @@ export default function Creators() {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Logo />
-
-          <div className="flex items-center gap-3">
-            <Link
-              to="/signin"
-              className="hidden h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] px-5 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10 sm:flex"
-            >
-              Log In
-            </Link>
-
-            <Link
-              to="/signup"
-              className="brand-gradient flex h-11 items-center justify-center rounded-[5px] px-5 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </header>
+             <Nav />
 
       <main>
         <section className="relative overflow-hidden bg-gradient-to-br from-background via-pink-50/40 to-orange-50/30 py-16 dark:from-background dark:via-white/5 dark:to-white/5">

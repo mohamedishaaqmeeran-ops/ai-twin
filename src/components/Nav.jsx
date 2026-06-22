@@ -9,10 +9,23 @@ import {
   ShoppingBag,
   Radio,
   Users,
+  UploadCloud,
+  Scissors,
+  Bot,
   Store,
   Briefcase,
 } from "lucide-react";
 import Logo from "./Logo";
+
+
+const discoverMenu = [
+  { icon: Radio, title: "Multistreaming", desc: "Go Live Everywhere", link: "/multistreaming" },
+  { icon: UploadCloud, title: "Upload and Stream", desc: "Upload Your First Video", link: "/uploadandstream" },
+  { icon: Scissors, title: "Short Clips", desc: "See Your Clips", link: "/shortclips" },
+  { icon: Bot, title: "AI Twins", desc: "Browse AI Twins", link: "/aitwins" },
+  
+];
+
 
 const createMenu = [
   { icon: ScanFace, title: "Create AI Twin", desc: "Build your digital avatar", link: "/createai" },
@@ -77,9 +90,7 @@ export default function Nav() {
               Home
             </Link>
 
-            <Link to="/#discover" className="transition hover:text-[var(--brand-pink)]">
-              Discover
-            </Link>
+            <DesktopDropdown label="Discover" items={discoverMenu} />
 
             <DesktopDropdown label="Create" items={createMenu} />
             <DesktopDropdown label="Solution" items={solutionMenu} />

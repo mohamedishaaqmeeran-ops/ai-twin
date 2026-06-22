@@ -216,22 +216,16 @@ export default function AboutUs() {
               <div className="mt-6 rounded-2xl border border-border bg-background p-5">
                 <div className="flex items-center gap-3">
                   <MapPin className="h-6 w-6 text-[var(--brand-pink)]" />
-                  <p className="text-lg font-black">Chennai, India</p>
+                  <p className="text-lg font-black">London, United Kingdom</p>
                 </div>
 
                 <p className="mt-4 text-sm font-medium leading-7 text-muted-foreground">
-                  Twin is based in Chennai, India, building for creators and
+                  Twin is based in London, United Kingdom, building for creators and
                   brands selling live — in India and beyond.
                 </p>
               </div>
 
-              <div className="mt-5 flex items-center gap-3 rounded-2xl bg-pink-50 p-5 dark:bg-white/10">
-                <Building2 className="h-6 w-6 text-[var(--brand-pink)]" />
-                <p className="text-sm font-bold leading-6">
-                  Company details, founding year and team milestones should be
-                  confirmed before publishing.
-                </p>
-              </div>
+             
             </div>
           </div>
         </section>
