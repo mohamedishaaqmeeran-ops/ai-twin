@@ -37,48 +37,62 @@ export default function WaitlistForm() {
   const [brand, setBrand] = useState("");
   const [phone, setPhone] = useState("");
 
-  const handleSubmit = () => {
-    setError("");
+ const WAITLIST_API = "https://waitlist-gxvm.onrender.com/api/waitlist";
 
-    if (!fullName.trim() || !email.trim() || !brand.trim() || !phone.trim()) {
-      setError("Please fill in all fields.");
-      return;
-    }
+const handleSubmit = async () => {
+  setError("");
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!fullName.trim() || !email.trim() || !brand.trim() || !phone.trim()) {
+    setError("Please fill in all fields.");
+    return;
+  }
 
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address.");
-      return;
-    }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (phone.length < 8) {
-      setError("Please enter a valid phone number.");
-      return;
-    }
+  if (!emailRegex.test(email)) {
+    setError("Please enter a valid email address.");
+    return;
+  }
 
+  if (phone.length < 8) {
+    setError("Please enter a valid phone number.");
+    return;
+  }
+
+  try {
     setLoading(true);
 
-    const newUser = {
-      fullName,
-      email,
-      brand,
+    const payload = {
+      fullName: fullName.trim(),
+      email: email.trim().toLowerCase(),
+      brand: brand.trim(),
       phone: `${countryCode} ${phone}`,
-      createdAt: new Date().toISOString(),
     };
 
-    const oldUsers = JSON.parse(localStorage.getItem("waitlistUsers") || "[]");
+  const res = await fetch(WAITLIST_API, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(payload),
+});
 
-    localStorage.setItem(
-      "waitlistUsers",
-      JSON.stringify([...oldUsers, newUser])
-    );
+const data = await res.json().catch(() => ({}));
 
-    setTimeout(() => {
-      setLoading(false);
-      setJoined(true);
-    }, 1000);
-  };
+if (!res.ok) {
+  console.log("Waitlist API error:", data);
+  throw new Error(data.message || data.error || "Failed to join waitlist.");
+}
+
+    localStorage.setItem("waitlistUser", JSON.stringify(data));
+
+    setJoined(true);
+  } catch (err) {
+    setError(err.message || "Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (joined) {
     return (
