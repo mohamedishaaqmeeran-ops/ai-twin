@@ -1171,7 +1171,7 @@ function Footer() {
         { name: "Blog", link: "/blog" },
         { name: "Careers", link: "/careers" },
         { name: "Team", link: "/team" },
-        { name: "Conatact Us", link: "/contactus" },
+        { name: "Contact Us", link: "/contactus" },
       ],
     ],
 
