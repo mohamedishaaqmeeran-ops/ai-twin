@@ -338,7 +338,7 @@ const [showVideo, setShowVideo] = useState(false);
           </div>
 
           <Link
-  to="/signin"
+  to="/app/connect"
   className="text-xs font-bold text-red-500 transition hover:text-emerald-600"
 >
   Connect
@@ -415,39 +415,24 @@ function HowItWorks() {
   return (
     <section
       id="how"
-      className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8"
+      className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8"
     >
       <h2 className="text-center text-3xl font-black tracking-tight brand-text md:text-4xl">
         How It Works
       </h2>
 
-      <div className="mt-10 rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-6 lg:rounded-[32px] lg:p-4">
+      <div className="mt-8 rounded-3xl border border-border bg-card p-4 shadow-sm sm:mt-10 sm:p-6 lg:rounded-[32px]">
         <div className="grid gap-6 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-stretch">
-          {/* STEP 1 */}
-          <div className="rounded-3xl border border-border bg-background p-5 sm:p-6">
-            <div className="flex items-start gap-4">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full brand-gradient text-lg font-black text-white sm:h-12 sm:w-12 sm:text-xl">
-                1
-              </div>
-
-              <div>
-                <h3 className="text-lg font-black text-foreground sm:text-xl">
-                  Create Your Avatar
-                </h3>
-
-                <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-muted-foreground">
-                  <StepCheck text="Upload a video" />
-                  <StepCheck text="Clone your voice" />
-                  <StepCheck text="Choose your style" />
-                </div>
-              </div>
-            </div>
-
+          <StepCard
+            number="1"
+            title="Create Your Avatar"
+            checks={["Upload a video", "Clone your voice", "Choose your style"]}
+          >
             <div className="mt-6 flex justify-center rounded-2xl bg-pink-50 p-4 dark:bg-white/10">
               <img
                 src="/images/bb.png"
                 alt="AI Twin Avatar"
-                className="h-52 object-contain sm:h-64"
+                className="h-48 object-contain sm:h-60 lg:h-64"
               />
             </div>
 
@@ -456,74 +441,50 @@ function HowItWorks() {
                 ✓ Avatar Ready!
               </span>
             </div>
-          </div>
+          </StepCard>
 
           <StepArrow />
 
-          {/* STEP 2 */}
-          <div className="rounded-3xl border border-border bg-background p-5 sm:p-6">
-            <div className="flex items-start gap-4">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full brand-gradient text-lg font-black text-white sm:h-12 sm:w-12 sm:text-xl">
-                2
-              </div>
-
-              <div>
-                <h3 className="text-lg font-black text-foreground sm:text-xl">
-                  Upload Products
-                </h3>
-
-                <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-muted-foreground">
-                  <StepCheck text="Upload products" />
-                  <StepCheck text="Explain in your own words" />
-                  <StepCheck text="AI learns everything" />
-                </div>
-              </div>
-            </div>
-
+          <StepCard
+            number="2"
+            title="Upload Products"
+            checks={[
+              "Upload products",
+              "Explain in your own words",
+              "AI learns everything",
+            ]}
+          >
             <div className="mt-6 space-y-3 rounded-2xl border border-border bg-card p-4">
               <ProductRow
                 image="/images/6.jpeg"
                 name="Vitamin C Serum"
                 price="₹799"
               />
-
               <ProductRow
                 image="/images/5.jpeg"
                 name="Headphones"
                 price="₹499"
               />
-
               <ProductRow
                 image="/images/7.jpeg"
                 name="Smart Watch"
                 price="₹599"
               />
             </div>
-          </div>
+          </StepCard>
 
           <StepArrow />
 
-          {/* STEP 3 */}
-          <div className="rounded-3xl border border-border bg-background p-5 text-foreground sm:p-6">
-            <div className="flex items-start gap-4">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full brand-gradient text-lg font-black text-white sm:h-12 sm:w-12 sm:text-xl">
-                3
-              </div>
-
-              <div>
-                <h3 className="text-lg font-black text-foreground sm:text-xl">
-                  Schedule Your Live
-                </h3>
-
-                <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-muted-foreground">
-                  <StepCheck text="Choose platform" />
-                  <StepCheck text="Pick date & time" />
-                  <StepCheck text="AI Twin sells automatically" />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-border bg-card p-5">
+          <StepCard
+            number="3"
+            title="Schedule Your Live"
+            checks={[
+              "Choose platform",
+              "Pick date & time",
+              "AI Twin sells automatically",
+            ]}
+          >
+            <div className="mt-6 rounded-2xl border border-border bg-card p-4 sm:p-5">
               <p className="text-center text-base font-black text-foreground">
                 Schedule Live
               </p>
@@ -543,22 +504,48 @@ function HowItWorks() {
 
               <Link
                 to="/signin"
-                className="brand-gradient mt-6 flex h-12 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white transition hover:opacity-90"
+                className="brand-gradient mt-6 flex h-11 w-full items-center justify-center rounded-[5px] text-sm font-bold text-white transition hover:opacity-90 sm:h-12"
               >
                 Schedule Live
               </Link>
             </div>
-          </div>
+          </StepCard>
         </div>
       </div>
     </section>
   );
 }
 
+function StepCard({ number, title, checks, children }) {
+  return (
+    <div className="flex h-full flex-col rounded-3xl border border-border bg-background p-5 shadow-sm sm:p-6">
+      <div className="flex items-start gap-4">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full brand-gradient text-lg font-black text-white sm:h-12 sm:w-12 sm:text-xl">
+          {number}
+        </div>
+
+        <div className="min-w-0">
+          <h3 className="text-lg font-black leading-tight text-foreground sm:text-xl">
+            {title}
+          </h3>
+
+          <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-muted-foreground">
+            {checks.map((item) => (
+              <StepCheck key={item} text={item} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1">{children}</div>
+    </div>
+  );
+}
+
 function StepCheck({ text }) {
   return (
-    <div className="flex items-center gap-2">
-      <CheckCircle2 className="h-4 w-4 shrink-0 text-pink-500" />
+    <div className="flex items-start gap-2">
+      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-pink-500" />
       <span>{text}</span>
     </div>
   );
@@ -726,7 +713,7 @@ function MetaAds() {
 
               </div>
 
-              <button className="brand-gradient mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-black tracking-wide text-white">
+              <button className="brand-gradient mt-8 flex h-12 w-full items-center justify-center gap-2 cursor-pointer rounded-[5px] text-sm font-black tracking-wide text-white">
 
                 <Megaphone className="h-5 w-5" />
 
@@ -771,26 +758,25 @@ function MetaAds() {
 
 function ProductRow({ image, name, price }) {
   return (
-    <div className="flex items-center gap-4 rounded-3xl border border-border bg-background p-3 shadow-sm sm:p-4">
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3 shadow-sm sm:gap-4">
       <img
         src={image}
         alt={name}
-        className="h-16 w-16 shrink-0 rounded-2xl object-cover sm:h-20 sm:w-20"
+        className="h-14 w-14 shrink-0 rounded-xl object-cover sm:h-16 sm:w-16"
       />
 
       <div className="min-w-0 flex-1">
-        <p className="break-words text-base font-black leading-snug tracking-tight text-foreground sm:text-lg">
+        <p className="break-words text-sm font-black leading-snug tracking-tight text-foreground sm:text-base">
           {name}
         </p>
 
-        <p className="mt-1 text-sm font-black tracking-tight text-[var(--brand-pink)] sm:text-base">
+        <p className="mt-1 text-sm font-black tracking-tight text-[var(--brand-pink)]">
           {price}
         </p>
       </div>
     </div>
   );
 }
-
 function PerfectFor() {
   const items = [
     [Sparkles, "Beauty Brands", "Demo skincare, makeup and beauty products live."],
@@ -1057,26 +1043,32 @@ function FounderVision() {
   ];
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-4 lg:py-4">
+    <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-4 lg:py-2">
       <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:rounded-[40px]">
-        <div className="grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:p-4">
+        <div className="grid gap-10 p-4 lg:grid-cols-[0.9fr_0.9fr] lg:items-center lg:px-4">
           {/* Left */}
           <div className="order-2 lg:order-1">
-            <h2 className="text-center text-3xl font-black tracking-tight brand-text sm:text-4xl lg:text-left">
+            <h2 className="text-center text-3xl font-black tracking-tight  brand-text sm:text-4xl lg:text-left">
               “The next billion sales conversations won't be handled by humans
               alone”
             </h2>
 
-            <p className="mt-5  text-base font-black tracking-tight text-foreground">
+            <p className="mt-10 text-base leading-8  text-foreground">
               They'll be powered by{" "}
               <span className="brand-text">AI Twins</span> that can{" "}
               <span className="brand-text">live, engage, and sell</span>{" "}
               instantly.
             </p>
 
-            <p className="mt-4  text-base font-black tracking-tight text-foreground">
+          <p className="mt-6 text-base leading-8 text-foreground">
               That's the future we're building at{" "}
-              <span className="brand-text">twinn.live</span>.
+            <a
+  href="https://twinn.live"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  <span className="brand-text">twinn.live</span>
+</a>.
             </p>
 
            <div className="mt-8 grid gap-5 sm:grid-cols-3">
@@ -1102,41 +1094,53 @@ function FounderVision() {
           </div>
 
           {/* Right */}
-          <div className="relative order-1 flex min-h-[520px] flex-col items-center justify-center overflow-hidden rounded-3xl bg-background px-4 pt-12 sm:min-h-[600px] lg:order-2 lg:bg-transparent lg:px-0 lg:pt-10">
-            <div className="absolute mx-auto top-8 z-20 sm:right-6 sm:top-6 lg:right-0 lg:top-18">
-              <span className="text-xl lg:text-md font-black tracking-tight text-foreground text-pink-600">
-                Founder's Vision
-              </span>
-            </div>
+          {/* Right */}
+<div className="relative order-1 flex flex-col items-center justify-center overflow-hidden rounded-3xl bg-background px-4 py-6 sm:py-8 lg:order-2 lg:bg-transparent lg:px-0">
 
-            <div className="absolute top-35 h-40 w-40 rounded-full bg-gradient-to-br from-pink-500 via-pink-400 to-orange-400 sm:h-72 sm:w-72 lg:top-40 lg:h-70 lg:w-70" />
+  {/* Founder Vision Label */}
+  <div className="mb-0 text-center lg:absolute lg:right-0 lg:top-8">
+    <span className="text-2xl brand-text font-black  ">
+      Founder's Vision
+    </span>
+  </div>
 
-            <div className="relative z-10 flex justify-center">
-              <div className="relative">
-                <img
-                  src="/images/Founder.png"
-                  alt="Founder"
-                  className="h-[300px] object-cover sm:h-[430px] lg:h-[400px]"
-                />
+  {/* Gradient Circle */}
+  <div className="absolute top-20 h-44 w-44 rounded-full bg-gradient-to-br from-pink-500 via-pink-400 to-orange-400 sm:h-64 sm:w-64 lg:top-24 lg:h-72 lg:w-72" />
 
-                <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-background dark:via-background/95" />
+  {/* Founder Image */}
+  <div className="relative z-10">
+    <img
+      src="/images/Founder.png"
+      alt="Founder"
+      className="h-[260px] object-contain sm:h-[360px] lg:h-[420px]"
+    />
 
-                <div className="absolute -bottom-8 left-1/2 h-28 w-[130%] -ranslate-x-1/2 rounded-[100%] bg-white blur-[55px] dark:bg-background" />
-              </div>
-            </div>
+    {/* White Fade */}
+    <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-background dark:via-background/95" />
 
-            <div className="relative z-20 -mt-2 text-center sm:-mt-4">
-              <h3 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-                Arunkumar S
-              </h3>
+    {/* Curved Glow */}
+    <div className="absolute -bottom-6 left-1/2 h-24 w-[120%] -translate-x-1/2 rounded-full bg-white blur-[45px] dark:bg-background" />
+  </div>
 
-              <p className="mt-2 text-sm font-medium text-muted-foreground sm:text-base">
-                Founder & CEO, Twinn.live
-              </p>
+  {/* Founder Details */}
+  <div className="relative z-20 mt-2 text-center">
+   <a
+  href="https://www.linkedin.com/in/parkqwikarunkumar"
+  target="_blank"
+  rel="noopener noreferrer"
+>
+  <h3 className="text-2xl font-black tracking-tight text-foreground transition hover:text-[var(--brand-pink)] sm:text-3xl">
+    Arunkumar S
+  </h3>
+</a>
 
-              <div className="mx-auto mt-4 h-1 w-24 rounded-full brand-gradient" />
-            </div>
-          </div>
+    <p className="mt-2 text-sm font-medium text-muted-foreground">
+      Founder & CEO, Twinn.live
+    </p>
+
+    <div className="mx-auto mt-4 h-1 w-24 rounded-full brand-gradient" />
+  </div>
+</div>
         </div>
       </div>
     </section>
