@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 export default function Logo({ size = "md", showText = true }) {
   const sizes = {
     sm: { box: "h-8 w-8 text-base rounded-xl", text: "text-lg" },
@@ -8,32 +10,33 @@ export default function Logo({ size = "md", showText = true }) {
   const s = sizes[size];
 
   return (
-    <div className="flex items-center gap-3">
+    <Link to="/" className="flex items-center gap-3">
       <div className={`${s.box} grid place-items-center`}>
-  <img
-    src="../images/logos.png"
-    alt="Logo"
-    className="h-12 w-12 object-contain rounded-[6px]"
-  />
-</div>
+        <img
+          src="/images/logos.png"
+          alt="Logo"
+          className="h-12 w-12 object-contain rounded-[6px]"
+        />
+      </div>
 
       {showText && (
         <div className="flex flex-col">
           <span
-  className={`${s.text} tracking-tight brand-text`}
-  style={{
-    fontWeight: 600,
-    fontFamily: "Poppins, sans-serif",
-  }}
->
-  twinn
-</span>
+            className={`${s.text} tracking-tight brand-text`}
+            style={{
+              fontWeight: 600,
+              fontFamily: "Poppins, sans-serif",
+            }}
+          >
+            twinn
+          </span>
 
-          <span className="text-[10px] font-medium text-muted-foreground leading-none ">
-            Never sleep. <span className="brand-text">Never stop selling.</span>
+          <span className="text-[10px] font-medium leading-none text-muted-foreground">
+            Never sleep.{" "}
+            <span className="brand-text">Never stop selling.</span>
           </span>
         </div>
       )}
-    </div>
+    </Link>
   );
 }

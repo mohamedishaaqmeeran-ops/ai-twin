@@ -60,6 +60,9 @@ import MultiStreaming from "./pages/MultiStreaming.jsx";
 import UploadAndStream from "./pages/UploadAndStream.jsx";
 import ShortClips from "./pages/ShortClips.jsx";
 import AITwins from "./pages/AITwins.jsx";
+import Careers from "./pages/Careers.jsx";
+import Team from "./pages/Team.jsx";
+import ContactUs from "./pages/ContactUs.jsx";
 
 
 function RequireAdmin({ children }) {
@@ -126,9 +129,12 @@ export default function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<Signin />} />
         <Route path="/about" element={<AboutUs />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/contactus" element={<ContactUs />} />
         <Route path="/creators" element={<Creators />} />
         <Route path="/createai" element={<CreateAI />} />
         <Route path="/brand" element={<Brands />} />
+        <Route path="/team" element={<Team />} />
         <Route path="/agency" element={<Agency />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/aitwins" element={<AITwins />} />

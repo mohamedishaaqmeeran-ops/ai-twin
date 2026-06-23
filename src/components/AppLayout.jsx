@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, NavLink, useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
   Home,
@@ -71,6 +71,7 @@ export default function AppLayout() {
       {/* Desktop Sidebar */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-80 flex-col overflow-y-auto bg-gradient-to-b from-[#040816] via-[#090f24] to-[#0d1028] p-5 text-white lg:flex">
         {/* Logo */}
+        <Link to={"/"}>
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center">
             <img
@@ -88,8 +89,9 @@ export default function AppLayout() {
               Never sleep. Never stop selling.
             </p>
           </div>
+        
         </div>
-
+  </Link>
         {/* Plan Badge */}
         <div className="mt-5 flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white">
           {isPro ? (
@@ -238,13 +240,13 @@ export default function AppLayout() {
       {/* Mobile Top Header */}
       <header className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center">
+          <Link to="/"><div className="flex h-10 w-10 items-center justify-center">
             <img
               src="/images/logos.png"
               alt="Twin Logo"
               className="h-10 w-10 rounded-xl object-contain"
             />
-          </div>
+          </div></Link>
 
           <div>
             <h1 className="text-xl font-black leading-none">twinn</h1>
@@ -272,7 +274,8 @@ export default function AppLayout() {
 
           <aside className="relative h-full w-80 max-w-[85%] overflow-y-auto bg-gradient-to-b from-[#040816] via-[#090f24] to-[#0d1028] p-5 text-white">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+             <Link to="/">  <div className="flex items-center gap-3">
+             
                 <div className="flex h-11 w-11 items-center justify-center">
                   <img
                     src="/images/logos.png"
@@ -288,7 +291,7 @@ export default function AppLayout() {
                   </p>
                 </div>
               </div>
-
+</Link>
               <button
                 onClick={() => setMobileMenu(false)}
                 className="grid h-10 w-10 place-items-center rounded-xl bg-white/10"

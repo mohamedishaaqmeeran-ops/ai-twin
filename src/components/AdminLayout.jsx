@@ -78,7 +78,8 @@ export default function AdminLayout() {
 
       {/* Mobile Header */}
       <header className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card px-4 shadow-sm lg:hidden">
-        <div className="flex items-center gap-3">
+       <Link to={"/"}> <div className="flex items-center gap-3">
+        
          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[5px] bg-white">
   <img
     src="/images/logos.png"
@@ -96,7 +97,7 @@ export default function AdminLayout() {
             </p>
           </div>
         </div>
-
+</Link>
         <button
           onClick={() => setMobileMenu(true)}
           className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background"

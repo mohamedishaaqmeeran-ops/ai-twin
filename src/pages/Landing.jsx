@@ -367,113 +367,7 @@ const [showVideo, setShowVideo] = useState(false);
 
 
 
-function FounderVision() {
-  const pillars = [
-    {
-      icon: MessageCircle,
-      title: "Live",
-      desc: "Go live across platforms instantly.",
-    },
-    {
-      icon: Play,
-      title: "Engage",
-      desc: "Real-time AI conversations that connect and convert.",
-    },
-    {
-      icon: ShoppingCart,
-      title: "Sell",
-      desc: "Turn every interaction into revenue 24/7.",
-    },
-  ];
 
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-4 lg:py-4">
-      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:rounded-[40px]">
-        <div className="grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:p-4">
-          {/* Left */}
-          <div className="order-2 lg:order-1">
-            <h2 className="text-center text-3xl font-black tracking-tight brand-text sm:text-4xl lg:text-left">
-              The next billion sales conversations won't be handled by humans
-              alone.
-            </h2>
-
-            <p className="mt-5  text-base font-black tracking-tight text-foreground">
-              They'll be powered by{" "}
-              <span className="brand-text">AI Twins</span> that can{" "}
-              <span className="brand-text">live, engage, and sell</span>{" "}
-              instantly.
-            </p>
-
-            <p className="mt-4  text-base font-black tracking-tight text-foreground">
-              That's the future we're building at{" "}
-              <span className="brand-text">twinn.live</span>.
-            </p>
-
-            <div className="mx-auto mt-8 h-1 w-20 rounded-full brand-gradient lg:mx-0" />
-
-            <div className="mt-8 grid gap-5 sm:grid-cols-3 text-center mx-auto">
-              {pillars.map(({ icon: Icon, title, desc }) => (
-                <div
-                  key={title}
-                  className="rounded-3xl mx-auto border border-border bg-card p-5 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg sm:p-6 lg:text-left"
-                >
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center text-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10 ">
-                    <Icon className="h-7 w-7" />
-                  </div>
-
-                  <p className="mt-5 text-base font-black tracking-tight text-foreground text-center">
-                    {title}
-                  </p>
-
-                  <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground text-center">
-                    {desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Right */}
-          <div className="relative order-1 flex min-h-[520px] flex-col items-center justify-center overflow-hidden rounded-3xl bg-background px-4 pt-12 sm:min-h-[600px] lg:order-2 lg:bg-transparent lg:px-0 lg:pt-10">
-            <div className="absolute mx-auto top-4 z-20 sm:right-6 sm:top-6 lg:right-0 lg:top-18">
-              <span className="text-base font-black tracking-tight text-foreground text-pink-600">
-                Founder's Vision
-              </span>
-            </div>
-
-            <div className="absolute top-30 h-40 w-40 rounded-full bg-gradient-to-br from-pink-500 via-pink-400 to-orange-400 sm:h-72 sm:w-72 lg:top-40 lg:h-70 lg:w-70" />
-
-            <div className="relative z-10 flex justify-center">
-              <div className="relative">
-                <img
-                  src="/images/Founder.png"
-                  alt="Founder"
-                  className="h-[300px] object-cover sm:h-[430px] lg:h-[400px]"
-                />
-
-                <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-background dark:via-background/95" />
-
-                <div className="absolute -bottom-8 left-1/2 h-28 w-[130%] -ranslate-x-1/2 rounded-[100%] bg-white blur-[55px] dark:bg-background" />
-              </div>
-            </div>
-
-            <div className="relative z-20 -mt-2 text-center sm:-mt-4">
-              <h3 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-                Arunkumar S
-              </h3>
-
-              <p className="mt-2 text-sm font-medium text-muted-foreground sm:text-base">
-                Founder & CEO, Twinn.live
-              </p>
-
-              <div className="mx-auto mt-4 h-1 w-24 rounded-full brand-gradient" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 
 
@@ -973,7 +867,7 @@ function Tools() {
 }
 
 function SocialProof() {
-
+  const [showMore, setShowMore] = useState(false);
   const languages = [
   "English",
   "हिंदी",
@@ -984,6 +878,24 @@ function SocialProof() {
   "Español",
   "العربية",
   "বাংলা",
+];
+const moreLanguages = [
+  "Français",
+  "Deutsch",
+  "Italiano",
+  "Português",
+  "Русский",
+  "日本語",
+  "한국어",
+  "中文",
+  "Polski",
+  "Türkçe",
+  "Nederlands",
+  "Українська",
+  "Svenska",
+  "Norsk",
+  "Dansk",
+  "Suomi",
 ];
   const testimonials = [
     ["This AI twin helped me double my engagement in 2 weeks!", "Ananya", "Fashion Creator", "/images/2.jpeg"],
@@ -1088,25 +1000,156 @@ function SocialProof() {
       </p>
     </div>
 
-    <div className="flex flex-1 flex-wrap gap-3">
-      {languages.map((lang) => (
-        <span
-          key={lang}
-          className="rounded-[5px] border border-border bg-background px-5 py-2 text-xs font-bold tracking-wide text-foreground shadow-sm"
-        >
-          {lang}
-        </span>
-      ))}
+   <div className="flex flex-1 flex-wrap gap-3">
+  {languages.map((lang) => (
+    <span
+      key={lang}
+      className="rounded-[5px] border border-border bg-background px-5 py-2 text-xs font-bold tracking-wide text-foreground shadow-sm"
+    >
+      {lang}
+    </span>
+  ))}
 
-      <span className="rounded-[5px] border border-border bg-background px-5 py-2 text-xs font-black tracking-wide text-foreground shadow-sm">
-        + 40 More
+  {showMore &&
+    moreLanguages.map((lang) => (
+      <span
+        key={lang}
+        className="rounded-[5px] border border-border bg-background px-5 py-2 text-xs font-bold tracking-wide text-foreground shadow-sm"
+      >
+        {lang}
       </span>
-    </div>
+    ))}
+
+  <button
+    onClick={() => setShowMore(!showMore)}
+    className="cursor-pointer rounded-[5px] border border-border bg-background px-5 py-2 text-xs font-black tracking-wide text-[var(--brand-pink)] shadow-sm transition hover:bg-pink-50"
+  >
+    {showMore ? "Show Less" : "+ 40 More"}
+  </button>
+</div>
   </div>
 </div>
     </section>
   );
 }
+
+
+
+
+
+function FounderVision() {
+  const pillars = [
+    {
+      icon: Play,
+      title: "Live",
+      desc: "Go live across platforms instantly.",
+    },
+    {
+      icon: MessageCircle,
+      title: "Engage",
+      desc: "Real-time AI conversations that connect and convert.",
+    },
+    {
+      icon: ShoppingCart,
+      title: "Sell",
+      desc: "Turn every interaction into revenue 24/7.",
+    },
+  ];
+
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-4 lg:py-4">
+      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:rounded-[40px]">
+        <div className="grid gap-10 p-5 sm:p-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:p-4">
+          {/* Left */}
+          <div className="order-2 lg:order-1">
+            <h2 className="text-center text-3xl font-black tracking-tight brand-text sm:text-4xl lg:text-left">
+              “The next billion sales conversations won't be handled by humans
+              alone”
+            </h2>
+
+            <p className="mt-5  text-base font-black tracking-tight text-foreground">
+              They'll be powered by{" "}
+              <span className="brand-text">AI Twins</span> that can{" "}
+              <span className="brand-text">live, engage, and sell</span>{" "}
+              instantly.
+            </p>
+
+            <p className="mt-4  text-base font-black tracking-tight text-foreground">
+              That's the future we're building at{" "}
+              <span className="brand-text">twinn.live</span>.
+            </p>
+
+           <div className="mt-8 grid gap-5 sm:grid-cols-3">
+  {pillars.map(({ icon: Icon, title, desc }) => (
+    <div
+      key={title}
+      className="flex h-full min-h-[210px] w-full flex-col items-center rounded-3xl border border-border bg-card p-5 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg sm:p-6"
+    >
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+        <Icon className="h-7 w-7" />
+      </div>
+
+      <p className="mt-5 text-base font-black tracking-tight text-foreground">
+        {title}
+      </p>
+
+      <p className="mt-3 flex-1 text-sm font-medium leading-6 text-muted-foreground">
+        {desc}
+      </p>
+    </div>
+  ))}
+</div>
+          </div>
+
+          {/* Right */}
+          <div className="relative order-1 flex min-h-[520px] flex-col items-center justify-center overflow-hidden rounded-3xl bg-background px-4 pt-12 sm:min-h-[600px] lg:order-2 lg:bg-transparent lg:px-0 lg:pt-10">
+            <div className="absolute mx-auto top-8 z-20 sm:right-6 sm:top-6 lg:right-0 lg:top-18">
+              <span className="text-xl lg:text-md font-black tracking-tight text-foreground text-pink-600">
+                Founder's Vision
+              </span>
+            </div>
+
+            <div className="absolute top-35 h-40 w-40 rounded-full bg-gradient-to-br from-pink-500 via-pink-400 to-orange-400 sm:h-72 sm:w-72 lg:top-40 lg:h-70 lg:w-70" />
+
+            <div className="relative z-10 flex justify-center">
+              <div className="relative">
+                <img
+                  src="/images/Founder.png"
+                  alt="Founder"
+                  className="h-[300px] object-cover sm:h-[430px] lg:h-[400px]"
+                />
+
+                <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-white via-white/95 to-transparent dark:from-background dark:via-background/95" />
+
+                <div className="absolute -bottom-8 left-1/2 h-28 w-[130%] -ranslate-x-1/2 rounded-[100%] bg-white blur-[55px] dark:bg-background" />
+              </div>
+            </div>
+
+            <div className="relative z-20 -mt-2 text-center sm:-mt-4">
+              <h3 className="text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+                Arunkumar S
+              </h3>
+
+              <p className="mt-2 text-sm font-medium text-muted-foreground sm:text-base">
+                Founder & CEO, Twinn.live
+              </p>
+
+              <div className="mx-auto mt-4 h-1 w-24 rounded-full brand-gradient" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+
+
+
+
+
+
 function Footer() {
   const cols = [
     [
@@ -1127,6 +1170,8 @@ function Footer() {
         { name: "About Us", link: "/about" },
         { name: "Blog", link: "/blog" },
         { name: "Careers", link: "/careers" },
+        { name: "Team", link: "/team" },
+        { name: "Conatact Us", link: "/contactus" },
       ],
     ],
 
@@ -1300,12 +1345,12 @@ export default function Landing() {
       <TopBanner />
       <Nav />
       <Hero />
-      <FounderVision />
       <FeatureRow />
       <HowItWorks />
       <MetaAds />
       <PerfectFor />
       <Tools />
+      <FounderVision />
       <SocialProof />
       <Footer />
     </div>
