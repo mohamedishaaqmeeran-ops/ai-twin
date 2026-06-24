@@ -94,6 +94,14 @@ if (!res.ok) {
   }
 };
 
+
+const handleInvite = async () => {
+  const referralLink = "https://twinn.live/waitlist";
+
+  await navigator.clipboard.writeText(referralLink);
+
+  alert("Referral link copied!");
+};
   if (joined) {
     return (
       <div className="min-h-screen bg-background px-4 py-16 text-foreground transition-colors duration-300">
@@ -375,15 +383,15 @@ function NextStep({
 
 function FooterSocial() {
   const socials = [
-    { icon: Instagram, href: "https://www.instagram.com/", label: "Instagram" },
-    { icon: Music2, href: "https://www.tiktok.com/", label: "TikTok" },
+    { icon: Instagram, href: "https://www.instagram.com/twinnlive?igsh=ZTJoa2w1azB4Y3dt", label: "Instagram" },
+    
     {
       icon: Linkedin,
       href: "https://www.linkedin.com/company/twinlive/",
       label: "LinkedIn",
     },
-    { icon: Youtube, href: "https://www.youtube.com/", label: "YouTube" },
-    { icon: Facebook, href: "https://www.facebook.com/", label: "Facebook" },
+    { icon: Youtube, href: "https://www.youtube.com/@twinn-live?si=nHpcUbploHZBNPJf", label: "YouTube" },
+    { icon: Facebook, href: "https://www.facebook.com/share/16wPoHUvA2/", label: "Facebook" },
   ];
 
   return (
