@@ -97,25 +97,45 @@ export default function ConnectSocial() {
 useEffect(() => {
   getConnections();
 
- const handleOAuthMessage = (event) => {
-  if (event.data?.type === "OAUTH_SUCCESS") {
-    const platform = event.data.platform;
+  // Mobile redirect success: /app/connect?connected=facebook
+  const params = new URLSearchParams(window.location.search);
+  const connectedPlatform = params.get("connected");
 
+  if (connectedPlatform) {
     setConnected((prev) => {
-      if (prev.includes(platform)) return prev;
+      if (prev.includes(connectedPlatform)) return prev;
 
-      const updated = [...prev, platform];
+      const updated = [...prev, connectedPlatform];
       localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
       return updated;
     });
 
     getConnections();
+
+    window.history.replaceState({}, "", "/app/connect");
   }
 
-  if (event.data?.type === "OAUTH_ERROR") {
-    alert(`${event.data.platform} connection failed`);
-  }
-};
+  // Desktop popup success
+  const handleOAuthMessage = (event) => {
+    if (event.data?.type === "OAUTH_SUCCESS") {
+      const platform = event.data.platform;
+
+      setConnected((prev) => {
+        if (prev.includes(platform)) return prev;
+
+        const updated = [...prev, platform];
+        localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
+        return updated;
+      });
+
+      getConnections();
+    }
+
+    if (event.data?.type === "OAUTH_ERROR") {
+      alert(`${event.data.platform} connection failed`);
+    }
+  };
+
   window.addEventListener("message", handleOAuthMessage);
 
   return () => {
@@ -127,21 +147,27 @@ useEffect(() => {
     navigate("/pricing");
   };
 
-  const connectPlatform = async (platform) => {
-    try {
-      const res = await fetch(`${API}/auth/${platform}`);
-      const data = await res.json();
+ const connectPlatform = async (platform) => {
+  try {
+    const res = await fetch(`${API}/auth/${platform}`);
+    const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to get auth URL");
-      }
-
-      window.open(data.url, "_blank", "width=600,height=700");
-    } catch (error) {
-      console.error("Connect error:", error.message);
-      alert("Failed to start connection");
+    if (!res.ok) {
+      throw new Error(data.error || "Failed to get auth URL");
     }
-  };
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      window.location.href = data.url; // mobile redirect
+    } else {
+      window.open(data.url, "facebook-login", "width=600,height=700");
+    }
+  } catch (error) {
+    console.error("Connect error:", error.message);
+    alert("Failed to start connection");
+  }
+};
 
   const disconnectPlatform = async (platform) => {
     try {
