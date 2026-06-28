@@ -94,25 +94,39 @@ export default function ConnectSocial() {
     }
   };
 
-  useEffect(() => {
-    getConnections();
+useEffect(() => {
+  getConnections();
 
-    const handleOAuthMessage = (event) => {
-      if (event.data?.type === "OAUTH_SUCCESS") {
+  const handleOAuthMessage = (event) => {
+    if (event.origin !== API) return;
+
+    if (event.data?.type === "OAUTH_SUCCESS") {
+      const platform = event.data.platform;
+
+      setConnected((prev) => {
+        if (prev.includes(platform)) return prev;
+
+        const updated = [...prev, platform];
+        localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
+        return updated;
+      });
+
+      setTimeout(() => {
         getConnections();
-      }
+      }, 800);
+    }
 
-      if (event.data?.type === "OAUTH_ERROR") {
-        alert(`${event.data.platform} connection failed`);
-      }
-    };
+    if (event.data?.type === "OAUTH_ERROR") {
+      alert(`${event.data.platform} connection failed`);
+    }
+  };
 
-    window.addEventListener("message", handleOAuthMessage);
+  window.addEventListener("message", handleOAuthMessage);
 
-    return () => {
-      window.removeEventListener("message", handleOAuthMessage);
-    };
-  }, []);
+  return () => {
+    window.removeEventListener("message", handleOAuthMessage);
+  };
+}, []);
 
   const upgradeToPro = () => {
     navigate("/pricing");
