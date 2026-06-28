@@ -83,7 +83,9 @@ export default function AppLayout() {
 
           <div>
             <h1 className="text-2xl font-black leading-none tracking-tight">
-              twinn
+              twinn.live
+
+          
             </h1>
             <p className="mt-1 text-xs font-medium text-pink-300">
               Never sleep. Never stop selling.
@@ -249,7 +251,7 @@ export default function AppLayout() {
           </div></Link>
 
           <div>
-            <h1 className="text-xl font-black leading-none">twinn</h1>
+            <h1 className="text-xl font-black leading-none">twinn.live</h1>
             <p className="text-[10px] text-muted-foreground">
               {isPro ? "Pro Live Commerce" : "Never Sleep. Never stop selling."}
             </p>
@@ -285,7 +287,7 @@ export default function AppLayout() {
                 </div>
 
                 <div>
-                  <h1 className="text-2xl font-black">twinn</h1>
+                  <h1 className="text-2xl font-black">twinn.live</h1>
                   <p className="text-xs text-pink-300">
                     {isPro ? "Pro AI Live Commerce" : "AI Live Commerce"}
                   </p>

@@ -877,11 +877,7 @@ const moreLanguages = [
   "Polski",
   "Türkçe",
   "Nederlands",
-  "Українська",
-  "Svenska",
-  "Norsk",
-  "Dansk",
-  "Suomi",
+ 
 ];
   const testimonials = [
     ["This AI twin helped me double my engagement in 2 weeks!", "Ananya", "Fashion Creator", "/images/2.jpeg"],
@@ -1010,7 +1006,7 @@ const moreLanguages = [
     onClick={() => setShowMore(!showMore)}
     className="cursor-pointer rounded-[5px] border border-border bg-background px-5 py-2 text-xs font-black tracking-wide text-[var(--brand-pink)] shadow-sm transition hover:bg-pink-50"
   >
-    {showMore ? "Show Less" : "+ 40 More"}
+    {showMore ? "Show Less" : "+ show More"}
   </button>
 </div>
   </div>

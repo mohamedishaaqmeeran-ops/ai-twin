@@ -28,7 +28,7 @@ export default function Logo({ size = "md", showText = true }) {
               fontFamily: "Poppins, sans-serif",
             }}
           >
-            twinn
+            twinn.live
           </span>
 
           <span className="text-[10px] font-medium leading-none text-muted-foreground">

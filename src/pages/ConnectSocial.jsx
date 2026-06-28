@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+const API = "https://social-connect-om87.onrender.com";
+const USER_ID = 1;
+
 const socialData = [
   {
     id: "instagram",
@@ -57,27 +60,106 @@ export default function ConnectSocial() {
   const maxPlatforms = isPro ? 4 : 1;
 
   const [connected, setConnected] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const getConnections = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API}/connections?userId=${USER_ID}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch connections");
+      }
+
+      const platforms = data.connections.map((item) => item.platform);
+
+      if (!isPro && platforms.length > 1) {
+        setConnected(platforms.slice(0, 1));
+      } else {
+        setConnected(platforms);
+      }
+
+      localStorage.setItem("connectedPlatforms", JSON.stringify(platforms));
+    } catch (error) {
+      console.error("Fetch connections error:", error.message);
+
+      const saved = JSON.parse(
+        localStorage.getItem("connectedPlatforms") || "[]"
+      );
+      setConnected(saved);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const saved = JSON.parse(
-      localStorage.getItem("connectedPlatforms") || "[]"
-    );
+    getConnections();
 
-    if (!isPro && saved.length > 1) {
-      const freeOnly = saved.slice(0, 1);
-      setConnected(freeOnly);
-      localStorage.setItem("connectedPlatforms", JSON.stringify(freeOnly));
-      return;
-    }
+    const handleOAuthMessage = (event) => {
+      if (event.data?.type === "OAUTH_SUCCESS") {
+        getConnections();
+      }
 
-    setConnected(saved);
-  }, [isPro]);
+      if (event.data?.type === "OAUTH_ERROR") {
+        alert(`${event.data.platform} connection failed`);
+      }
+    };
+
+    window.addEventListener("message", handleOAuthMessage);
+
+    return () => {
+      window.removeEventListener("message", handleOAuthMessage);
+    };
+  }, []);
 
   const upgradeToPro = () => {
     navigate("/pricing");
   };
 
-  const toggleConnection = (platform) => {
+  const connectPlatform = async (platform) => {
+    try {
+      const res = await fetch(`${API}/auth/${platform}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to get auth URL");
+      }
+
+      window.open(data.url, "_blank", "width=600,height=700");
+    } catch (error) {
+      console.error("Connect error:", error.message);
+      alert("Failed to start connection");
+    }
+  };
+
+  const disconnectPlatform = async (platform) => {
+    try {
+      const res = await fetch(`${API}/connections/${platform}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: USER_ID }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to disconnect");
+      }
+
+      const updated = connected.filter((item) => item !== platform);
+      setConnected(updated);
+      localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
+    } catch (error) {
+      console.error("Disconnect error:", error.message);
+      alert("Failed to disconnect platform");
+    }
+  };
+
+  const toggleConnection = async (platform) => {
     const item = socialData.find((x) => x.id === platform);
     const alreadyConnected = connected.includes(platform);
 
@@ -86,21 +168,17 @@ export default function ConnectSocial() {
       return;
     }
 
-    let updated = [];
-
     if (alreadyConnected) {
-      updated = connected.filter((item) => item !== platform);
-    } else {
-      if (!isPro && connected.length >= maxPlatforms) {
-        upgradeToPro();
-        return;
-      }
-
-      updated = [...connected, platform];
+      await disconnectPlatform(platform);
+      return;
     }
 
-    setConnected(updated);
-    localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
+    if (!isPro && connected.length >= maxPlatforms) {
+      upgradeToPro();
+      return;
+    }
+
+    await connectPlatform(platform);
   };
 
   return (
@@ -123,7 +201,11 @@ export default function ConnectSocial() {
                 : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
             }`}
           >
-            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isPro ? (
+              <Crown className="h-4 w-4" />
+            ) : (
+              <Lock className="h-4 w-4" />
+            )}
             {isPro ? "PRO PLAN ACTIVE" : "FREE PLAN"}
           </span>
         </div>
@@ -165,14 +247,22 @@ export default function ConnectSocial() {
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat title="Connected" value={`${connected.length}/${maxPlatforms}`} icon={CheckCircle2} />
+        <Stat
+          title="Connected"
+          value={loading ? "..." : `${connected.length}/${maxPlatforms}`}
+          icon={CheckCircle2}
+        />
         <Stat title="Available" value={isPro ? "4" : "1"} icon={ShieldCheck} />
         <Stat
           title="Ready Live"
           value={connected.length > 0 ? "Yes" : "No"}
           icon={Radio}
         />
-        <Stat title="AI Status" value={isPro ? "Pro Online" : "Online"} icon={Sparkles} />
+        <Stat
+          title="AI Status"
+          value={isPro ? "Pro Online" : "Online"}
+          icon={Sparkles}
+        />
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">
@@ -184,7 +274,9 @@ export default function ConnectSocial() {
             <div
               key={id}
               className={`relative rounded-3xl border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-6 ${
-                locked ? "border-pink-200 dark:border-white/10" : "border-border"
+                locked
+                  ? "border-pink-200 dark:border-white/10"
+                  : "border-border"
               }`}
             >
               {locked && (
@@ -226,7 +318,11 @@ export default function ConnectSocial() {
                         : "bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
                     }`}
                   >
-                    {active ? "Connected" : locked ? "Pro Only" : "Not Connected"}
+                    {active
+                      ? "Connected"
+                      : locked
+                      ? "Pro Only"
+                      : "Not Connected"}
                   </span>
                 </div>
 
