@@ -63,6 +63,7 @@ import AITwins from "./pages/AITwins.jsx";
 import Careers from "./pages/Careers.jsx";
 import Team from "./pages/Team.jsx";
 import ContactUs from "./pages/ContactUs.jsx";
+import DataDeletion from "./pages/DataDeletion.jsx";
 
 
 function RequireAdmin({ children }) {
@@ -149,6 +150,7 @@ export default function App() {
         <Route path="/add-products" element={<AddProd />} />
         <Route path="/terms-and-conditions" element={<TermsCondition />} />
         <Route path="/waitlist" element={<WaitlistForm />} />
+        <Route path="/data-deletion" element={<DataDeletion />} />
 
         <Route path="/app" element={<AppLayout />}>
         
