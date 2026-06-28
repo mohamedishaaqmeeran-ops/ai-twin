@@ -147,7 +147,7 @@ useEffect(() => {
     navigate("/pricing");
   };
 
- const connectPlatform = async (platform) => {
+const connectPlatform = async (platform) => {
   try {
     const res = await fetch(`${API}/auth/${platform}`);
     const data = await res.json();
@@ -156,13 +156,15 @@ useEffect(() => {
       throw new Error(data.error || "Failed to get auth URL");
     }
 
+    // Mobile: do not use popup
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
     if (isMobile) {
-      window.location.href = data.url; // mobile redirect
-    } else {
-      window.open(data.url, "facebook-login", "width=600,height=700");
+      window.location.assign(data.url);
+      return;
     }
+
+    window.open(data.url, "facebook-login", "width=600,height=700");
   } catch (error) {
     console.error("Connect error:", error.message);
     alert("Failed to start connection");
