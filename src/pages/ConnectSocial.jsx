@@ -73,7 +73,7 @@ export default function ConnectSocial() {
         throw new Error(data.error || "Failed to fetch connections");
       }
 
-      const platforms = data.connections.map((item) => item.platform);
+    const platforms = data.connections.map((item) => item.platform);
 
       if (!isPro && platforms.length > 1) {
         setConnected(platforms.slice(0, 1));
@@ -97,30 +97,25 @@ export default function ConnectSocial() {
 useEffect(() => {
   getConnections();
 
-  const handleOAuthMessage = (event) => {
-    if (event.origin !== API) return;
+ const handleOAuthMessage = (event) => {
+  if (event.data?.type === "OAUTH_SUCCESS") {
+    const platform = event.data.platform;
 
-    if (event.data?.type === "OAUTH_SUCCESS") {
-      const platform = event.data.platform;
+    setConnected((prev) => {
+      if (prev.includes(platform)) return prev;
 
-      setConnected((prev) => {
-        if (prev.includes(platform)) return prev;
+      const updated = [...prev, platform];
+      localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
+      return updated;
+    });
 
-        const updated = [...prev, platform];
-        localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
-        return updated;
-      });
+    getConnections();
+  }
 
-      setTimeout(() => {
-        getConnections();
-      }, 800);
-    }
-
-    if (event.data?.type === "OAUTH_ERROR") {
-      alert(`${event.data.platform} connection failed`);
-    }
-  };
-
+  if (event.data?.type === "OAUTH_ERROR") {
+    alert(`${event.data.platform} connection failed`);
+  }
+};
   window.addEventListener("message", handleOAuthMessage);
 
   return () => {
