@@ -23,14 +23,14 @@ export default function Team() {
     {
       name: "Arunkumar S",
       role: "Founder & CEO",
-      image: "/images/Founder1.jpeg",
+      image: "/images/fo.png",
       icon: Rocket,
       desc: "Building the future of AI-powered live commerce.",
     },
     {
-      name: "AI Product Team",
-      role: "Product & Strategy",
-      image: "/images/1.jpeg",
+      name: "Vijayasree Arunkumar",
+      role: "Co-Founder",
+      image: "/images/co.png",
       icon: Brain,
       desc: "Designing AI Twin flows for creators, brands and agencies.",
     },
