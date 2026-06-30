@@ -82,12 +82,16 @@ export default function AppLayout() {
           </div>
 
           <div>
-            <h1 className="text-2xl font-black leading-none tracking-tight">
-              twinn.live
-
-          
-            </h1>
-            <p className="mt-1 text-xs font-medium text-pink-300">
+            <h1
+  className="tracking-tight text-2xl font-black"
+  style={{
+    fontWeight: 600,
+    fontFamily: "Poppins, sans-serif",
+  }}
+>
+  twinn<span className="brand-text">.</span>live
+</h1>
+            <p className="mt-1 text-xs font-medium brand-text">
               Never sleep. Never stop selling.
             </p>
           </div>
@@ -231,7 +235,7 @@ export default function AppLayout() {
         <div className="mt-6 border-t border-white/10 pt-5">
           <button
             onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
+            className="flex w-full items-center justify-center gap-3 rounded-2xl brand-gradient py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
           >
             <LogOut size={18} />
             Logout
@@ -251,8 +255,16 @@ export default function AppLayout() {
           </div></Link>
 
           <div>
-            <h1 className="text-xl font-black leading-none">twinn.live</h1>
-            <p className="text-[10px] text-muted-foreground">
+            <h1
+  className="tracking-tight text-2xl font-black"
+  style={{
+    fontWeight: 600,
+    fontFamily: "Poppins, sans-serif",
+  }}
+>
+  twinn<span className="brand-text">.</span>live
+</h1>
+            <p className="text-[10px] text-muted-foreground brand-text">
               {isPro ? "Pro Live Commerce" : "Never Sleep. Never stop selling."}
             </p>
           </div>
@@ -287,7 +299,15 @@ export default function AppLayout() {
                 </div>
 
                 <div>
-                  <h1 className="text-2xl font-black">twinn.live</h1>
+                  <h1
+  className="tracking-tight text-2xl font-black"
+  style={{
+    fontWeight: 600,
+    fontFamily: "Poppins, sans-serif",
+  }}
+>
+  twinn<span className="brand-text">.</span>live
+</h1>
                   <p className="text-xs text-pink-300">
                     {isPro ? "Pro AI Live Commerce" : "AI Live Commerce"}
                   </p>
@@ -439,7 +459,7 @@ export default function AppLayout() {
                   setMobileMenu(false);
                   navigate("/");
                 }}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl brand-gradient py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
               >
                 <LogOut size={18} />
                 Logout

@@ -68,7 +68,7 @@ export default function AdminLayout() {
         <div className="mt-6 border-t border-white/10 pt-5">
           <button
             onClick={logout}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
+            className="flex w-full items-center justify-center gap-3 rounded-2xl brand-gradient py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
           >
             <LogOut className="h-5 w-5" />
             Logout
@@ -159,7 +159,7 @@ export default function AdminLayout() {
             <div className="mt-8 border-t border-white/10 pt-5">
               <button
                 onClick={logout}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl brand-gradient py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
               >
                 <LogOut className="h-5 w-5" />
                 Logout

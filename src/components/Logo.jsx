@@ -21,15 +21,15 @@ export default function Logo({ size = "md", showText = true }) {
 
       {showText && (
         <div className="flex flex-col">
-          <span
-            className={`${s.text} tracking-tight brand-text`}
+          <p
+            className={`${s.text} tracking-tight font-black text-2xl`}
             style={{
               fontWeight: 600,
               fontFamily: "Poppins, sans-serif",
             }}
           >
-            twinn.live
-          </span>
+            twinn<span className="brand-text">.</span>live
+          </p>
 
           <span className="text-[10px] font-medium leading-none text-muted-foreground">
             Never sleep.{" "}

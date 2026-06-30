@@ -23,7 +23,7 @@ const socialData = [
     name: "Instagram",
     color: "bg-pink-50 dark:bg-white/10",
     icon: Instagram,
-    username: "@aitwin",
+    defaultUsername: "@instagram",
     pro: false,
   },
   {
@@ -31,7 +31,7 @@ const socialData = [
     name: "Facebook",
     color: "bg-blue-50 dark:bg-white/10",
     icon: Facebook,
-    username: "AI Twin Store",
+    defaultUsername: "Facebook Account",
     pro: true,
   },
   {
@@ -39,7 +39,7 @@ const socialData = [
     name: "YouTube",
     color: "bg-red-50 dark:bg-white/10",
     icon: Youtube,
-    username: "AITwin Official",
+    defaultUsername: "YouTube Channel",
     pro: true,
   },
   {
@@ -47,7 +47,7 @@ const socialData = [
     name: "TikTok",
     color: "bg-gray-100 dark:bg-white/10",
     icon: Music2,
-    username: "@aitwinlive",
+    defaultUsername: "@tiktok",
     pro: true,
   },
 ];
@@ -60,6 +60,7 @@ export default function ConnectSocial() {
   const maxPlatforms = isPro ? 4 : 1;
 
   const [connected, setConnected] = useState([]);
+  const [connectionDetails, setConnectionDetails] = useState({});
   const [loading, setLoading] = useState(false);
 
   const getConnections = async () => {
@@ -73,7 +74,14 @@ export default function ConnectSocial() {
         throw new Error(data.error || "Failed to fetch connections");
       }
 
-    const platforms = data.connections.map((item) => item.platform);
+      const platforms = data.connections.map((item) => item.platform);
+
+      const details = {};
+      data.connections.forEach((item) => {
+        details[item.platform] = item;
+      });
+
+      setConnectionDetails(details);
 
       if (!isPro && platforms.length > 1) {
         setConnected(platforms.slice(0, 1));
@@ -82,94 +90,113 @@ export default function ConnectSocial() {
       }
 
       localStorage.setItem("connectedPlatforms", JSON.stringify(platforms));
+      localStorage.setItem("connectionDetails", JSON.stringify(details));
     } catch (error) {
       console.error("Fetch connections error:", error.message);
 
       const saved = JSON.parse(
         localStorage.getItem("connectedPlatforms") || "[]"
       );
+
+      const savedDetails = JSON.parse(
+        localStorage.getItem("connectionDetails") || "{}"
+      );
+
       setConnected(saved);
+      setConnectionDetails(savedDetails);
     } finally {
       setLoading(false);
     }
   };
 
-useEffect(() => {
-  getConnections();
-
-  // Mobile redirect success: /app/connect?connected=facebook
-  const params = new URLSearchParams(window.location.search);
-  const connectedPlatform = params.get("connected");
-
-  if (connectedPlatform) {
-    setConnected((prev) => {
-      if (prev.includes(connectedPlatform)) return prev;
-
-      const updated = [...prev, connectedPlatform];
-      localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
-      return updated;
-    });
-
+  useEffect(() => {
     getConnections();
 
-    window.history.replaceState({}, "", "/app/connect");
-  }
+    const params = new URLSearchParams(window.location.search);
+    const connectedPlatform = params.get("connected");
+    const errorPlatform = params.get("error");
 
-  // Desktop popup success
-  const handleOAuthMessage = (event) => {
-    if (event.data?.type === "OAUTH_SUCCESS") {
-      const platform = event.data.platform;
-
+    if (connectedPlatform) {
       setConnected((prev) => {
-        if (prev.includes(platform)) return prev;
+        if (prev.includes(connectedPlatform)) return prev;
 
-        const updated = [...prev, platform];
+        const updated = [...prev, connectedPlatform];
         localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
         return updated;
       });
 
       getConnections();
+      window.history.replaceState({}, "", "/app/connect");
     }
 
-    if (event.data?.type === "OAUTH_ERROR") {
-      alert(`${event.data.platform} connection failed`);
+    if (errorPlatform) {
+      alert(`${errorPlatform} connection failed`);
+      window.history.replaceState({}, "", "/app/connect");
     }
-  };
 
-  window.addEventListener("message", handleOAuthMessage);
+    const handleOAuthMessage = (event) => {
+      if (event.origin !== "https://twinn.live") return;
 
-  return () => {
-    window.removeEventListener("message", handleOAuthMessage);
-  };
-}, []);
+      if (event.data?.type === "OAUTH_SUCCESS") {
+        const platform = event.data.platform;
+
+        setConnected((prev) => {
+          if (prev.includes(platform)) return prev;
+
+          const updated = [...prev, platform];
+          localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
+          return updated;
+        });
+
+        getConnections();
+      }
+
+      if (event.data?.type === "OAUTH_ERROR") {
+        alert(`${event.data.platform} connection failed`);
+      }
+    };
+
+    window.addEventListener("message", handleOAuthMessage);
+
+    return () => {
+      window.removeEventListener("message", handleOAuthMessage);
+    };
+  }, []);
 
   const upgradeToPro = () => {
     navigate("/pricing");
   };
 
-const connectPlatform = async (platform) => {
-  try {
-    const res = await fetch(`${API}/auth/${platform}`);
-    const data = await res.json();
+  const connectPlatform = async (platform) => {
+    try {
+      const res = await fetch(`${API}/auth/${platform}`);
+      const data = await res.json();
 
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to get auth URL");
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to get auth URL");
+      }
+
+      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        window.location.href = data.url;
+        return;
+      }
+
+      const popup = window.open(
+        data.url,
+        `${platform}-login`,
+        "width=600,height=700"
+      );
+
+      if (!popup) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Connect error:", error.message);
+      alert("Failed to start connection");
     }
-
-    // Mobile: do not use popup
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-    if (isMobile) {
-      window.location.assign(data.url);
-      return;
-    }
-
-    window.open(data.url, "facebook-login", "width=600,height=700");
-  } catch (error) {
-    console.error("Connect error:", error.message);
-    alert("Failed to start connection");
-  }
-};
+  };
 
   const disconnectPlatform = async (platform) => {
     try {
@@ -189,7 +216,13 @@ const connectPlatform = async (platform) => {
 
       const updated = connected.filter((item) => item !== platform);
       setConnected(updated);
+
+      const updatedDetails = { ...connectionDetails };
+      delete updatedDetails[platform];
+      setConnectionDetails(updatedDetails);
+
       localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
+      localStorage.setItem("connectionDetails", JSON.stringify(updatedDetails));
     } catch (error) {
       console.error("Disconnect error:", error.message);
       alert("Failed to disconnect platform");
@@ -238,19 +271,13 @@ const connectPlatform = async (platform) => {
                 : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
             }`}
           >
-            {isPro ? (
-              <Crown className="h-4 w-4" />
-            ) : (
-              <Lock className="h-4 w-4" />
-            )}
+            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
             {isPro ? "PRO PLAN ACTIVE" : "FREE PLAN"}
           </span>
         </div>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-          <span className="brand-text">
-            {isPro ? "Connect All" : "Connect"}
-          </span>{" "}
+          <span className="brand-text">{isPro ? "Connect All" : "Connect"}</span>{" "}
           Your Platforms
         </h1>
 
@@ -259,28 +286,6 @@ const connectPlatform = async (platform) => {
             ? "Connect Instagram, Facebook, YouTube and TikTok for multi-platform AI Twin live selling."
             : "Free plan allows only 1 platform. Upgrade to Pro to connect all platforms."}
         </p>
-
-        {!isPro && (
-          <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-black text-[var(--brand-pink)]">
-                  Platform Limit: {connected.length}/{maxPlatforms}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Upgrade to Pro for Instagram, Facebook, YouTube and TikTok.
-                </p>
-              </div>
-
-              <button
-                onClick={upgradeToPro}
-                className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
-              >
-                Upgrade
-              </button>
-            </div>
-          </div>
-        )}
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -290,30 +295,27 @@ const connectPlatform = async (platform) => {
           icon={CheckCircle2}
         />
         <Stat title="Available" value={isPro ? "4" : "1"} icon={ShieldCheck} />
-        <Stat
-          title="Ready Live"
-          value={connected.length > 0 ? "Yes" : "No"}
-          icon={Radio}
-        />
-        <Stat
-          title="AI Status"
-          value={isPro ? "Pro Online" : "Online"}
-          icon={Sparkles}
-        />
+        <Stat title="Ready Live" value={connected.length > 0 ? "Yes" : "No"} icon={Radio} />
+        <Stat title="AI Status" value={isPro ? "Pro Online" : "Online"} icon={Sparkles} />
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">
-        {socialData.map(({ id, name, icon: Icon, color, username, pro }) => {
+        {socialData.map(({ id, name, icon: Icon, color, defaultUsername, pro }) => {
           const active = connected.includes(id);
           const locked = pro && !isPro;
+
+          const accountName =
+            connectionDetails[id]?.username
+              ? `@${connectionDetails[id].username}`
+              : active
+              ? "Connected Account"
+              : defaultUsername;
 
           return (
             <div
               key={id}
               className={`relative rounded-3xl border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-6 ${
-                locked
-                  ? "border-pink-200 dark:border-white/10"
-                  : "border-border"
+                locked ? "border-pink-200 dark:border-white/10" : "border-border"
               }`}
             >
               {locked && (
@@ -341,7 +343,7 @@ const connectPlatform = async (platform) => {
                       </h2>
 
                       <p className="truncate text-sm font-medium text-muted-foreground">
-                        {locked ? "Unlock with Pro" : username}
+                        {locked ? "Unlock with Pro" : accountName}
                       </p>
                     </div>
                   </div>
@@ -355,11 +357,7 @@ const connectPlatform = async (platform) => {
                         : "bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
                     }`}
                   >
-                    {active
-                      ? "Connected"
-                      : locked
-                      ? "Pro Only"
-                      : "Not Connected"}
+                    {active ? "Connected" : locked ? "Pro Only" : "Not Connected"}
                   </span>
                 </div>
 
@@ -369,8 +367,6 @@ const connectPlatform = async (platform) => {
                     className={`rounded-[5px] py-3 text-sm font-bold tracking-wide transition ${
                       active
                         ? "border border-red-500 text-red-500 hover:bg-red-50 dark:border-red-500/40 dark:hover:bg-red-500/10"
-                        : locked
-                        ? "brand-gradient text-white shadow-md hover:opacity-90"
                         : "brand-gradient text-white shadow-md hover:opacity-90"
                     }`}
                   >
@@ -379,9 +375,7 @@ const connectPlatform = async (platform) => {
 
                   <button
                     onClick={() => {
-                      if (locked) {
-                        upgradeToPro();
-                      }
+                      if (locked) upgradeToPro();
                     }}
                     className="rounded-[5px] border border-border bg-background py-3 text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-accent"
                   >
@@ -432,10 +426,7 @@ function Stat({ title, value, icon: Icon }) {
 
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-
-          <h2 className="text-2xl font-black tracking-tight brand-text">
-            {value}
-          </h2>
+          <h2 className="text-2xl font-black tracking-tight brand-text">{value}</h2>
         </div>
       </div>
     </div>
