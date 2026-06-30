@@ -326,7 +326,7 @@ export default function SignIn() {
 
                 <button
                   disabled={loading || !email.trim() || !password.trim()}
-                  className="brand-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="brand-gradient mt-5 flex h-12 w-full items-center cursor-pointer justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? "Signing In..." : "Sign In"}
                   <ArrowRight className="h-4 w-4" />
