@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Apple,
   Mail,
@@ -12,16 +13,16 @@ import {
   ArrowRight,
   Github,
 } from "lucide-react";
+
 import Logo from "../components/Logo";
-
-const LOGIN_API =
-  "https://ai-twin-backend-4.onrender.com/api/auth/login";
-
-const GOOGLE_LOGIN_API =
-  "https://ai-twin-backend-4.onrender.com/api/auth/google";
+import ButtonLoader from "../components/ButtonLoader";
+import { loginUser, googleLoginUser } from "../features/auth/authSlice";
 
 export default function SignIn() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { loading, error } = useSelector((state) => state.auth);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,109 +30,46 @@ export default function SignIn() {
   const [showMore, setShowMore] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
   const redirectByRoleAndPlan = (user) => {
     const role = user?.role || "user";
     const plan = (user?.plan || "free").toLowerCase();
 
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("role", role);
-    localStorage.setItem("plan", plan);
-
-    if (role === "admin") {
-      navigate("/admin");
-      return;
-    }
-
-    if (plan === "pro") {
-      navigate("/app/pro");
-      return;
-    }
-
-    if (plan === "enterprise") {
-      navigate("/app/enterprise");
-      return;
-    }
+    if (role === "admin") return navigate("/admin");
+    if (plan === "pro") return navigate("/app/pro");
+    if (plan === "enterprise") return navigate("/app/enterprise");
 
     navigate("/app");
   };
 
-
-    const handleEmailLogin = async (e) => {
+  const handleEmailLogin = async (e) => {
     e.preventDefault();
-    setError("");
 
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter email and password.");
-      return;
-    }
+    const result = await dispatch(
+      loginUser({
+        email: email.trim().toLowerCase(),
+        password,
+      })
+    );
 
-    try {
-      setLoading(true);
-
-      const res = await fetch(LOGIN_API, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-      body: JSON.stringify({
-  email: email.trim().toLowerCase(),
-  password,
-}),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || data.message || "Login failed");
-      }
-
+    if (loginUser.fulfilled.match(result)) {
       localStorage.setItem("loginProvider", "email");
-      redirectByRoleAndPlan(data.user);
-    } catch (err) {
-      setError(err.message || "Something went wrong.");
-    } finally {
-      setLoading(false);
+      redirectByRoleAndPlan(result.payload);
     }
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      setLoading(true);
-      setError("");
+    const result = await dispatch(
+      googleLoginUser(credentialResponse.credential)
+    );
 
-      const res = await fetch(GOOGLE_LOGIN_API, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          token: credentialResponse.credential,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || data.message || "Google login failed");
-      }
-
+    if (googleLoginUser.fulfilled.match(result)) {
       localStorage.setItem("loginProvider", "google");
-      redirectByRoleAndPlan(data.user);
-    } catch (err) {
-      setError(err.message || "Google login failed.");
-    } finally {
-      setLoading(false);
+      redirectByRoleAndPlan(result.payload);
     }
   };
 
   const handleGoogleError = () => {
-    setError("Google login failed.");
+    alert("Google login failed");
   };
 
   const demoSocialLogin = (provider) => {
@@ -154,11 +92,9 @@ export default function SignIn() {
   const inputClass =
     "w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground";
 
-
-      return (
+  return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <div className="mx-auto grid min-h-screen max-w-7xl gap-8 px-4 py-10 lg:grid-cols-2 lg:items-stretch">
-        {/* Left */}
         <section className="hidden h-full flex-col rounded-[40px] border border-border bg-card p-8 shadow-sm lg:flex">
           <div className="brand-gradient flex-1 overflow-hidden rounded-[32px]">
             <img
@@ -184,7 +120,6 @@ export default function SignIn() {
           </div>
         </section>
 
-        {/* Right */}
         <section className="mx-auto flex h-full w-full max-w-md flex-col">
           <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-6 shadow-xl sm:p-8">
             <Logo />
@@ -200,16 +135,15 @@ export default function SignIn() {
             <div className="mt-7 space-y-3">
               <div className="overflow-hidden rounded-[5px]">
                 <GoogleLogin
-  onSuccess={handleGoogleSuccess}
-  onError={handleGoogleError}
-  useOneTap={false}
-  auto_select={false}
-  theme="outline"
-  shape="rectangular"
-  text="signin_with"
-  size="large"
-/>
-                
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap={false}
+                  auto_select={false}
+                  theme="outline"
+                  shape="rectangular"
+                  text="signin_with"
+                  size="large"
+                />
               </div>
 
               <button
@@ -260,27 +194,26 @@ export default function SignIn() {
               <div className="h-px flex-1 bg-border" />
             </div>
 
-
-                        <form
+            <form
               onSubmit={handleEmailLogin}
               className="mt-2 flex flex-1 flex-col justify-between"
             >
               <div className="space-y-4">
                 <div className={inputWrapperClass}>
                   <Mail className="h-5 w-5 text-[var(--brand-pink)]" />
-
                   <input
-  value={email}
-  onChange={(e) => setEmail(e.target.value.trimStart().toLowerCase())}
-  className={inputClass}
-  placeholder="Email address"
-  type="email"
-/>
+                    value={email}
+                    onChange={(e) =>
+                      setEmail(e.target.value.trimStart().toLowerCase())
+                    }
+                    className={inputClass}
+                    placeholder="Email address"
+                    type="email"
+                  />
                 </div>
 
                 <div className={inputWrapperClass}>
                   <Lock className="h-5 w-5 text-[var(--brand-pink)]" />
-
                   <input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -310,26 +243,12 @@ export default function SignIn() {
               </div>
 
               <div className="mt-6">
-                <div className="flex items-center justify-between gap-3 text-xs">
-                  <label className="flex items-center gap-2 font-semibold tracking-wide text-muted-foreground">
-                    <input type="checkbox" />
-                    Remember me
-                  </label>
-
-                  <button
-                    type="button"
-                    className="font-bold tracking-wide text-[var(--brand-pink)] transition hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-
                 <button
                   disabled={loading || !email.trim() || !password.trim()}
-                  className="brand-gradient mt-5 flex h-12 w-full items-center cursor-pointer justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="brand-gradient mt-5 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading ? "Signing In..." : "Sign In"}
-                  <ArrowRight className="h-4 w-4" />
+                  {loading ? <ButtonLoader text="Signing In..." /> : "Sign In"}
+                  {!loading && <ArrowRight className="h-4 w-4" />}
                 </button>
 
                 <p className="mt-6 text-center text-sm text-muted-foreground">
@@ -340,12 +259,6 @@ export default function SignIn() {
                   >
                     Sign Up
                   </Link>
-                </p>
-
-                <p className="mt-4 text-center text-xs font-medium leading-5 text-muted-foreground">
-                  By continuing you agree to our terms.
-                  <br />
-                  Your AI Twin awaits.
                 </p>
               </div>
             </form>

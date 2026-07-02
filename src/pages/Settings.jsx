@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const ME_API = "https://ai-twin-backend-4.onrender.com/api/auth/me";
+const ME_API = "https://twinn-backend.onrender.com/api/auth/me";
 
 export default function Settings() {
   const navigate = useNavigate();

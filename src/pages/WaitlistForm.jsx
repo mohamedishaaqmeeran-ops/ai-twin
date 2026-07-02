@@ -37,7 +37,7 @@ export default function WaitlistForm() {
   const [brand, setBrand] = useState("");
   const [phone, setPhone] = useState("");
 
- const WAITLIST_API = "https://waitlist-gxvm.onrender.com/api/waitlist";
+ const WAITLIST_API = "https://twinn-backend.onrender.com/api/waitlist";
 
 const handleSubmit = async () => {
   setError("");

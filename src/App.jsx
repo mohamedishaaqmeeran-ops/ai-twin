@@ -165,54 +165,54 @@ export default function App() {
           <Route
             path="products"
             element={
-              <RequireTwin>
+            
                 <Products />
-              </RequireTwin>
+            
             }
           />
 
           <Route
             path="products/add"
             element={
-              <RequireTwin>
+            
                 <AddProduct />
-              </RequireTwin>
+          
             }
           />
 
           <Route
             path="products/:id"
             element={
-              <RequireTwin>
+              
                 <ProductDetails />
-              </RequireTwin>
+             
             }
           />
 
           <Route
             path="connect"
             element={
-              <RequireTwin>
+             
                 <ConnectSocial />
-              </RequireTwin>
+             
             }
           />
 
           <Route
             path="schedule"
             element={
-              <RequireTwin>
+              
                 <ScheduleLive />
-              </RequireTwin>
+              
             }
           />
 
           <Route
             path="schedule/create"
             element={
-              <RequireTwin>
+              
                 <CreateSchedule />
-              </RequireTwin>
+              
             }
           />
 

@@ -346,6 +346,10 @@ export default function GoLives() {
           </div>
         </section>
 
+
+
+
+
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="brand-gradient rounded-[40px] p-8 text-center text-white shadow-xl sm:p-12">
             <Zap className="mx-auto h-12 w-12" />

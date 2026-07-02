@@ -77,7 +77,7 @@ const handleSignup = async (e) => {
     setLoading(true);
 
     const res = await fetch(
-      "https://ai-twin-backend-4.onrender.com/api/auth/register",
+      "https://twinn-backend.onrender.com/api/auth/register",
       {
         method: "POST",
         headers: {

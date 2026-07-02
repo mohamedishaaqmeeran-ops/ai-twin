@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   Youtube,
   Facebook,
@@ -13,9 +13,15 @@ import {
   Lock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 
-const API = "https://social-connect-om87.onrender.com";
-const USER_ID = 1;
+import {
+  fetchConnections,
+  disconnectSocial,
+  addLocalConnection,
+} from "../features/social/socialSlice";
+
+import { connectAPI } from "../features/social/socialAPI";
 
 const socialData = [
   {
@@ -54,179 +60,37 @@ const socialData = [
 
 export default function ConnectSocial() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { connections, loading } = useSelector((state) => state.social);
 
   const plan = localStorage.getItem("plan") || "free";
   const isPro = plan === "pro";
   const maxPlatforms = isPro ? 4 : 1;
 
-  const [connected, setConnected] = useState([]);
-  const [connectionDetails, setConnectionDetails] = useState({});
-  const [loading, setLoading] = useState(false);
-
-  const getConnections = async () => {
-    try {
-      setLoading(true);
-
-      const res = await fetch(`${API}/connections?userId=${USER_ID}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to fetch connections");
-      }
-
-      const platforms = data.connections.map((item) => item.platform);
-
-      const details = {};
-      data.connections.forEach((item) => {
-        details[item.platform] = item;
-      });
-
-      setConnectionDetails(details);
-
-      if (!isPro && platforms.length > 1) {
-        setConnected(platforms.slice(0, 1));
-      } else {
-        setConnected(platforms);
-      }
-
-      localStorage.setItem("connectedPlatforms", JSON.stringify(platforms));
-      localStorage.setItem("connectionDetails", JSON.stringify(details));
-    } catch (error) {
-      console.error("Fetch connections error:", error.message);
-
-      const saved = JSON.parse(
-        localStorage.getItem("connectedPlatforms") || "[]"
-      );
-
-      const savedDetails = JSON.parse(
-        localStorage.getItem("connectionDetails") || "{}"
-      );
-
-      setConnected(saved);
-      setConnectionDetails(savedDetails);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const connected = connections.map((item) => item.platform);
 
   useEffect(() => {
-    getConnections();
+    dispatch(fetchConnections());
 
     const params = new URLSearchParams(window.location.search);
-    const connectedPlatform = params.get("connected");
-    const errorPlatform = params.get("error");
+    const status = params.get("status");
+    const platform = params.get("platform");
 
-    if (connectedPlatform) {
-      setConnected((prev) => {
-        if (prev.includes(connectedPlatform)) return prev;
-
-        const updated = [...prev, connectedPlatform];
-        localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
-        return updated;
-      });
-
-      getConnections();
+    if (status === "connected" && platform) {
+      dispatch(addLocalConnection(platform));
+      dispatch(fetchConnections());
       window.history.replaceState({}, "", "/app/connect");
     }
 
-    if (errorPlatform) {
-      alert(`${errorPlatform} connection failed`);
+    if (status === "failed") {
+      alert("Social connection failed");
       window.history.replaceState({}, "", "/app/connect");
     }
-
-    const handleOAuthMessage = (event) => {
-      if (event.origin !== "https://twinn.live") return;
-
-      if (event.data?.type === "OAUTH_SUCCESS") {
-        const platform = event.data.platform;
-
-        setConnected((prev) => {
-          if (prev.includes(platform)) return prev;
-
-          const updated = [...prev, platform];
-          localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
-          return updated;
-        });
-
-        getConnections();
-      }
-
-      if (event.data?.type === "OAUTH_ERROR") {
-        alert(`${event.data.platform} connection failed`);
-      }
-    };
-
-    window.addEventListener("message", handleOAuthMessage);
-
-    return () => {
-      window.removeEventListener("message", handleOAuthMessage);
-    };
-  }, []);
+  }, [dispatch]);
 
   const upgradeToPro = () => {
     navigate("/pricing");
-  };
-
-  const connectPlatform = async (platform) => {
-    try {
-      const res = await fetch(`${API}/auth/${platform}`);
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to get auth URL");
-      }
-
-      const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-      if (isMobile) {
-        window.location.href = data.url;
-        return;
-      }
-
-      const popup = window.open(
-        data.url,
-        `${platform}-login`,
-        "width=600,height=700"
-      );
-
-      if (!popup) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error("Connect error:", error.message);
-      alert("Failed to start connection");
-    }
-  };
-
-  const disconnectPlatform = async (platform) => {
-    try {
-      const res = await fetch(`${API}/connections/${platform}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId: USER_ID }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to disconnect");
-      }
-
-      const updated = connected.filter((item) => item !== platform);
-      setConnected(updated);
-
-      const updatedDetails = { ...connectionDetails };
-      delete updatedDetails[platform];
-      setConnectionDetails(updatedDetails);
-
-      localStorage.setItem("connectedPlatforms", JSON.stringify(updated));
-      localStorage.setItem("connectionDetails", JSON.stringify(updatedDetails));
-    } catch (error) {
-      console.error("Disconnect error:", error.message);
-      alert("Failed to disconnect platform");
-    }
   };
 
   const toggleConnection = async (platform) => {
@@ -239,7 +103,7 @@ export default function ConnectSocial() {
     }
 
     if (alreadyConnected) {
-      await disconnectPlatform(platform);
+      dispatch(disconnectSocial(platform));
       return;
     }
 
@@ -248,7 +112,7 @@ export default function ConnectSocial() {
       return;
     }
 
-    await connectPlatform(platform);
+    connectAPI(platform);
   };
 
   return (
@@ -271,7 +135,11 @@ export default function ConnectSocial() {
                 : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
             }`}
           >
-            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isPro ? (
+              <Crown className="h-4 w-4" />
+            ) : (
+              <Lock className="h-4 w-4" />
+            )}
             {isPro ? "PRO PLAN ACTIVE" : "FREE PLAN"}
           </span>
         </div>
@@ -295,97 +163,124 @@ export default function ConnectSocial() {
           icon={CheckCircle2}
         />
         <Stat title="Available" value={isPro ? "4" : "1"} icon={ShieldCheck} />
-        <Stat title="Ready Live" value={connected.length > 0 ? "Yes" : "No"} icon={Radio} />
-        <Stat title="AI Status" value={isPro ? "Pro Online" : "Online"} icon={Sparkles} />
+        <Stat
+          title="Ready Live"
+          value={connected.length > 0 ? "Yes" : "No"}
+          icon={Radio}
+        />
+        <Stat
+          title="AI Status"
+          value={isPro ? "Pro Online" : "Online"}
+          icon={Sparkles}
+        />
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">
-        {socialData.map(({ id, name, icon: Icon, color, defaultUsername, pro }) => {
-          const active = connected.includes(id);
-          const locked = pro && !isPro;
+        {socialData.map(
+          ({ id, name, icon: Icon, color, defaultUsername, pro }) => {
+            const active = connected.includes(id);
+            const locked = pro && !isPro;
 
-          const accountName =
-            connectionDetails[id]?.username
-              ? `@${connectionDetails[id].username}`
-              : active
-              ? "Connected Account"
-              : defaultUsername;
+            const account = connections.find((item) => item.platform === id);
 
-          return (
-            <div
-              key={id}
-              className={`relative rounded-3xl border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-6 ${
-                locked ? "border-pink-200 dark:border-white/10" : "border-border"
-              }`}
-            >
-              {locked && (
-                <span className="absolute right-4 top-4 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
-                  PRO
-                </span>
-              )}
+            const accountName =
+              account?.username || account?.name
+                ? account.username
+                  ? `@${account.username}`
+                  : account.name
+                : active
+                ? "Connected Account"
+                : defaultUsername;
 
-              <div className={locked ? "opacity-70" : ""}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex min-w-0 items-center gap-4">
-                    <div
-                      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${color}`}
+            return (
+              <div
+                key={id}
+                className={`relative rounded-3xl border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg sm:p-6 ${
+                  locked
+                    ? "border-pink-200 dark:border-white/10"
+                    : "border-border"
+                }`}
+              >
+                {locked && (
+                  <span className="absolute right-4 top-4 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
+                    PRO
+                  </span>
+                )}
+
+                <div className={locked ? "opacity-70" : ""}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div
+                        className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${color}`}
+                      >
+                        {locked ? (
+                          <Lock className="h-7 w-7 text-[var(--brand-pink)]" />
+                        ) : (
+                          <Icon className="h-7 w-7 text-[var(--brand-pink)]" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0">
+                        <h2 className="text-lg font-black tracking-tight text-foreground">
+                          {name}
+                        </h2>
+
+                        <p className="truncate text-sm font-medium text-muted-foreground">
+                          {locked ? "Unlock with Pro" : accountName}
+                        </p>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold tracking-wide ${
+                        active
+                          ? "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400"
+                          : locked
+                          ? "bg-pink-100 text-[var(--brand-pink)] dark:bg-white/10"
+                          : "bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
+                      }`}
                     >
-                      {locked ? (
-                        <Lock className="h-7 w-7 text-[var(--brand-pink)]" />
-                      ) : (
-                        <Icon className="h-7 w-7 text-[var(--brand-pink)]" />
-                      )}
-                    </div>
-
-                    <div className="min-w-0">
-                      <h2 className="text-lg font-black tracking-tight text-foreground">
-                        {name}
-                      </h2>
-
-                      <p className="truncate text-sm font-medium text-muted-foreground">
-                        {locked ? "Unlock with Pro" : accountName}
-                      </p>
-                    </div>
+                      {active
+                        ? "Connected"
+                        : locked
+                        ? "Pro Only"
+                        : "Not Connected"}
+                    </span>
                   </div>
 
-                  <span
-                    className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold tracking-wide ${
-                      active
-                        ? "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400"
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => toggleConnection(id)}
+                      disabled={loading}
+                      className={`rounded-[5px] py-3 text-sm font-bold tracking-wide transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                        active
+                          ? "border border-red-500 text-red-500 hover:bg-red-50 dark:border-red-500/40 dark:hover:bg-red-500/10"
+                          : "brand-gradient text-white shadow-md hover:opacity-90"
+                      }`}
+                    >
+                      {loading
+                        ? "Please wait..."
+                        : active
+                        ? "Disconnect"
                         : locked
-                        ? "bg-pink-100 text-[var(--brand-pink)] dark:bg-white/10"
-                        : "bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
-                    }`}
-                  >
-                    {active ? "Connected" : locked ? "Pro Only" : "Not Connected"}
-                  </span>
-                </div>
+                        ? "Upgrade"
+                        : "Connect"}
+                    </button>
 
-                <div className="mt-6 grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => toggleConnection(id)}
-                    className={`rounded-[5px] py-3 text-sm font-bold tracking-wide transition ${
-                      active
-                        ? "border border-red-500 text-red-500 hover:bg-red-50 dark:border-red-500/40 dark:hover:bg-red-500/10"
-                        : "brand-gradient text-white shadow-md hover:opacity-90"
-                    }`}
-                  >
-                    {active ? "Disconnect" : locked ? "Upgrade" : "Connect"}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      if (locked) upgradeToPro();
-                    }}
-                    className="rounded-[5px] border border-border bg-background py-3 text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-accent"
-                  >
-                    {locked ? "Pro Account" : "View Account"}
-                  </button>
+                    <button
+                      onClick={() => {
+                        if (locked) upgradeToPro();
+                      }}
+                      className="rounded-[5px] border border-border bg-background py-3 text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-accent"
+                    >
+                      {locked ? "Pro Account" : "View Account"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          }
+        )}
       </section>
 
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
@@ -426,10 +321,11 @@ function Stat({ title, value, icon: Icon }) {
 
         <div>
           <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <h2 className="text-2xl font-black tracking-tight brand-text">{value}</h2>
+          <h2 className="text-2xl font-black tracking-tight brand-text">
+            {value}
+          </h2>
         </div>
       </div>
     </div>
   );
 }
-
