@@ -70,24 +70,22 @@ export default function ConnectSocial() {
 
   const connected = connections.map((item) => item.platform);
 
-  useEffect(() => {
-    dispatch(fetchConnections());
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get("status");
+  const platform = params.get("platform");
+  const message = params.get("message");
 
-    const params = new URLSearchParams(window.location.search);
-    const status = params.get("status");
-    const platform = params.get("platform");
+  if (status === "connected" && platform) {
+    alert(`${platform} connected successfully`);
+    window.history.replaceState({}, "", "/app/connect");
+  }
 
-    if (status === "connected" && platform) {
-      dispatch(addLocalConnection(platform));
-      dispatch(fetchConnections());
-      window.history.replaceState({}, "", "/app/connect");
-    }
-
-    if (status === "failed") {
-      alert("Social connection failed");
-      window.history.replaceState({}, "", "/app/connect");
-    }
-  }, [dispatch]);
+  if (status === "failed") {
+    alert(message || "Social connection failed");
+    window.history.replaceState({}, "", "/app/connect");
+  }
+}, []);
 
   const upgradeToPro = () => {
     navigate("/pricing");
