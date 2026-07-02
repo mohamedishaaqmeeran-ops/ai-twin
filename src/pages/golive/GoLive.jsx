@@ -18,7 +18,7 @@ import {
   Lock,
 } from "lucide-react";
 
-const LIVE_API = "http://localhost:8000/api/live";
+const LIVE_API = "https://twinn-backend.onrender.com/api/live";
 
 const platforms = [
   { name: "Instagram", icon: Instagram, pro: false },
@@ -63,7 +63,7 @@ const uploadVideo = async () => {
   const formData = new FormData();
   formData.append("video", videoFile);
 
-  const res = await fetch("http://localhost:8000/api/live/upload-video", {
+  const res = await fetch("https://twinn-backend.onrender.com/api/live/upload-video", {
     method: "POST",
     body: formData,
   });
