@@ -76,19 +76,21 @@ useEffect(() => {
   const platform = params.get("platform");
   const message = params.get("message");
 
- if (status === "connected" && platform) {
-  dispatch(fetchConnections());
-  alert(`${platform} connected successfully`);
-  window.history.replaceState({}, "", "/app/connect");
-  return;
-}
+  if (status === "connected" && platform) {
+    alert(`${platform} connected successfully`);
+    window.history.replaceState({}, "", "/app/connect");
+    dispatch(fetchConnections());
+    return;
+  }
 
-if (status === "failed") {
-  alert(message || "Social connection failed");
-  window.history.replaceState({}, "", "/app/connect");
-  return;
-}
-}, []);
+  if (status === "failed") {
+    alert(message || "Social connection failed");
+    window.history.replaceState({}, "", "/app/connect");
+    return;
+  }
+
+  dispatch(fetchConnections());
+}, [dispatch]);
 
   const upgradeToPro = () => {
     navigate("/pricing");
