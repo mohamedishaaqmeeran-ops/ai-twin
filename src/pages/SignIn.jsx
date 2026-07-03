@@ -143,9 +143,9 @@ export default function SignIn() {
                   onError={handleGoogleError}
                   useOneTap={false}
                   auto_select={false}
-                
+                  theme="outline"
                   shape="rectangular"
-                  
+                  text="signin_with"
                   size="large"
                   width="400"
                 />
