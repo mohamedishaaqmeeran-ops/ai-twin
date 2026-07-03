@@ -1,278 +1,199 @@
-// src/pages/SignIn.jsx
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  Apple,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  Github,
-} from "lucide-react";
+const User = require("../../models/User");
 
-import Logo from "../components/Logo";
-import ButtonLoader from "../components/ButtonLoader";
-import { loginUser, googleLoginUser } from "../features/auth/authSlice";
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-export default function SignIn() {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-
-  const { loading, error } = useSelector((state) => state.auth);
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [showMore, setShowMore] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
-  const redirectByRoleAndPlan = (user) => {
-    const role = user?.role || "user";
-    const plan = (user?.plan || "free").toLowerCase();
-
-    if (role === "admin") return navigate("/admin");
-    if (plan === "pro") return navigate("/app/pro");
-    if (plan === "enterprise") return navigate("/app/enterprise");
-
-    navigate("/app");
-  };
-
-  const handleEmailLogin = async (e) => {
-    e.preventDefault();
-
-    const result = await dispatch(
-      loginUser({
-        email: email.trim().toLowerCase(),
-        password,
-      })
+class AuthService {
+  generateToken(user) {
+    return jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        role: user.role || "user",
+        plan: user.plan || "free"
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN || "1d"
+      }
     );
+  }
 
-    if (loginUser.fulfilled.match(result)) {
-      localStorage.setItem("loginProvider", "email");
-      redirectByRoleAndPlan(result.payload);
+  safeUser(user) {
+    return {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      mobileNumber: user.mobileNumber,
+      avatarUrl: user.avatarUrl,
+      role: user.role || "user",
+      plan: user.plan || "free"
+    };
+  }
+
+  async signupWithEmail(email, password, name, mobileNumber) {
+    email = email.trim().toLowerCase();
+
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      if (existingUser.googleId) {
+        throw new Error(
+          "This email is linked to Google. Please login with Google."
+        );
+      }
+
+      throw new Error("Account already exists.");
     }
-  };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    const result = await dispatch(
-      googleLoginUser(credentialResponse.credential)
-    );
+    const passwordHash = await bcrypt.hash(password, 10);
 
-    if (googleLoginUser.fulfilled.match(result)) {
-      localStorage.setItem("loginProvider", "google");
-      redirectByRoleAndPlan(result.payload);
-    }
-  };
+    const role = email === "admin@aitwin.com" ? "admin" : "user";
 
-  const handleGoogleError = () => {
-    alert("Google login failed");
-  };
-
-  const demoSocialLogin = (provider) => {
-    localStorage.setItem("loginProvider", provider);
-
-    redirectByRoleAndPlan({
-      name: "Demo User",
-      email: "demo@twinn.live",
-      role: "user",
+    const user = await User.create({
+      name,
+      email,
+      mobileNumber,
+      passwordHash,
+      role,
       plan: "free",
+      isVerified: true
     });
-  };
 
-  const socialButtonClass =
-    "flex h-12 w-full items-center justify-center gap-3 rounded-[5px] border border-border bg-background text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10";
+    const systemToken = this.generateToken(user);
 
-  const inputWrapperClass =
-    "flex items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3 transition focus-within:border-[var(--brand-pink)] focus-within:ring-2 focus-within:ring-pink-200 dark:focus-within:ring-pink-500/20";
+    return {
+      user: this.safeUser(user),
+      systemToken
+    };
+  }
 
-  const inputClass =
-    "w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground";
+  async loginWithEmail(email, password) {
+    email = email.trim().toLowerCase();
 
-  return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <div className="mx-auto grid min-h-screen max-w-7xl gap-8 px-4 py-10 lg:grid-cols-2 lg:items-stretch">
-        <section className="hidden h-full flex-col rounded-[40px] border border-border bg-card p-8 shadow-sm lg:flex">
-          <div className="brand-gradient flex-1 overflow-hidden rounded-[32px]">
-            <img
-              src="/images/bb.png"
-              alt="AI Twin"
-              className="h-full w-full rounded-[24px] object-cover"
-            />
-          </div>
+    const user = await User.findOne({ email });
 
-          <div className="pt-8">
-            <span className="inline-flex rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-              AI TWIN LIVE COMMERCE
-            </span>
+    if (!user || !user.passwordHash) {
+      throw new Error("Invalid email or password.");
+    }
 
-            <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight text-foreground sm:text-4xl">
-              Your <span className="brand-text">AI Twin</span> is ready to sell.
-            </h1>
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
-            <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">
-              Sign in to create your twin, train it, add products, connect social
-              platforms and go live.
-            </p>
-          </div>
-        </section>
+    if (!isPasswordValid) {
+      throw new Error("Invalid email or password.");
+    }
 
-        <section className="mx-auto flex h-full w-full max-w-md flex-col">
-          <div className="flex h-full flex-col rounded-3xl border border-border bg-card p-6 shadow-xl sm:p-8">
-            <Logo />
+    user.lastLogin = new Date();
+    await user.save();
 
-            <h1 className="mt-8 text-3xl font-black leading-tight tracking-tight text-foreground sm:text-4xl">
-              Sign in to your <span className="brand-text">AI Twin</span>
-            </h1>
+    const systemToken = this.generateToken(user);
 
-            <p className="mt-4 text-sm font-medium leading-6 text-muted-foreground">
-              Continue to your dashboard, products and live sessions.
-            </p>
+    return {
+      user: this.safeUser(user),
+      systemToken
+    };
+  }
 
-            <div className="mt-7 space-y-3">
-              <div className="overflow-hidden rounded-[5px]">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap={false}
-                  auto_select={false}
-                  theme="outline"
-                  shape="rectangular"
-                  text="signin_with"
-                  size="large"
-                />
-              </div>
+  async verifyAndAuthenticateGoogleUser(googleToken) {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: googleToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
 
-              <button
-                type="button"
-                onClick={() => demoSocialLogin("apple")}
-                className="flex h-12 w-full items-center justify-center gap-3 rounded-[5px] bg-[#0d0d12] text-sm font-bold tracking-wide text-white transition hover:opacity-90"
-              >
-                <Apple className="h-5 w-5" />
-                Continue with Apple
-              </button>
+    const payload = ticket.getPayload();
 
-              {showMore && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => demoSocialLogin("github")}
-                    className={socialButtonClass}
-                  >
-                    <Github className="h-5 w-5" />
-                    Continue with GitHub
-                  </button>
+    const googleId = payload.sub;
+    const email = payload.email;
+    const name = payload.name;
+    const avatarUrl = payload.picture;
 
-                  <button
-                    type="button"
-                    onClick={() => demoSocialLogin("phone")}
-                    className={socialButtonClass}
-                  >
-                    <span className="text-sm font-black">+91</span>
-                    Continue with Phone
-                  </button>
-                </>
-              )}
+    let user = await User.findOne({
+      $or: [{ googleId }, { email }]
+    });
 
-              <button
-                type="button"
-                onClick={() => setShowMore(!showMore)}
-                className="w-full text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:underline"
-              >
-                {showMore ? "Show less options" : "More login options"}
-              </button>
-            </div>
+    if (!user) {
+      user = await User.create({
+        googleId,
+        email,
+        name,
+        avatarUrl,
+        isVerified: true,
+        role: "user",
+        plan: "free",
+        lastLogin: new Date()
+      });
+    } else {
+      user.googleId = user.googleId || googleId;
+      user.name = name || user.name;
+      user.avatarUrl = avatarUrl || user.avatarUrl;
+      user.isVerified = true;
+      user.lastLogin = new Date();
 
-            <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs font-bold tracking-wide text-muted-foreground">
-                OR LOGIN WITH EMAIL
-              </span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
+      await user.save();
+    }
 
-            <form
-              onSubmit={handleEmailLogin}
-              className="mt-2 flex flex-1 flex-col justify-between"
-            >
-              <div className="space-y-4">
-                <div className={inputWrapperClass}>
-                  <Mail className="h-5 w-5 text-[var(--brand-pink)]" />
-                  <input
-                    value={email}
-                    onChange={(e) =>
-                      setEmail(e.target.value.trimStart().toLowerCase())
-                    }
-                    className={inputClass}
-                    placeholder="Email address"
-                    type="email"
-                  />
-                </div>
+    const systemToken = this.generateToken(user);
 
-                <div className={inputWrapperClass}>
-                  <Lock className="h-5 w-5 text-[var(--brand-pink)]" />
-                  <input
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={inputClass}
-                    placeholder="Password"
-                    type={showPassword ? "text" : "password"}
-                  />
+    return {
+      user: this.safeUser(user),
+      systemToken
+    };
+  }
 
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="text-muted-foreground transition hover:text-foreground"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5" />
-                    ) : (
-                      <Eye className="h-5 w-5" />
-                    )}
-                  </button>
-                </div>
+  async requestPasswordReset(email) {
+    email = email.trim().toLowerCase();
 
-                {error && (
-                  <div className="rounded-[5px] bg-red-50 p-3 text-sm font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">
-                    {error}
-                  </div>
-                )}
-              </div>
+    const user = await User.findOne({ email });
 
-              <div className="mt-6">
-                <button
-                  disabled={loading || !email.trim() || !password.trim()}
-                  className="brand-gradient mt-5 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {loading ? <ButtonLoader text="Signing In..." /> : "Sign In"}
-                  {!loading && <ArrowRight className="h-4 w-4" />}
-                </button>
+    if (!user) {
+      return {
+        message: "If that email exists, a reset link has been sent."
+      };
+    }
 
-                <p className="mt-6 text-center text-sm text-muted-foreground">
-                  Don't have an account?
-                  <Link
-                    to="/signup"
-                    className="ml-2 font-bold text-[var(--brand-pink)] hover:underline"
-                  >
-                    Sign Up
-                  </Link>
-                </p>
-              </div>
-            </form>
-          </div>
+    if (user.googleId) {
+      throw new Error(
+        "This account uses Google Login. You cannot reset password here."
+      );
+    }
 
-          <Link
-            to="/"
-            className="mt-5 inline-flex items-center justify-center gap-2 text-sm font-bold text-muted-foreground transition hover:text-[var(--brand-pink)]"
-          >
-            <ArrowRight className="h-4 w-4 rotate-180" />
-            Back to Home
-          </Link>
-        </section>
-      </div>
-    </div>
-  );
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    user.resetToken = resetToken;
+    user.resetTokenExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await user.save();
+
+    return {
+      message: "Reset token generated successfully.",
+      resetToken
+    };
+  }
+
+  async resetPassword(token, newPassword) {
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiresAt: { $gt: new Date() }
+    });
+
+    if (!user) {
+      throw new Error("Reset link is invalid or expired.");
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    user.resetToken = undefined;
+    user.resetTokenExpiresAt = undefined;
+
+    await user.save();
+
+    return {
+      message: "Password reset successful."
+    };
+  }
 }
+
+module.exports = new AuthService();
