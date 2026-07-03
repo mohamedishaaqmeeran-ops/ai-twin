@@ -18,7 +18,8 @@ import {
   Lock,
 } from "lucide-react";
 
-const LIVE_API = "http://localhost:8000/api/live";
+const LIVE_API = "https://twinn-backend.onrender.com/api/live";
+const SOCIAL_API = "https://twinn-backend.onrender.com/api/social";
 
 const platforms = [
   { name: "Instagram", icon: Instagram, pro: false },
@@ -27,11 +28,19 @@ const platforms = [
   { name: "TikTok", icon: Music2, pro: true },
 ];
 
-const defaultProducts = ["Vitamin C Glow Serum", "Wireless Headphone", "Smart Watch"];
+const defaultProducts = [
+  "Vitamin C Glow Serum",
+  "Wireless Headphone",
+  "Smart Watch",
+];
 
 export default function GoLive() {
   const navigate = useNavigate();
-const [videoFile, setVideoFile] = useState(null);
+
+  const [videoFile, setVideoFile] = useState(null);
+  const [instagramConnected, setInstagramConnected] = useState(false);
+  const [checkingConnection, setCheckingConnection] = useState(true);
+
   const plan = localStorage.getItem("plan") || "free";
   const isPro = plan === "pro";
   const maxPlatforms = isPro ? 4 : 1;
@@ -41,7 +50,9 @@ const [videoFile, setVideoFile] = useState(null);
   const [products, setProducts] = useState(defaultProducts);
   const [selectedPlatforms, setSelectedPlatforms] = useState(["Instagram"]);
 
-  const [rtmpUrl, setRtmpUrl] = useState("rtmps://live-upload.instagram.com:443/rtmp");
+  const [rtmpUrl, setRtmpUrl] = useState(
+    "rtmps://live-upload.instagram.com:443/rtmp"
+  );
   const [streamKey, setStreamKey] = useState("");
   const [videoPath, setVideoPath] = useState("");
   const [liveLoading, setLiveLoading] = useState(false);
@@ -54,34 +65,35 @@ const [videoFile, setVideoFile] = useState(null);
     multiPlatformSync: false,
   });
 
-const uploadVideo = async () => {
-  if (!videoFile) {
-    setLiveStatus("Please choose a video file.");
-    return null;
-  }
-
-  const formData = new FormData();
-  formData.append("video", videoFile);
-
-  const res = await fetch("http://localhost:8000/api/live/upload-video", {
-    method: "POST",
-    body: formData,
-  });
-
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.message || "Video upload failed");
-  }
-
-  return data.videoPath;
-};
-
-
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
 
   const upgradeToPro = () => navigate("/pricing");
+
+  useEffect(() => {
+    const checkInstagram = async () => {
+      try {
+        const res = await fetch(`${SOCIAL_API}/connections`);
+        const data = await res.json();
+
+        const isConnected = data.data?.some(
+          (item) => item.platform === "instagram" && item.connected
+        );
+
+        setInstagramConnected(Boolean(isConnected));
+
+        if (!isConnected) {
+          setLiveStatus("Please connect Instagram before going live.");
+        }
+      } catch {
+        setLiveStatus("Unable to check Instagram connection.");
+      } finally {
+        setCheckingConnection(false);
+      }
+    };
+
+    checkInstagram();
+  }, []);
 
   useEffect(() => {
     setTwinName(localStorage.getItem("twinName") || "My AI Twin");
@@ -106,6 +118,29 @@ const uploadVideo = async () => {
       setSelectedPlatforms(isPro ? formatted : formatted.slice(0, 1));
     }
   }, [isPro]);
+
+  const uploadVideo = async () => {
+    if (!videoFile) {
+      setLiveStatus("Please choose a video file.");
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append("video", videoFile);
+
+    const res = await fetch(`${LIVE_API}/upload-video`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Video upload failed");
+    }
+
+    return data.videoPath;
+  };
 
   const togglePlatform = (name) => {
     const item = platforms.find((p) => p.name === name);
@@ -133,48 +168,52 @@ const uploadVideo = async () => {
   };
 
   const startInstagramRTMP = async () => {
-  try {
-    setLiveLoading(true);
-    setLiveStatus("");
+    try {
+      setLiveLoading(true);
+      setLiveStatus("");
 
-    if (!rtmpUrl || !streamKey || !videoFile) {
-      setLiveStatus("RTMP URL, Stream Key and Video file are required.");
-      return;
+      if (!instagramConnected) {
+        setLiveStatus("Instagram is not connected. Please connect Instagram first.");
+        navigate("/app/connect");
+        return;
+      }
+
+      if (!rtmpUrl || !streamKey || !videoFile) {
+        setLiveStatus("RTMP URL, Stream Key and Video file are required.");
+        return;
+      }
+
+      const uploadedVideoPath = await uploadVideo();
+
+      if (!uploadedVideoPath) return;
+
+      setVideoPath(uploadedVideoPath);
+
+      const res = await fetch(`${LIVE_API}/start-instagram-rtmp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rtmpUrl,
+          streamKey,
+          videoPath: uploadedVideoPath,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to start live");
+      }
+
+      setLiveStatus("Instagram RTMP stream started successfully.");
+    } catch (error) {
+      setLiveStatus(error.message || "Failed to start live.");
+    } finally {
+      setLiveLoading(false);
     }
-
-    const uploadedVideoPath = await uploadVideo();
-
-    if (!uploadedVideoPath) {
-      return;
-    }
-
-    setVideoPath(uploadedVideoPath);
-
-    const res = await fetch(`${LIVE_API}/start-instagram-rtmp`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        rtmpUrl,
-        streamKey,
-        videoPath: uploadedVideoPath,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.message || "Failed to start live");
-    }
-
-    setLiveStatus("Instagram RTMP stream started successfully.");
-  } catch (error) {
-    setLiveStatus(error.message || "Failed to start live.");
-  } finally {
-    setLiveLoading(false);
-  }
-};
+  };
 
   const stopInstagramRTMP = async () => {
     try {
@@ -200,6 +239,12 @@ const uploadVideo = async () => {
   };
 
   const continuePreview = () => {
+    if (!instagramConnected) {
+      setLiveStatus("Please connect Instagram before continuing.");
+      navigate("/app/connect");
+      return;
+    }
+
     const allowedPlatforms = isPro
       ? selectedPlatforms
       : selectedPlatforms.slice(0, 1);
@@ -222,20 +267,34 @@ const uploadVideo = async () => {
     navigate("/app/golive/preview");
   };
 
-  const canContinue = product && selectedPlatforms.length > 0;
+  const canContinue = product && selectedPlatforms.length > 0 && instagramConnected;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 bg-background text-foreground transition-colors duration-300">
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-            {isPro ? <Crown className="h-4 w-4 text-[var(--brand-pink)]" /> : <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />}
+            {isPro ? (
+              <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+            )}
             {isPro ? "PRO GO LIVE SETUP" : "GO LIVE SETUP"}
           </span>
 
-          <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${isPro ? "bg-pink-500 text-white" : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"}`}>
-            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-            {isPro ? "PRO PLAN ACTIVE" : "FREE PLAN"}
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
+              instagramConnected
+                ? "bg-green-100 text-green-600"
+                : "bg-orange-100 text-orange-600"
+            }`}
+          >
+            <Instagram className="h-4 w-4" />
+            {checkingConnection
+              ? "Checking Instagram..."
+              : instagramConnected
+              ? "Instagram Connected"
+              : "Instagram Not Connected"}
           </span>
         </div>
 
@@ -244,21 +303,38 @@ const uploadVideo = async () => {
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-          Paste Instagram Live Producer Stream URL and Stream Key, then start RTMP streaming from Twinn.
+          Connect Instagram first, then paste Instagram Live Producer RTMP URL and Stream Key.
         </p>
+
+        {!instagramConnected && !checkingConnection && (
+          <button
+            onClick={() => navigate("/app/connect")}
+            className="brand-gradient mt-5 rounded-[5px] px-6 py-3 text-sm font-bold tracking-wide text-white"
+          >
+            Connect Instagram First
+          </button>
+        )}
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="grid gap-5 md:grid-cols-2">
             <Field icon={ScanFace} label="Select AI Twin">
-              <select value={twinName} onChange={(e) => setTwinName(e.target.value)} className={inputClass}>
+              <select
+                value={twinName}
+                onChange={(e) => setTwinName(e.target.value)}
+                className={inputClass}
+              >
                 <option>{twinName}</option>
               </select>
             </Field>
 
             <Field icon={Package} label="Select Product">
-              <select value={product} onChange={(e) => setProduct(e.target.value)} className={inputClass}>
+              <select
+                value={product}
+                onChange={(e) => setProduct(e.target.value)}
+                className={inputClass}
+              >
                 {products.map((item) => (
                   <option key={item}>{item}</option>
                 ))}
@@ -292,7 +368,11 @@ const uploadVideo = async () => {
                       </span>
                     )}
 
-                    {locked ? <Lock className="h-6 w-6 text-[var(--brand-pink)]" /> : <Icon className="h-6 w-6 text-[var(--brand-pink)]" />}
+                    {locked ? (
+                      <Lock className="h-6 w-6 text-[var(--brand-pink)]" />
+                    ) : (
+                      <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
+                    )}
 
                     <p className="mt-3 text-base font-black tracking-tight text-foreground">
                       {name}
@@ -312,10 +392,6 @@ const uploadVideo = async () => {
               <Instagram className="h-5 w-5" />
               Instagram RTMP Details
             </h2>
-
-            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-              Get these from Instagram Live Producer. Do not save stream keys permanently.
-            </p>
 
             <div className="mt-5 space-y-4">
               <Field icon={Radio} label="RTMP URL">
@@ -337,14 +413,14 @@ const uploadVideo = async () => {
                 />
               </Field>
 
-            <Field icon={Package} label="Choose Video">
-  <input
-    type="file"
-    accept="video/*"
-    onChange={(e) => setVideoFile(e.target.files[0])}
-    className={inputClass}
-  />
-</Field>
+              <Field icon={Package} label="Choose Video">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setVideoFile(e.target.files[0])}
+                  className={inputClass}
+                />
+              </Field>
 
               {liveStatus && (
                 <div className="rounded-2xl border border-border bg-card p-4 text-sm font-bold text-foreground">
@@ -355,10 +431,16 @@ const uploadVideo = async () => {
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   onClick={startInstagramRTMP}
-                  disabled={liveLoading}
+                  disabled={liveLoading || checkingConnection || !instagramConnected}
                   className="brand-gradient rounded-[5px] py-3 text-sm font-bold tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {liveLoading ? "Please wait..." : "Start Instagram RTMP"}
+                  {checkingConnection
+                    ? "Checking Instagram..."
+                    : liveLoading
+                    ? "Please wait..."
+                    : instagramConnected
+                    ? "Start Instagram RTMP"
+                    : "Connect Instagram First"}
                 </button>
 
                 <button
@@ -388,44 +470,6 @@ const uploadVideo = async () => {
             <ArrowRight className="h-4 w-4" />
           </button>
         </section>
-
-        <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black tracking-tight brand-text">
-            Live Setup Preview
-          </h2>
-
-          <div className="mt-5 rounded-2xl border border-border bg-background p-5">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-              <Radio className="h-7 w-7" />
-            </div>
-
-            <h3 className="mt-5 text-lg font-black tracking-tight text-foreground">
-              {product}
-            </h3>
-
-            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-              Selling with {twinName}
-            </p>
-
-            <div className="mt-5 space-y-3">
-              <Info label="Plan" value={isPro ? "Pro Live" : "Free Live"} />
-              <Info label="Platforms" value={selectedPlatforms.join(", ")} />
-              <Info label="RTMP URL" value={rtmpUrl ? "Added" : "Not added"} />
-              <Info label="Stream Key" value={streamKey ? "Added" : "Not added"} />
-              <Info label="Video Input" value={videoFile ? videoFile.name : "Not added"} />
-            </div>
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-border bg-accent p-4">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 text-[var(--brand-pink)]" />
-
-              <p className="text-sm font-bold leading-6 text-foreground">
-                Instagram Live cannot be started directly by API. Use Instagram Live Producer stream key and RTMP.
-              </p>
-            </div>
-          </div>
-        </aside>
       </div>
     </div>
   );
@@ -453,36 +497,20 @@ function LiveToggle({ icon: Icon, title, desc, active, onClick, proOnly }) {
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
           {proOnly ? <Lock className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
         </div>
+
         <div>
-          <p className="text-sm font-black tracking-tight text-foreground">{title}</p>
+          <p className="text-sm font-black tracking-tight text-foreground">
+            {title}
+          </p>
           <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
             {proOnly ? "Unlock with Pro plan." : desc}
           </p>
         </div>
       </div>
 
-      <span
-        className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold tracking-wide ${
-          proOnly
-            ? "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
-            : active
-            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-            : "bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400"
-        }`}
-      >
+      <span className="shrink-0 rounded-full bg-emerald-50 px-4 py-2 text-xs font-bold tracking-wide text-emerald-600">
         {proOnly ? "PRO" : active ? "ON" : "OFF"}
       </span>
     </button>
-  );
-}
-
-function Info({ label, value }) {
-  return (
-    <div className="flex justify-between gap-4 rounded-xl border border-border bg-card p-4 text-sm">
-      <span className="font-medium text-muted-foreground">{label}</span>
-      <span className="text-right text-sm font-black tracking-tight text-foreground">
-        {value || "Not selected"}
-      </span>
-    </div>
   );
 }
