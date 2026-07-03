@@ -137,13 +137,13 @@ export default function SignIn() {
             </p>
 
             <div className="mt-7 space-y-3">
-              <div className="flex h-12 w-full items-center justify-center overflow-hidden rounded-[5px] border border-border bg-background">
+              <div className="flex h-12 w-full items-center justify-center overflow-hidden rounded-[5px] ">
                 <GoogleLogin
                   onSuccess={handleGoogleSuccess}
                   onError={handleGoogleError}
                   useOneTap={false}
                   auto_select={false}
-                  theme="outline"
+                
                   shape="rectangular"
                   
                   size="large"
