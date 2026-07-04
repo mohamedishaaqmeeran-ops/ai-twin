@@ -149,18 +149,7 @@ export default function PrivacyPolicy() {
                 </span>
               </div>
 
-              <div className="mt-6 rounded-3xl border border-orange-200 bg-orange-50 p-5 dark:border-orange-500/20 dark:bg-orange-500/10">
-                <div className="flex gap-3">
-                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
-
-                  <p className="text-sm font-medium leading-6 text-orange-700 dark:text-orange-300">
-                    This is a content draft prepared for internal review. It is
-                    not legal advice. Before publishing, it must be reviewed by
-                    a qualified legal professional familiar with Indian data
-                    protection law and any other applicable privacy laws.
-                  </p>
-                </div>
-              </div>
+             
             </div>
           </div>
         </section>

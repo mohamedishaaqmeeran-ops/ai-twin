@@ -146,24 +146,48 @@ export default function ContactUs() {
       })}
 
       <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <div className="flex items-start gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-            <Clock className="h-7 w-7" />
-          </div>
+  <div className="flex items-start gap-4">
+    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+      <Clock className="h-7 w-7" />
+    </div>
 
-          <div>
-            <h3 className="text-lg font-black tracking-tight text-foreground">
-              Working Hours
-            </h3>
+    <div>
+      <h3 className="text-lg font-black tracking-tight text-foreground">
+        Working Hours
+      </h3>
 
-            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-              Monday - Saturday
-              <br />
-              10:00 AM - 6:00 PM IST
-            </p>
-          </div>
-        </div>
-      </div>
+      <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+        Monday - Saturday
+        <br />
+        10:00 AM - 6:00 PM IST
+      </p>
+    </div>
+  </div>
+
+  {/* Google Map */}
+  <div className="mt-6 overflow-hidden rounded-2xl border border-border">
+    <iframe
+      title="Twinn Location"
+      src="https://www.google.com/maps?q=Chennai,India&output=embed"
+      width="100%"
+      height="250"
+      loading="lazy"
+      allowFullScreen
+      referrerPolicy="no-referrer-when-downgrade"
+      className="border-0"
+    />
+  </div>
+
+  <a
+    href="https://www.google.com/maps/dir/8.1859837,77.3979608/Parkqwik+Private+Limited,+Level+7,+IIFL+TOWERS,+143,+MGR+Main+Rd,+Kandhanchavadi,+Perungudi,+Chennai,+Greater+Chennai,+Tamil+Nadu+600096/@10.5656965,76.1808097,7z/data=!3m2!4b1!5s0x3a525d1319512c2f:0x111147a8044cf6ee!4m9!4m8!1m1!4e1!1m5!1m1!1s0x3a525d085e1bbb55:0x86d5074faeaa44d1!2m2!1d80.2463332!2d12.9658308?entry=ttu&g_ep=EgoyMDI2MDYyOS4wIKXMDSoASAFQAw%3D%3D"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="brand-gradient mt-4 flex h-11 items-center justify-center rounded-[5px] text-sm font-bold text-white transition hover:opacity-90"
+  >
+    <MapPin className="mr-2 h-4 w-4" />
+    Open in Google Maps
+  </a>
+</div>
     </div>
 
     {/* Right Form */}
