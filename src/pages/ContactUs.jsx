@@ -110,7 +110,7 @@ export default function ContactUs() {
        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
   <div className="grid gap-8 lg:grid-cols-[420px_1fr] lg:items-start">
     {/* Left Contact Cards */}
-    <div className="space-y-12">
+    <div className="space-y-8">
       {contactCards.map(({ icon: Icon, title, value, desc, href }) => {
         const content = (
           <div className="h-full rounded-3xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg sm:p-6">
@@ -271,6 +271,34 @@ export default function ContactUs() {
           </div>
         )}
       </form>
+      {/* Extra content to balance map height */}
+<div className="mt-8 grid gap-4 md:grid-cols-2">
+  <div className="rounded-2xl border border-border bg-background p-5">
+    <h3 className="text-base font-black tracking-tight text-foreground">
+      Need faster help?
+    </h3>
+    <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+      Email us directly at{" "}
+      <a
+        href="mailto:hello@twinn.live"
+        className="font-bold text-[var(--brand-pink)]"
+      >
+        hello@twinn.live
+      </a>
+      . We usually reply within 24 hours.
+    </p>
+  </div>
+
+  <div className="rounded-2xl border border-border bg-background p-5">
+    <h3 className="text-base font-black tracking-tight text-foreground">
+      What happens next?
+    </h3>
+    <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+      Our team will review your request and contact you for demo, pricing,
+      setup or support.
+    </p>
+  </div>
+</div>
     </section>
   </div>
 </section>
