@@ -17,8 +17,7 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
 
 const [form, setForm] = useState({
-  name: "",
-  mobile: "",
+  
   email: "",
   password: "",
   confirmPassword: "",
@@ -47,8 +46,7 @@ const handleSignup = async (e) => {
   setError("");
 
   if (
-    !form.name.trim() ||
-    !form.mobile.trim() ||
+   
     !form.email.trim() ||
     !form.password.trim() ||
     !form.confirmPassword.trim()
@@ -84,11 +82,11 @@ const handleSignup = async (e) => {
           "Content-Type": "application/json",
         },
       body: JSON.stringify({
-  name: form.name,
+
   email: form.email,
   password: form.password,
   confirmPassword: form.confirmPassword,
-  mobileNumber: form.mobile,
+ 
 }),
       }
     );
@@ -165,33 +163,9 @@ const handleSignup = async (e) => {
             className="flex flex-1 flex-col justify-between"
           >
             <div className="space-y-4">
-              <div className={inputClass}>
-                <User className="h-5 w-5 text-[var(--brand-pink)]" />
-                <input
-                  placeholder="Full Name"
-                  className={inputFieldClass}
-                  value={form.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                />
-              </div>
+             
 
-              <div className={inputClass}>
-  <Phone className="h-5 w-5 text-[var(--brand-pink)]" />
-
-  <input
-    type="tel"
-    placeholder="Mobile Number"
-    className={inputFieldClass}
-    value={form.mobile}
-    maxLength={10}
-    onChange={(e) =>
-      handleChange(
-        "mobile",
-        e.target.value.replace(/\D/g, "")
-      )
-    }
-  />
-</div>
+         
 
               <div className={inputClass}>
                 <Mail className="h-5 w-5 text-[var(--brand-pink)]" />
