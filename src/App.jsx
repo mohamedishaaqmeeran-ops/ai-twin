@@ -64,6 +64,7 @@ import Careers from "./pages/Careers.jsx";
 import Team from "./pages/Team.jsx";
 import ContactUs from "./pages/ContactUs.jsx";
 import DataDeletion from "./pages/DataDeletion.jsx";
+import Blog from "./pages/Blog.jsx";
 
 
 function RequireAdmin({ children }) {
@@ -130,6 +131,7 @@ export default function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signin" element={<Signin />} />
         <Route path="/about" element={<AboutUs />} />
+        <Route path="/blog" element={<Blog />} />
         <Route path="/careers" element={<Careers />} />
         <Route path="/contactus" element={<ContactUs />} />
         <Route path="/creators" element={<Creators />} />
