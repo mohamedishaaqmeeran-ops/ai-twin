@@ -65,6 +65,9 @@ import Team from "./pages/Team.jsx";
 import ContactUs from "./pages/ContactUs.jsx";
 import DataDeletion from "./pages/DataDeletion.jsx";
 import Blog from "./pages/Blog.jsx";
+import Checkout from "./pages/Checkout.jsx";
+import PaymentSuccess from "./pages/PaymentSuccess.jsx";
+import PaymentFailed from "./pages/PaymentFailed.jsx";
 
 
 function RequireAdmin({ children }) {
@@ -140,6 +143,9 @@ export default function App() {
         <Route path="/team" element={<Team />} />
         <Route path="/agency" element={<Agency />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/checkout/:plan" element={<Checkout />} />
+<Route path="/payment-success" element={<PaymentSuccess />} />
+<Route path="/payment-failed" element={<PaymentFailed />} />
         <Route path="/aitwins" element={<AITwins />} />
          <Route path="/shortclips" element={<ShortClips />} />
         <Route path="/multistreaming" element={<MultiStreaming />} />

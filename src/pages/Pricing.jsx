@@ -18,11 +18,13 @@ import Nav from "../components/Nav";
 
 const plans = [
   {
-    name: "Free",
-    tag: "Try your AI Twin, on us.",
-    monthly: "₹0",
-    yearly: "₹0",
-    period: "Free forever",
+     name: "Free",
+  tag: "Try your AI Twin, on us.",
+  monthly: "$0",
+  monthlyOriginal: "$0",
+  yearly: "$0",
+  yearlyOriginal: "$0",
+  period: "Free forever",
     button: "Get Started Free",
     link: "/signup",
     icon: Sparkles,
@@ -40,12 +42,14 @@ const plans = [
   },
   {
     name: "Pro",
-    tag: "For creators ready to go live.",
-    monthly: "₹1,499",
-    yearly: "₹14,990",
-    period: "14-day free trial",
+  tag: "For creators ready to go live.",
+  monthly: "$29",
+  monthlyOriginal: "$49",
+  yearly: "$290",
+  yearlyOriginal: "$490",
+  period: "/ month",
     button: "Start",
-    link: "/signup",
+    link: "/checkout/pro",
     icon: Crown,
     popular: true,
     features: [
@@ -63,12 +67,14 @@ const plans = [
   },
   {
     name: "Business",
-    tag: "Scale across every channel.",
-    monthly: "₹4,999",
-    yearly: "₹49,990",
-    period: "14-day free trial",
+  tag: "Scale across every channel.",
+  monthly: "$99",
+  monthlyOriginal: "$149",
+  yearly: "$990",
+  yearlyOriginal: "$1,490",
+  period: "/ month",
     button: "Start",
-    link: "/signup",
+    link: "/checkout/business",
     icon: Rocket,
     popular: false,
     features: [
@@ -84,11 +90,13 @@ const plans = [
     ],
   },
   {
-    name: "Agency",
-    tag: "Run AI Twins for every client.",
-    monthly: "Custom",
-    yearly: "Custom",
-    period: "Volume-based pricing",
+     name: "Agency",
+  tag: "Run AI Twins for every client.",
+  monthly: "Custom",
+  monthlyOriginal: "",
+  yearly: "Custom",
+  yearlyOriginal: "",
+  period: "Volume-based pricing",
     button: "Contact Sales",
     link: "/waitlist",
     icon: Building2,
@@ -331,18 +339,30 @@ function PlanCard({ plan, billing }) {
       </p>
 
       <div className="mt-6">
-        <p className="text-4xl font-black brand-text">
-          {billing === "monthly" ? plan.monthly : plan.yearly}
-        </p>
+  {plan.name !== "Agency" && (
+    <p className="text-sm font-bold text-muted-foreground line-through">
+      {billing === "monthly" ? plan.monthlyOriginal : plan.yearlyOriginal}
+    </p>
+  )}
 
-        <p className="mt-1 text-sm font-bold text-muted-foreground">
-          {plan.name === "Agency"
-            ? plan.period
-            : billing === "monthly"
-            ? plan.period
-            : "/ year"}
-        </p>
-      </div>
+  <p className="mt-1 text-4xl font-black brand-text">
+    {billing === "monthly" ? plan.monthly : plan.yearly}
+  </p>
+
+  {plan.name !== "Free" && plan.name !== "Agency" && (
+    <p className="mt-1 text-xs font-black text-emerald-600">
+      Limited time offer
+    </p>
+  )}
+
+  <p className="mt-1 text-sm font-bold text-muted-foreground">
+    {plan.name === "Agency"
+      ? plan.period
+      : billing === "monthly"
+      ? plan.period
+      : "/ year"}
+  </p>
+</div>
 
       <Link
         to={plan.link}
