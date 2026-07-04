@@ -146,31 +146,15 @@ export default function ContactUs() {
       })}
 
       <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-  <div className="flex items-start gap-4">
-    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-      <Clock className="h-7 w-7" />
-    </div>
-
-    <div>
-      <h3 className="text-lg font-black tracking-tight text-foreground">
-        Working Hours
-      </h3>
-
-      <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-        Monday - Saturday
-        <br />
-        10:00 AM - 6:00 PM IST
-      </p>
-    </div>
-  </div>
+ 
 
   {/* Google Map */}
-  <div className="mt-6 overflow-hidden rounded-2xl border border-border">
+  <div className=" overflow-hidden rounded-2xl border border-border">
     <iframe
       title="Twinn Location"
       src="https://www.google.com/maps?q=Chennai,India&output=embed"
       width="100%"
-      height="250"
+      height="230"
       loading="lazy"
       allowFullScreen
       referrerPolicy="no-referrer-when-downgrade"
