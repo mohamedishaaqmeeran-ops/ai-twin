@@ -55,10 +55,7 @@ const handleSignup = async (e) => {
     return;
   }
 
-  if (form.mobile.length !== 10) {
-    setError("Please enter a valid 10-digit mobile number.");
-    return;
-  }
+ 
   if (!validatePassword(form.password)) {
   setError(
     "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character."
@@ -230,7 +227,7 @@ const handleSignup = async (e) => {
 
               <button
   disabled={loading}
-  className="brand-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+  className="brand-gradient mt-5 flex h-12 w-full items-center cursor-pointer justify-center gap-2 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
 >
   {loading ? "Creating Account..." : "Create Account"}
   <ArrowRight className="h-4 w-4" />

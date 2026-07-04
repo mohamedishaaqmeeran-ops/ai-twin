@@ -32,7 +32,7 @@ export default function Settings() {
   const [apiError, setApiError] = useState("");
 
   const [settings, setSettings] = useState({
-    name: "",
+    
     email: "",
     brand: "Twin Live",
     language: "English",
@@ -77,7 +77,7 @@ export default function Settings() {
 
       setSettings((prev) => ({
         ...prev,
-        name: user.name || prev.name,
+        
         email: user.email || prev.email,
         plan: userPlan,
       }));
@@ -216,12 +216,7 @@ export default function Settings() {
         <section className="space-y-6">
           <Card icon={User} title="Profile">
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Full Name" icon={User}>
-                <Input
-                  value={settings.name}
-                  onChange={(e) => update("name", e.target.value)}
-                />
-              </Field>
+            
 
               <Field label="Email" icon={Mail}>
                 <Input
