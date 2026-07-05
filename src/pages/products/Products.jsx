@@ -284,11 +284,11 @@ export default function Products() {
                       </span>
                     )}
 
-                    <img
-                      src={image}
-                      alt={product.name}
-                      className="h-56 w-full rounded-[5px] object-contain transition duration-300 group-hover:scale-105"
-                    />
+                   <img
+  src={product.images?.[0] || product.image || product.img || "/images/product1.png"}
+  alt={product.name}
+  className="h-20 w-20 rounded-2xl object-cover"
+/>
 
                     <span className="absolute left-3 top-3 rounded-full bg-card px-3 py-1 text-xs font-black tracking-wide text-[var(--brand-pink)] shadow-sm">
                       {product.status || "active"}
@@ -305,15 +305,18 @@ export default function Products() {
                     {product.name}
                   </h3>
 
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                   <p className="text-2xl font-black tracking-tight brand-text">
-  ₹{product.salePrice || product.price}
-</p>
+                 <div>
+  <p className="font-black text-[var(--brand-pink)]">
+    ₹{Number(product.salePrice || product.price || 0).toLocaleString("en-IN")}
+  </p>
 
-                    <p className="text-xs font-bold tracking-wide text-muted-foreground">
-                      {product.sales || "0 sold"}
-                    </p>
-                  </div>
+  {Number(product.salePrice) > 0 &&
+    Number(product.salePrice) < Number(product.price) && (
+      <p className="text-xs font-bold text-muted-foreground line-through">
+        ₹{Number(product.price || 0).toLocaleString("en-IN")}
+      </p>
+    )}
+</div>
 
                  <p
   className={`mt-2 text-sm font-bold ${

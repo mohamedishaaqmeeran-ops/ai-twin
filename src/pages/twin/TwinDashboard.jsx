@@ -23,18 +23,19 @@ const API = "https://twinn-backend.onrender.com/api";
 export default function TwinDashboard() {
   const navigate = useNavigate();
 
-  const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth || {});
 
-  const plan = user?.plan || "free";
-  const isPro = plan === "pro" || plan === "business";
+const plan = user?.plan || "free";
+const isPro = plan === "pro" || plan === "business";
 
-  const twins = user?.twins || [];
-  const maxTwins = isPro ? 3 : 1;
-  const canCreateTwin = twins.length < maxTwins;
+const twins = user?.twins || [];
+const products = user?.products || [];
 
-  const [products, setProducts] = useState([]);
-  const [productsLoading, setProductsLoading] = useState(false);
+const productsLoading = false;
 
+const maxTwins = isPro ? 3 : 1;
+const canCreateTwin = twins.length < maxTwins;
+  
   const hasTwin = twins.length > 0;
 
   const activeTwin = twins[0] || {
@@ -48,36 +49,14 @@ export default function TwinDashboard() {
   const isTrained = Boolean(activeTwin?.isTrained);
 
   const selectedProduct =
-    products?.[0]?.name || "No product selected";
+  products.length > 0 ? products[0].name : "No product selected";
 
   const twinName = activeTwin.name || "My AI Twin";
   const twinImage = activeTwin.image || "/images/bb.png";
 
-  const loadProducts = async () => {
-    try {
-      setProductsLoading(true);
+  
 
-      const res = await fetch(`${API}/products`, {
-        credentials: "include",
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) return;
-
-      const list = Array.isArray(data)
-        ? data
-        : data.products || data.data || [];
-
-      setProducts(Array.isArray(list) ? list : []);
-    } finally {
-      setProductsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadProducts();
-  }, []);
+ 
 
   const handleCreateTwin = () => {
     if (!canCreateTwin) return;

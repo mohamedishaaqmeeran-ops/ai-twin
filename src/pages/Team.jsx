@@ -28,7 +28,7 @@ export default function Team() {
       desc: "Building the future of AI-powered live commerce.",
     },
     {
-      name: "Vijayasree Arunkumar",
+      name: "Vijaysree",
       role: "Co-Founder",
       image: "/images/co.jpeg",
       icon: Brain,

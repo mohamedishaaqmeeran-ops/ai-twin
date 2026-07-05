@@ -62,7 +62,7 @@ import wordpressLogo from "/images/ddd.png";
 import woocommerceLogo from "/images/fff.png";
 import klaviyoLogo from "/images/ggg.png";
 import zapierLogo from "/images/hhh.png";
-import stripeLogo from "/images/iii.png";
+
 
 
 
@@ -821,8 +821,7 @@ function Tools() {
     ["WordPress", wordpressLogo],
     ["WooCommerce", woocommerceLogo],
     ["Klaviyo", klaviyoLogo],
-    ["Zapier", zapierLogo],
-    ["Stripe", stripeLogo],
+    ["Zapier", zapierLogo]
   ];
 
   return (

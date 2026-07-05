@@ -144,9 +144,7 @@ export default function PrivacyPolicy() {
                   Last Updated: June 2026
                 </span>
 
-                <span className="rounded-full bg-orange-50 px-4 py-2 text-xs font-black tracking-wide text-orange-600 dark:bg-orange-500/10 dark:text-orange-400">
-                  Draft for legal review
-                </span>
+                
               </div>
 
              
@@ -234,12 +232,7 @@ export default function PrivacyPolicy() {
             >
               <List items={useCases} />
 
-              <LegalFlag>
-                Confirm with legal counsel whether explicit, separately
-                recorded consent is required for voice cloning and
-                avatar/likeness data specifically. This may need its own
-                consent flow distinct from general account sign-up.
-              </LegalFlag>
+             
             </PolicyCard>
 
             <PolicyCard
