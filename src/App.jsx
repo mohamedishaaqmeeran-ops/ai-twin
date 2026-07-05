@@ -70,6 +70,7 @@ import Blog from "./pages/Blog.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import PaymentSuccess from "./pages/PaymentSuccess.jsx";
 import PaymentFailed from "./pages/PaymentFailed.jsx";
+import EditProduct from "./pages/products/EditProduct.jsx";
 
 
 function RequireAdmin({ children }) {
@@ -187,6 +188,7 @@ export default function App() {
             
             }
           />
+          <Route path="/app/products/edit/:id" element={<EditProduct />} />
 
           <Route
             path="products/add"
