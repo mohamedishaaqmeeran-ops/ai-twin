@@ -483,11 +483,11 @@ export default function AppLayout() {
                 Products
               </NavLink>
 
-              <SidebarButton
-                icon={Share2}
-                text="Connect Social"
-                onClick={() => handleProtectedNav("/app/connect")}
-              />
+            <SidebarButton
+  icon={Share2}
+  text="Connect Social"
+  onClick={() => navigate("/app/connect")}
+/>
 
               <SidebarButton
                 icon={Calendar}
