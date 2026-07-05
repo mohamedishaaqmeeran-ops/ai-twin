@@ -187,7 +187,7 @@ export default function App() {
             
             }
           />
-          
+          <Route path="/app/products/edit/:id" element={<EditProduct />} />
 
           <Route
             path="products/add"

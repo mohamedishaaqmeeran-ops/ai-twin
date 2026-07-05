@@ -35,9 +35,9 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All Products");
-  const [editingProduct, setEditingProduct] = useState(null);
+
   const [loading, setLoading] = useState(false);
-  const [savingEdit, setSavingEdit] = useState(false);
+
   const [error, setError] = useState("");
 
   const upgradeToPro = () => navigate("/pricing");
@@ -96,94 +96,9 @@ export default function Products() {
     });
   }, [products, query, filter]);
 
-  const deleteProduct = async (id) => {
-    try {
-      if (!id) return;
+ 
 
-      const confirmDelete = window.confirm(
-        "Are you sure you want to delete this product?"
-      );
-
-      if (!confirmDelete) return;
-
-      const res = await fetch(`${API}/products/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.message || "Unable to delete product");
-      }
-
-      setProducts((prev) =>
-        prev.filter((product) => (product._id || product.id) !== id)
-      );
-    } catch (err) {
-      alert(err.message || "Unable to delete product");
-    }
-  };
-
-  const saveEdit = async () => {
-  try {
-    if (!editingProduct) return;
-
-    setSavingEdit(true);
-
-    const id = editingProduct._id || editingProduct.id;
-
-    const payload = {
-      name: editingProduct.name,
-      price: Number(editingProduct.price),
-      category: editingProduct.category || "General",
-      stock: Number(editingProduct.stock || 0),
-      description: editingProduct.description || "",
-      status: editingProduct.status || "active",
-      images: editingProduct.images || [],
-      script: editingProduct.script || "",
-      offer: isPro ? editingProduct.offer || "" : "",
-      objectionHandling: isPro
-        ? editingProduct.objectionHandling || ""
-        : "",
-    };
-
-    const res = await fetch(`${API}/products/${id}`, {
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (res.status === 401) {
-      alert("Please login to continue");
-      navigate("/signin");
-      return;
-    }
-
-    if (!res.ok) {
-      throw new Error(data.message || "Unable to update product");
-    }
-
-    const updatedProduct = data.product || data.data;
-
-    setProducts((prev) =>
-      prev.map((product) =>
-        (product._id || product.id) === id ? updatedProduct : product
-      )
-    );
-
-    setEditingProduct(null);
-  } catch (err) {
-    alert(err.message || "Unable to update product");
-  } finally {
-    setSavingEdit(false);
-  }
-};
+  
 
   const selectProductForLive = (product) => {
   navigate("/app/golive", {
@@ -416,13 +331,7 @@ export default function Products() {
                 </div>
 
                 <div className="mt-5 grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setEditingProduct(product)}
-                    className="flex h-11 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
-                  >
-                    <Pencil className="h-4 w-4" />
-                    Edit
-                  </button>
+                 
 
                   <button
                     onClick={() => selectProductForLive(product)}
@@ -440,13 +349,7 @@ export default function Products() {
                     Details
                   </Link>
 
-                  <button
-                    onClick={() => deleteProduct(productId)}
-                    className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-red-200 text-sm font-bold tracking-wide text-red-500 transition hover:bg-red-50 dark:border-red-500/30 dark:hover:bg-red-500/10"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </button>
+                 
                 </div>
               </div>
             );
@@ -466,157 +369,12 @@ export default function Products() {
         </section>
       )}
 
-      {editingProduct && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-          <div className="w-full max-w-2xl rounded-3xl border border-border bg-card p-6 text-foreground shadow-xl">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-2xl font-black tracking-tight brand-text">
-                Edit Product
-              </h2>
-
-              <button
-                onClick={() => setEditingProduct(null)}
-                className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background text-foreground transition hover:border-[var(--brand-pink)]"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <EditInput
-                label="Product Name"
-                value={editingProduct.name || ""}
-                onChange={(value) =>
-                  setEditingProduct({ ...editingProduct, name: value })
-                }
-              />
-
-              <EditInput
-  label="Description"
-  value={editingProduct.description || ""}
-  onChange={(value) =>
-    setEditingProduct({ ...editingProduct, description: value })
-  }
-/>
-
-              <EditInput
-                label="Price"
-                value={editingProduct.price || ""}
-                onChange={(value) =>
-                  setEditingProduct({ ...editingProduct, price: value })
-                }
-              />
-
-              <EditInput
-                label="Category"
-                value={editingProduct.category || ""}
-                onChange={(value) =>
-                  setEditingProduct({ ...editingProduct, category: value })
-                }
-              />
-
-              <EditInput
-                label="Stock"
-                value={editingProduct.stock || ""}
-                onChange={(value) =>
-                  setEditingProduct({ ...editingProduct, stock: value })
-                }
-              />
-
-             <div>
-  <label className="text-sm font-black tracking-tight text-foreground">
-    Status
-  </label>
-
-  <select
-    value={editingProduct.status || "active"}
-    onChange={(e) =>
-      setEditingProduct({
-        ...editingProduct,
-        status: e.target.value,
-      })
-    }
-    className="mt-2 w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-[var(--brand-pink)]"
-  >
-    <option value="active">Active</option>
-    <option value="draft">Draft</option>
-    <option value="inactive">Inactive</option>
-  </select>
-</div>
-
-             <EditInput
-  label="Image URL"
-  value={editingProduct.images?.[0] || ""}
-  onChange={(value) =>
-    setEditingProduct({
-      ...editingProduct,
-      images: value ? [value] : [],
-    })
-  }
-/>
-
-              {isPro && (
-                <>
-                  <EditInput
-                    label="Live Sales Script"
-                    value={editingProduct.script || ""}
-                    onChange={(value) =>
-                      setEditingProduct({ ...editingProduct, script: value })
-                    }
-                  />
-
-                  <EditInput
-                    label="Discount Offer"
-                    value={editingProduct.offer || ""}
-                    onChange={(value) =>
-                      setEditingProduct({ ...editingProduct, offer: value })
-                    }
-                  />
-                </>
-              )}
-            </div>
-
-            {!isPro && (
-              <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
-                <p className="text-sm font-black text-[var(--brand-pink)]">
-                  Pro fields locked
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Upgrade to add sales scripts and discount offers.
-                </p>
-              </div>
-            )}
-
-            <button
-              onClick={saveEdit}
-              disabled={savingEdit}
-              className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Save className="h-4 w-4" />
-              {savingEdit ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </div>
-      )}
+     
     </div>
   );
 }
 
-function EditInput({ label, value, onChange }) {
-  return (
-    <div>
-      <label className="text-sm font-black tracking-tight text-foreground">
-        {label}
-      </label>
 
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-2 w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20"
-      />
-    </div>
-  );
-}
 
 function StatCard({ icon: Icon, label, value }) {
   return (
