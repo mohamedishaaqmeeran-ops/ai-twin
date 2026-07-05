@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { fetchMe } from "../../features/auth/authSlice";
+import { useDispatch, useSelector } from "react-redux";
 import {
   ArrowLeft,
   Save,
@@ -8,6 +10,8 @@ import {
   Tag,
   Boxes,
   FileText,
+ 
+  Lock,
   Megaphone,
   Percent,
   Sparkles,
@@ -21,7 +25,11 @@ const API = "https://twinn-backend.onrender.com/api";
 export default function EditProduct() {
   const { id } = useParams();
   const navigate = useNavigate();
+ const dispatch = useDispatch();
+const { user } = useSelector((state) => state.auth || {});
 
+const plan = user?.plan || "free";
+const isPro = plan === "pro" || plan === "business";
   const [product, setProduct] = useState({
     name: "",
     price: "",
@@ -47,9 +55,10 @@ export default function EditProduct() {
   const textareaClass =
     "w-full rounded-2xl border border-border bg-background p-4 text-sm text-foreground outline-none transition focus:border-[var(--brand-pink)]";
 
-  useEffect(() => {
-    loadProduct();
-  }, [id]);
+useEffect(() => {
+  dispatch(fetchMe());
+  loadProduct();
+}, [dispatch, id]);
 
   const loadProduct = async () => {
     try {
@@ -136,17 +145,18 @@ export default function EditProduct() {
       formData.append("stock", Number(product.stock || 0));
       formData.append("description", product.description || "");
       formData.append("script", product.script || "");
-      formData.append("offer", product.offer || "");
-      formData.append("objectionHandling", product.objectionHandling || "");
+      formData.append("offer", isPro ? product.offer || "" : "");
+formData.append(
+  "objectionHandling",
+  isPro ? product.objectionHandling || "" : ""
+);
       formData.append("status", product.status || "active");
 
       if (newImages.length > 0) {
         newImages.forEach((img) => {
           formData.append("images", img.file);
         });
-      } else {
-        formData.append("images", JSON.stringify(product.images || []));
-      }
+      } 
 
       const res = await fetch(`${API}/products/${id}`, {
         method: "PUT",
@@ -314,23 +324,39 @@ export default function EditProduct() {
             />
           </Field>
 
-          <Field icon={Percent} label="Discount Offer">
-            <textarea
-              value={product.offer}
-              onChange={(e) => updateField("offer", e.target.value)}
-              className={textareaClass}
-              rows="4"
-            />
-          </Field>
+         {isPro ? (
+  <>
+    <Field icon={Percent} label="Discount Offer">
+      <textarea
+        value={product.offer}
+        onChange={(e) => updateField("offer", e.target.value)}
+        className={textareaClass}
+        rows="4"
+      />
+    </Field>
 
-          <Field icon={Sparkles} label="Objection Handling">
-            <textarea
-              value={product.objectionHandling}
-              onChange={(e) => updateField("objectionHandling", e.target.value)}
-              className={textareaClass}
-              rows="4"
-            />
-          </Field>
+    <Field icon={Sparkles} label="Objection Handling">
+      <textarea
+        value={product.objectionHandling}
+        onChange={(e) =>
+          updateField("objectionHandling", e.target.value)
+        }
+        className={textareaClass}
+        rows="4"
+      />
+    </Field>
+  </>
+) : (
+  <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
+    <p className="flex items-center gap-2 text-sm font-black text-[var(--brand-pink)]">
+      <Lock className="h-4 w-4" />
+      Pro fields locked
+    </p>
+    <p className="mt-1 text-sm text-muted-foreground">
+      Upgrade to Pro to edit discount offers and objection handling.
+    </p>
+  </div>
+)}
 
           <button
             onClick={saveProduct}
