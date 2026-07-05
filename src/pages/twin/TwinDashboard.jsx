@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Sparkles,
@@ -11,44 +12,72 @@ import {
   CheckCircle2,
   Calendar,
   Instagram,
-  ArrowRight,
   BadgeCheck,
   Crown,
   Plus,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 
-
-
+const API = "https://twinn-backend.onrender.com/api";
 
 export default function TwinDashboard() {
   const navigate = useNavigate();
 
   const { user } = useSelector((state) => state.auth);
 
-const plan = user?.plan || "free";
-const isPro = plan === "pro" || plan === "business";
+  const plan = user?.plan || "free";
+  const isPro = plan === "pro" || plan === "business";
 
-const twins = user?.twins || [];
-const hasTwin = twins.length > 0;
+  const twins = user?.twins || [];
+  const maxTwins = isPro ? 3 : 1;
+  const canCreateTwin = twins.length < maxTwins;
 
-const activeTwin = twins[0] || {
-  id: "default",
-  name: "My AI Twin",
-  image: "/images/bb.png",
-  voice: "Warm Female",
-  status: "Draft",
-};
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
 
-const isTrained = Boolean(activeTwin?.isTrained);
+  const hasTwin = twins.length > 0;
 
-const selectedProduct =
-  user?.selectedProduct?.name ||
-  user?.products?.[0]?.name ||
-  "No product selected";
-  
+  const activeTwin = twins[0] || {
+    id: "default",
+    name: "My AI Twin",
+    image: "/images/bb.png",
+    voice: "Warm Female",
+    status: "Draft",
+  };
+
+  const isTrained = Boolean(activeTwin?.isTrained);
+
+  const selectedProduct =
+    products?.[0]?.name || "No product selected";
+
   const twinName = activeTwin.name || "My AI Twin";
   const twinImage = activeTwin.image || "/images/bb.png";
+
+  const loadProducts = async () => {
+    try {
+      setProductsLoading(true);
+
+      const res = await fetch(`${API}/products`, {
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) return;
+
+      const list = Array.isArray(data)
+        ? data
+        : data.products || data.data || [];
+
+      setProducts(Array.isArray(list) ? list : []);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
   const handleCreateTwin = () => {
     if (!canCreateTwin) return;
@@ -56,17 +85,22 @@ const selectedProduct =
   };
 
   const handleGoLive = () => {
-    if (!twins.length) {
+    if (!hasTwin) {
       navigate("/app/twin/create");
       return;
     }
 
-    if (selectedProduct === "No product selected") {
+    if (!products.length) {
       navigate("/app/products");
       return;
     }
 
-    navigate("/app/golive");
+    navigate("/app/golive", {
+      state: {
+        selectedProduct: products[0],
+        selectedTwin: activeTwin,
+      },
+    });
   };
 
   return (
@@ -98,7 +132,7 @@ const selectedProduct =
 
             <h1 className="mt-5 text-3xl font-black leading-tight tracking-tight text-foreground sm:text-5xl">
               <span className="brand-text">
-                {twins.length ? twinName : "Create Your AI Twin"}
+                {hasTwin ? twinName : "Create Your AI Twin"}
               </span>
               <br />
               {isPro ? "Pro avatars ready." : "Ready to sell."}
@@ -172,7 +206,7 @@ const selectedProduct =
         <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {twins.map((twin, index) => (
             <div
-              key={twin.id || index}
+              key={twin.id || twin._id || index}
               className="rounded-3xl border border-border bg-background p-5 transition hover:-translate-y-1 hover:border-[var(--brand-pink)] hover:shadow-lg"
             >
               <img
@@ -194,19 +228,26 @@ const selectedProduct =
               </p>
 
               <div className="mt-5 grid grid-cols-2 gap-3">
-<Link
-  to={`/app/twin/edit?twinId=${twin.id}`}
-  className="flex h-10 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)]"
->
-  Edit
-</Link>
+                <Link
+                  to={`/app/twin/edit?twinId=${twin.id || twin._id}`}
+                  className="flex h-10 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)]"
+                >
+                  Edit
+                </Link>
 
-               <button
-  onClick={() => navigate(`/app/golive?twinId=${twin.id}`)}
-  className="brand-gradient h-10 rounded-[5px] text-sm font-bold text-white"
->
-  Go Live
-</button>
+                <button
+                  onClick={() =>
+                    navigate(`/app/golive?twinId=${twin.id || twin._id}`, {
+                      state: {
+                        selectedTwin: twin,
+                        selectedProduct: products[0],
+                      },
+                    })
+                  }
+                  className="brand-gradient h-10 rounded-[5px] text-sm font-bold text-white"
+                >
+                  Go Live
+                </button>
               </div>
             </div>
           ))}
@@ -243,15 +284,15 @@ const selectedProduct =
         />
         <StatusCard
           icon={Package}
-          label="Selected Product"
-          value={selectedProduct}
-          active={selectedProduct !== "No product selected"}
+          label="Products"
+          value={productsLoading ? "Loading..." : `${products.length} Products`}
+          active={products.length > 0}
         />
         <StatusCard
           icon={Radio}
           label="Live Status"
           value={isPro ? "Pro Ready" : "Ready"}
-          active={twins.length > 0}
+          active={twins.length > 0 && products.length > 0}
         />
       </section>
 
@@ -368,7 +409,7 @@ const selectedProduct =
             <ChecklistItem
               title="Product Selected"
               desc={selectedProduct}
-              done={selectedProduct !== "No product selected"}
+              done={products.length > 0}
             />
           </div>
         </div>
@@ -399,7 +440,13 @@ const selectedProduct =
               <Info
                 icon={BadgeCheck}
                 label="Status"
-                value={isPro ? "Pro Scheduled" : "Scheduled"}
+                value={
+                  products.length > 0
+                    ? isPro
+                      ? "Pro Scheduled"
+                      : "Scheduled"
+                    : "Product Required"
+                }
               />
             </div>
 
