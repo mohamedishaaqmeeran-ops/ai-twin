@@ -165,10 +165,12 @@ export default function Products() {
   };
 
   const selectProductForLive = (product) => {
-    localStorage.setItem("selectedProduct", product.name);
-    localStorage.setItem("selectedProductId", product._id || product.id);
-    navigate("/app/golive");
-  };
+  navigate("/app/golive", {
+    state: {
+      selectedProduct: product,
+    },
+  });
+};
 
   return (
     <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
@@ -269,24 +271,24 @@ export default function Products() {
           label="Total Products"
           value={loading ? "..." : `${products.length}/${maxProducts}`}
         />
+      <StatCard
+  icon={Radio}
+  label="Live Ready"
+  value={
+    loading
+      ? "..."
+      : products.filter((p) => p.status === "active").length
+  }
+/>
         <StatCard
-          icon={Radio}
-          label="Live Ready"
-          value={
-            loading
-              ? "..."
-              : products.filter((p) => p.status === "Ready to sell").length
-          }
-        />
-        <StatCard
-          icon={Tag}
-          label="Need Script"
-          value={
-            loading
-              ? "..."
-              : products.filter((p) => p.status === "Needs script").length
-          }
-        />
+  icon={Tag}
+  label="Draft"
+  value={
+    loading
+      ? "..."
+      : products.filter((p) => p.status === "draft").length
+  }
+/>
         <StatCard
           icon={TrendingUp}
           label="Analytics"
@@ -306,16 +308,16 @@ export default function Products() {
             />
           </div>
 
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold text-foreground outline-none transition focus:border-[var(--brand-pink)]"
-          >
-            <option>All Products</option>
-            <option>Ready to sell</option>
-            <option>Needs script</option>
-            <option>Out of stock</option>
-          </select>
+         <select
+  value={filter}
+  onChange={(e) => setFilter(e.target.value)}
+  className="rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold text-foreground outline-none transition focus:border-[var(--brand-pink)]"
+>
+  <option value="All Products">All Products</option>
+  <option value="active">Active</option>
+  <option value="draft">Draft</option>
+  <option value="inactive">Inactive</option>
+</select>
         </div>
       </section>
 
@@ -327,7 +329,11 @@ export default function Products() {
         <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredProducts.map((product) => {
             const productId = product._id || product.id;
-            const image = product.img || product.image || "/images/6.jpeg";
+            const image =
+  product.images?.[0] ||
+  product.img ||
+  product.image ||
+  "/images/6.jpeg";
 
             return (
               <div
@@ -349,7 +355,7 @@ export default function Products() {
                     />
 
                     <span className="absolute left-3 top-3 rounded-full bg-card px-3 py-1 text-xs font-black tracking-wide text-[var(--brand-pink)] shadow-sm">
-                      {product.status || "Ready to sell"}
+                      {product.status || "active"}
                     </span>
 
                     <span className="absolute right-3 top-3 rounded-full bg-[#0d0d12] px-3 py-1 text-xs font-bold tracking-wide text-white">
@@ -364,24 +370,28 @@ export default function Products() {
                   </h3>
 
                   <div className="mt-2 flex items-center justify-between gap-3">
-                    <p className="text-2xl font-black tracking-tight brand-text">
-                      {product.price}
-                    </p>
+                   <p className="text-2xl font-black tracking-tight brand-text">
+  ₹{product.salePrice || product.price}
+</p>
 
                     <p className="text-xs font-bold tracking-wide text-muted-foreground">
                       {product.sales || "0 sold"}
                     </p>
                   </div>
 
-                  <p
-                    className={`mt-2 text-sm font-bold ${
-                      product.stock === "Low Stock"
-                        ? "text-orange-500 dark:text-orange-400"
-                        : "text-emerald-600 dark:text-emerald-400"
-                    }`}
-                  >
-                    {product.stock || "In Stock"}
-                  </p>
+                 <p
+  className={`mt-2 text-sm font-bold ${
+    Number(product.stock) <= 0
+      ? "text-red-500"
+      : Number(product.stock) <= 5
+      ? "text-orange-500"
+      : "text-emerald-600"
+  }`}
+>
+  {Number(product.stock) <= 0
+    ? "Out of Stock"
+    : `${product.stock} in stock`}
+</p>
                 </div>
 
                 <div className="mt-5 grid grid-cols-2 gap-3">
@@ -484,25 +494,37 @@ export default function Products() {
                 }
               />
 
-              <EditInput
-                label="Status"
-                value={editingProduct.status || ""}
-                onChange={(value) =>
-                  setEditingProduct({ ...editingProduct, status: value })
-                }
-              />
+             <div>
+  <label className="text-sm font-black tracking-tight text-foreground">
+    Status
+  </label>
 
-              <EditInput
-                label="Image Path"
-                value={editingProduct.img || editingProduct.image || ""}
-                onChange={(value) =>
-                  setEditingProduct({
-                    ...editingProduct,
-                    img: value,
-                    image: value,
-                  })
-                }
-              />
+  <select
+    value={editingProduct.status || "active"}
+    onChange={(e) =>
+      setEditingProduct({
+        ...editingProduct,
+        status: e.target.value,
+      })
+    }
+    className="mt-2 w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-[var(--brand-pink)]"
+  >
+    <option value="active">Active</option>
+    <option value="draft">Draft</option>
+    <option value="inactive">Inactive</option>
+  </select>
+</div>
+
+             <EditInput
+  label="Image URL"
+  value={editingProduct.images?.[0] || ""}
+  onChange={(value) =>
+    setEditingProduct({
+      ...editingProduct,
+      images: value ? [value] : [],
+    })
+  }
+/>
 
               {isPro && (
                 <>

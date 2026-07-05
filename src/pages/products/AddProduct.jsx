@@ -116,79 +116,72 @@ export default function AddProduct() {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const saveProduct = async () => {
-    try {
-      setError("");
+ const saveProduct = async () => {
+  try {
+    setError("");
 
-      if (reachedLimit) {
-        upgradeToPro();
-        return;
-      }
-
-      if (!product.name.trim() || !product.price.trim()) {
-        setError("Product name and price are required.");
-        return;
-      }
-
-      setSaving(true);
-
-      const status = product.script.trim() ? "Ready to sell" : "Needs script";
-
-      const formData = new FormData();
-
-      formData.append("name", product.name);
-      formData.append("price", product.price);
-      formData.append("category", product.category || "General");
-      formData.append("stock", product.stock || "0");
-      formData.append("description", product.description);
-      formData.append("script", product.script);
-      formData.append("offer", isPro ? product.offer : "");
-      formData.append(
-        "objectionHandling",
-        isPro ? product.objectionHandling : ""
-      );
-      formData.append("status", status);
-      formData.append("sales", "0 sold");
-      formData.append("plan", isPro ? "pro" : "free");
-
-      const allowedImages = isPro ? images : images.slice(0, 1);
-
-      allowedImages.forEach((img) => {
-        formData.append("images", img.file);
-      });
-
-      if (!allowedImages.length) {
-        formData.append("img", "/images/product1.png");
-      }
-
-      const res = await fetch(`${API}/products`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.message || "Unable to save product");
-      }
-
-      const newProduct = data.product || data.data || data;
-
-      localStorage.setItem("selectedProduct", newProduct.name || product.name);
-      localStorage.setItem("selectedProductId", newProduct._id || newProduct.id || "");
-
-      setSaved(true);
-
-      setTimeout(() => {
-        navigate("/app/products");
-      }, 1000);
-    } catch (err) {
-      setError(err.message || "Unable to save product");
-    } finally {
-      setSaving(false);
+    if (reachedLimit) {
+      upgradeToPro();
+      return;
     }
-  };
+
+    if (!product.name.trim() || !product.price.trim()) {
+      setError("Product name and price are required.");
+      return;
+    }
+
+    setSaving(true);
+
+    const formData = new FormData();
+
+    formData.append("name", product.name.trim());
+    formData.append("price", Number(product.price));
+    formData.append("category", product.category || "General");
+    formData.append("stock", Number(product.stock || 0));
+    formData.append("description", product.description || "");
+    formData.append("script", product.script || "");
+    formData.append("offer", isPro ? product.offer || "" : "");
+    formData.append(
+      "objectionHandling",
+      isPro ? product.objectionHandling || "" : ""
+    );
+    formData.append("status", product.script.trim() ? "active" : "draft");
+
+    const allowedImages = isPro ? images : images.slice(0, 1);
+
+    allowedImages.forEach((img) => {
+      formData.append("images", img.file);
+    });
+
+    const res = await fetch(`${API}/products`, {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+      setError("Please login to continue.");
+      navigate("/signin");
+      return;
+    }
+
+    if (!res.ok) {
+      throw new Error(data.message || "Unable to save product");
+    }
+
+    setSaved(true);
+
+    setTimeout(() => {
+      navigate("/app/products");
+    }, 1000);
+  } catch (err) {
+    setError(err.message || "Unable to save product");
+  } finally {
+    setSaving(false);
+  }
+};
 
   const canSave = product.name.trim() && product.price.trim() && !reachedLimit;
 
@@ -339,7 +332,7 @@ export default function AddProduct() {
                 value={product.price}
                 onChange={(e) => updateField("price", e.target.value)}
                 className={inputClass}
-                placeholder="₹799"
+                placeholder="799"
               />
             </Field>
 

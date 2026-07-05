@@ -66,11 +66,13 @@ export default function ProductDetails() {
     loadProduct();
   }, [dispatch, id]);
 
-  const sellLive = () => {
-    localStorage.setItem("selectedProduct", product.name);
-    localStorage.setItem("selectedProductId", product._id || product.id);
-    navigate("/app/golive");
-  };
+ const sellLive = () => {
+  navigate("/app/golive", {
+    state: {
+      selectedProduct: product,
+    },
+  });
+};
 
   const deleteProduct = async () => {
     try {
@@ -132,7 +134,11 @@ export default function ProductDetails() {
   if (!product) return null;
 
   const productId = product._id || product.id;
-  const image = product.img || product.image || "/images/6.jpeg";
+  const image =
+  product.images?.[0] ||
+  product.img ||
+  product.image ||
+  "/images/6.jpeg";
 
   return (
     <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
@@ -220,10 +226,14 @@ export default function ProductDetails() {
               iconClass="text-yellow-500"
             />
             <MiniStat
-              icon={CheckCircle2}
-              label={product.stock || "In Stock"}
-              iconClass="text-green-500"
-            />
+  icon={CheckCircle2}
+  label={
+    Number(product.stock) <= 0
+      ? "Out of Stock"
+      : `${product.stock} Stock`
+  }
+  iconClass="text-green-500"
+/>
           </div>
         </section>
 
@@ -235,13 +245,23 @@ export default function ProductDetails() {
                   {product.name}
                 </h2>
 
-                <p className="mt-2 text-3xl font-black tracking-tight brand-text">
-                  {product.price}
-                </p>
+               <p className="mt-2 text-3xl font-black tracking-tight brand-text">
+  ₹{product.salePrice || product.price}
+</p>
 
-                <span className="mt-3 inline-flex rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold tracking-wide text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                  {product.stock || "In Stock"}
-                </span>
+                <span
+  className={`mt-3 inline-flex rounded-full px-4 py-2 text-sm font-bold tracking-wide ${
+    Number(product.stock) <= 0
+      ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+      : Number(product.stock) <= 5
+      ? "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
+      : "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+  }`}
+>
+  {Number(product.stock) <= 0
+    ? "Out of Stock"
+    : `${product.stock} in stock`}
+</span>
               </div>
 
               <span className="rounded-full bg-[#0d0d12] px-4 py-2 text-sm font-bold tracking-wide text-white">

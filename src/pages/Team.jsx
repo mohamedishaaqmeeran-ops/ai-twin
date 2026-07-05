@@ -30,7 +30,7 @@ export default function Team() {
     {
       name: "Vijayasree Arunkumar",
       role: "Co-Founder",
-      image: "/images/co.png",
+      image: "/images/co.jpeg",
       icon: Brain,
       desc: "Designing AI Twin flows for creators, brands and agencies.",
     },
