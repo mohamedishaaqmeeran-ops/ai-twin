@@ -16,34 +16,37 @@ import {
   Crown,
   Plus,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+
+
+
 
 export default function TwinDashboard() {
   const navigate = useNavigate();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const { user } = useSelector((state) => state.auth);
 
-  const savedTwins = JSON.parse(localStorage.getItem("aiTwins") || "[]");
+const plan = user?.plan || "free";
+const isPro = plan === "pro" || plan === "business";
 
-  const fallbackTwin = {
-    id: "default",
-    name: localStorage.getItem("twinName") || "My AI Twin",
-    image: localStorage.getItem("twinImage") || "/images/bb.png",
-    voice: localStorage.getItem("voiceStyle") || "Warm Female",
-    status: "Active",
-  };
+const twins = user?.twins || [];
+const hasTwin = twins.length > 0;
 
-  const hasTwin = localStorage.getItem("hasTwin") === "true";
-  const twins = savedTwins.length ? savedTwins : hasTwin ? [fallbackTwin] : [];
+const activeTwin = twins[0] || {
+  id: "default",
+  name: "My AI Twin",
+  image: "/images/bb.png",
+  voice: "Warm Female",
+  status: "Draft",
+};
 
-  const maxTwins = isPro ? 3 : 1;
-  const canCreateTwin = twins.length < maxTwins;
+const isTrained = Boolean(activeTwin?.isTrained);
 
-  const isTrained = localStorage.getItem("isTwinTrained") === "true";
-  const selectedProduct =
-    localStorage.getItem("selectedProduct") || "No product selected";
-
-  const activeTwin = twins[0] || fallbackTwin;
+const selectedProduct =
+  user?.selectedProduct?.name ||
+  user?.products?.[0]?.name ||
+  "No product selected";
+  
   const twinName = activeTwin.name || "My AI Twin";
   const twinImage = activeTwin.image || "/images/bb.png";
 
@@ -191,29 +194,19 @@ export default function TwinDashboard() {
               </p>
 
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <Link
-                  to="/app/twin/edit"
-                  onClick={() => {
-                    localStorage.setItem("aiTwin", JSON.stringify(twin));
-                    localStorage.setItem("twinName", twin.name);
-                    localStorage.setItem("twinImage", twin.image);
-                  }}
-                  className="flex h-10 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)]"
-                >
-                  Edit
-                </Link>
+<Link
+  to={`/app/twin/edit?twinId=${twin.id}`}
+  className="flex h-10 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)]"
+>
+  Edit
+</Link>
 
-                <button
-                  onClick={() => {
-                    localStorage.setItem("aiTwin", JSON.stringify(twin));
-                    localStorage.setItem("twinName", twin.name);
-                    localStorage.setItem("twinImage", twin.image);
-                    handleGoLive();
-                  }}
-                  className="brand-gradient h-10 rounded-[5px] text-sm font-bold text-white"
-                >
-                  Go Live
-                </button>
+               <button
+  onClick={() => navigate(`/app/golive?twinId=${twin.id}`)}
+  className="brand-gradient h-10 rounded-[5px] text-sm font-bold text-white"
+>
+  Go Live
+</button>
               </div>
             </div>
           ))}

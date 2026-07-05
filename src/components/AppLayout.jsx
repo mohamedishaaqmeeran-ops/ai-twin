@@ -1,4 +1,12 @@
-import { Outlet, NavLink, useNavigate, useLocation, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  Outlet,
+  NavLink,
+  useNavigate,
+  useLocation,
+  Link,
+} from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import {
   Home,
@@ -19,20 +27,62 @@ import {
   BadgeCheck,
   Crown,
 } from "lucide-react";
-import { useState } from "react";
+
+import { fetchMe, logoutUser } from "../features/auth/authSlice";
+
+const API = "https://twinn-backend.onrender.com/api";
 
 export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [mobileMenu, setMobileMenu] = useState(false);
+  const dispatch = useDispatch();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [twin, setTwin] = useState(null);
+  const [loadingTwin, setLoadingTwin] = useState(false);
+
+  const { user } = useSelector((state) => state.auth || {});
+
+  const plan = user?.plan || "free";
+  const isPro = plan === "pro" || plan === "business";
   const dashboardPath = isPro ? "/app/pro" : "/app";
 
-  const hasTwin = localStorage.getItem("hasTwin") === "true";
-  const twinName = localStorage.getItem("twinName") || "My AI Twin";
-  const twinImage = "/images/bbb.png";
+  const hasTwin = Boolean(twin);
+  const twinName = twin?.name || "My AI Twin";
+  const twinImage = twin?.image || twin?.avatarImage || "/images/bbb.png";
+
+  useEffect(() => {
+    if (!user) {
+      dispatch(fetchMe());
+    }
+  }, [dispatch, user]);
+
+  useEffect(() => {
+    const loadTwin = async () => {
+      try {
+        setLoadingTwin(true);
+
+        const res = await fetch(`${API}/twin/me`, {
+          credentials: "include",
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          setTwin(null);
+          return;
+        }
+
+        setTwin(data.twin || data.data || data);
+      } catch {
+        setTwin(null);
+      } finally {
+        setLoadingTwin(false);
+      }
+    };
+
+    loadTwin();
+  }, []);
 
   const handleProtectedNav = (path) => {
     if (!hasTwin) {
@@ -49,8 +99,9 @@ export default function AppLayout() {
     setMobileMenu(false);
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
+    setMobileMenu(false);
     navigate("/");
   };
 
@@ -68,37 +119,35 @@ export default function AppLayout() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
-      {/* Desktop Sidebar */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-80 flex-col overflow-y-auto bg-gradient-to-b from-[#040816] via-[#090f24] to-[#0d1028] p-5 text-white lg:flex">
-        {/* Logo */}
-        <Link to={"/"}>
-        <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center">
-            <img
-              src="/images/logos.png"
-              alt="Twin Logo"
-              className="h-13 w-13 rounded-xl object-contain"
-            />
-          </div>
+        <Link to="/">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center">
+              <img
+                src="/images/logos.png"
+                alt="Twin Logo"
+                className="h-13 w-13 rounded-xl object-contain"
+              />
+            </div>
 
-          <div>
-            <h1
-  className="tracking-tight text-2xl font-black"
-  style={{
-    fontWeight: 600,
-    fontFamily: "Poppins, sans-serif",
-  }}
->
-  twinn<span className="brand-text">.</span>live
-</h1>
-            <p className="mt-1 text-xs font-medium brand-text">
-              Never sleep. Never stop selling.
-            </p>
+            <div>
+              <h1
+                className="tracking-tight text-2xl font-black"
+                style={{
+                  fontWeight: 600,
+                  fontFamily: "Poppins, sans-serif",
+                }}
+              >
+                twinn<span className="brand-text">.</span>live
+              </h1>
+
+              <p className="mt-1 text-xs font-medium brand-text">
+                Never sleep. Never stop selling.
+              </p>
+            </div>
           </div>
-        
-        </div>
-  </Link>
-        {/* Plan Badge */}
+        </Link>
+
         <div className="mt-5 flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black text-white">
           {isPro ? (
             <>
@@ -113,9 +162,12 @@ export default function AppLayout() {
           )}
         </div>
 
-        {/* Twin Card */}
         <div className="mt-5 rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-          {hasTwin ? (
+          {loadingTwin ? (
+            <div className="py-10 text-center text-sm font-bold text-white/60">
+              Loading AI Twin...
+            </div>
+          ) : hasTwin ? (
             <>
               <div className="rounded-3xl bg-black/20 p-3">
                 <img
@@ -144,6 +196,7 @@ export default function AppLayout() {
               </div>
 
               <p className="mt-4 text-lg font-black">No AI Twin Yet</p>
+
               <p className="mt-1 text-sm text-white/60">
                 Create your selling twin first.
               </p>
@@ -158,7 +211,6 @@ export default function AppLayout() {
           )}
         </div>
 
-        {/* Navigation */}
         <nav className="mt-6 flex-1 space-y-1">
           <MenuTitle title="General" />
 
@@ -231,11 +283,10 @@ export default function AppLayout() {
           </NavLink>
         </nav>
 
-        {/* Logout */}
         <div className="mt-6 border-t border-white/10 pt-5">
           <button
             onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-3 rounded-2xl brand-gradient py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
+            className="brand-gradient flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-sm font-bold text-white"
           >
             <LogOut size={18} />
             Logout
@@ -243,27 +294,29 @@ export default function AppLayout() {
         </div>
       </aside>
 
-      {/* Mobile Top Header */}
       <header className="fixed left-0 right-0 top-0 z-40 flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
         <div className="flex items-center gap-3">
-          <Link to="/"><div className="flex h-10 w-10 items-center justify-center">
-            <img
-              src="/images/logos.png"
-              alt="Twin Logo"
-              className="h-10 w-10 rounded-xl object-contain"
-            />
-          </div></Link>
+          <Link to="/">
+            <div className="flex h-10 w-10 items-center justify-center">
+              <img
+                src="/images/logos.png"
+                alt="Twin Logo"
+                className="h-10 w-10 rounded-xl object-contain"
+              />
+            </div>
+          </Link>
 
           <div>
             <h1
-  className="tracking-tight text-2xl font-black"
-  style={{
-    fontWeight: 600,
-    fontFamily: "Poppins, sans-serif",
-  }}
->
-  twinn<span className="brand-text">.</span>live
-</h1>
+              className="tracking-tight text-2xl font-black"
+              style={{
+                fontWeight: 600,
+                fontFamily: "Poppins, sans-serif",
+              }}
+            >
+              twinn<span className="brand-text">.</span>live
+            </h1>
+
             <p className="text-[10px] text-muted-foreground brand-text">
               {isPro ? "Pro Live Commerce" : "Never Sleep. Never stop selling."}
             </p>
@@ -278,7 +331,6 @@ export default function AppLayout() {
         </button>
       </header>
 
-      {/* Mobile Drawer */}
       {mobileMenu && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
@@ -288,32 +340,34 @@ export default function AppLayout() {
 
           <aside className="relative h-full w-80 max-w-[85%] overflow-y-auto bg-gradient-to-b from-[#040816] via-[#090f24] to-[#0d1028] p-5 text-white">
             <div className="flex items-center justify-between">
-             <Link to="/">  <div className="flex items-center gap-3">
-             
-                <div className="flex h-11 w-11 items-center justify-center">
-                  <img
-                    src="/images/logos.png"
-                    alt="Twin Logo"
-                    className="h-11 w-11 rounded-xl object-contain"
-                  />
-                </div>
+              <Link to="/" onClick={() => setMobileMenu(false)}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center">
+                    <img
+                      src="/images/logos.png"
+                      alt="Twin Logo"
+                      className="h-11 w-11 rounded-xl object-contain"
+                    />
+                  </div>
 
-                <div>
-                  <h1
-  className="tracking-tight text-2xl font-black"
-  style={{
-    fontWeight: 600,
-    fontFamily: "Poppins, sans-serif",
-  }}
->
-  twinn<span className="brand-text">.</span>live
-</h1>
-                  <p className="text-xs text-pink-300">
-                    {isPro ? "Pro AI Live Commerce" : "AI Live Commerce"}
-                  </p>
+                  <div>
+                    <h1
+                      className="tracking-tight text-2xl font-black"
+                      style={{
+                        fontWeight: 600,
+                        fontFamily: "Poppins, sans-serif",
+                      }}
+                    >
+                      twinn<span className="brand-text">.</span>live
+                    </h1>
+
+                    <p className="text-xs text-pink-300">
+                      {isPro ? "Pro AI Live Commerce" : "AI Live Commerce"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-</Link>
+              </Link>
+
               <button
                 onClick={() => setMobileMenu(false)}
                 className="grid h-10 w-10 place-items-center rounded-xl bg-white/10"
@@ -337,15 +391,29 @@ export default function AppLayout() {
             </div>
 
             <div className="mt-6 rounded-3xl border border-white/10 bg-white/10 p-4">
-              <img
-                src={twinImage}
-                alt="AI Twin"
-                className="mx-auto h-32 w-full rounded-2xl object-contain"
-              />
-              <p className="mt-3 text-center font-black">{twinName}</p>
-              <p className="text-center text-xs text-emerald-400">
-                ● {hasTwin ? "Online" : "Create Required"}
-              </p>
+              {hasTwin ? (
+                <>
+                  <img
+                    src={twinImage}
+                    alt="AI Twin"
+                    className="mx-auto h-32 w-full rounded-2xl object-contain"
+                  />
+                  <p className="mt-3 text-center font-black">{twinName}</p>
+                  <p className="text-center text-xs text-emerald-400">
+                    ● Online
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white/10">
+                    <Sparkles className="h-7 w-7 text-pink-300" />
+                  </div>
+                  <p className="mt-3 text-center font-black">No AI Twin Yet</p>
+                  <p className="text-center text-xs text-pink-300">
+                    Create Required
+                  </p>
+                </>
+              )}
             </div>
 
             <nav className="mt-6 space-y-2">
@@ -454,12 +522,8 @@ export default function AppLayout() {
 
             <div className="mt-8 border-t border-white/10 pt-5">
               <button
-                onClick={() => {
-                  localStorage.clear();
-                  setMobileMenu(false);
-                  navigate("/");
-                }}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl brand-gradient py-4 text-sm font-bold text-white transition hover:border-pink-500 hover:bg-pink-600"
+                onClick={handleLogout}
+                className="brand-gradient flex w-full items-center justify-center gap-3 rounded-2xl py-4 text-sm font-bold text-white"
               >
                 <LogOut size={18} />
                 Logout
@@ -469,9 +533,7 @@ export default function AppLayout() {
         </div>
       )}
 
-      {/* Main */}
-      <main className="min-h-screen flex-1 pt-16 pb-24 lg:ml-80 lg:pt-0 lg:pb-0">
-        {/* Desktop Header */}
+      <main className="min-h-screen flex-1 pb-24 pt-16 lg:ml-80 lg:pb-0 lg:pt-0">
         <header className="sticky top-0 z-30 hidden h-24 items-center justify-between border-b border-border bg-card/90 px-8 backdrop-blur lg:flex">
           <div>
             <p className="text-sm font-bold text-[var(--brand-pink)]">
@@ -511,7 +573,6 @@ export default function AppLayout() {
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 px-3 py-2 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur lg:hidden">
         <div className="grid grid-cols-5 items-center gap-1">
           <NavLink to={dashboardPath} end className={mobileClass}>

@@ -16,6 +16,7 @@ import {
   Lock,
   Radio,
 } from "lucide-react";
+import { useSelector } from "react-redux";
 
 const freeQuestions = [
   "What is the price?",
@@ -34,14 +35,19 @@ const proQuestions = [
 export default function TestTwin() {
   const navigate = useNavigate();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+ const { user } = useSelector((state) => state.auth);
 
-  const twinName = localStorage.getItem("twinName") || "My AI Twin";
-  const twinImage = localStorage.getItem("twinImage") || "/images/bb.png";
-  const selectedProduct =
-    localStorage.getItem("selectedProduct") || "Vitamin C Glow Serum";
+const plan = user?.plan || "free";
+const isPro = plan === "pro" || plan === "business";
 
+const twin = user?.twins?.[0] || user?.twin || {};
+const twinName = twin?.name || "My AI Twin";
+const twinImage = twin?.image || "/images/bb.png";
+
+const selectedProduct =
+  user?.selectedProduct?.name ||
+  user?.products?.[0]?.name ||
+  "Vitamin C Glow Serum";
   const sampleQuestions = isPro
     ? [...freeQuestions, ...proQuestions]
     : freeQuestions;

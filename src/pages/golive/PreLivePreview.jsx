@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Radio,
   Sparkles,
@@ -16,7 +16,10 @@ import {
   Music2,
   Crown,
   Lock,
+  AlertCircle,
 } from "lucide-react";
+
+const LIVE_API = "https://twinn-backend.onrender.com/api/live";
 
 const platformConfig = {
   Instagram: {
@@ -24,42 +27,53 @@ const platformConfig = {
     ratio: "aspect-[9/16]",
     size: "max-w-[300px]",
     label: "Vertical 9:16",
-    pro: false,
   },
   TikTok: {
     icon: Music2,
     ratio: "aspect-[9/16]",
     size: "max-w-[300px]",
     label: "Vertical 9:16",
-    pro: true,
   },
   YouTube: {
     icon: Youtube,
     ratio: "aspect-video",
     size: "w-full",
     label: "Landscape 16:9",
-    pro: true,
   },
   Facebook: {
     icon: Facebook,
     ratio: "aspect-video",
     size: "w-full",
     label: "Landscape 16:9",
-    pro: true,
   },
+};
+
+const platformLabel = (platform = "") => {
+  const value = platform.toString().toLowerCase();
+
+  const labels = {
+    instagram: "Instagram",
+    youtube: "YouTube",
+    facebook: "Facebook",
+    tiktok: "TikTok",
+  };
+
+  return labels[value] || platform;
 };
 
 export default function PreLivePreview() {
   const navigate = useNavigate();
-  const twinImage = localStorage.getItem("twinImage") || "/images/bb.png";
-
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const { id } = useParams();
 
   const [activePlatform, setActivePlatform] = useState("Instagram");
+  const [loading, setLoading] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState("");
 
   const [setup, setSetup] = useState({
+    id: "",
     twinName: "My AI Twin",
+    twinImage: "/images/bb.png",
     product: "Vitamin C Glow Serum",
     platforms: ["Instagram"],
     settings: {
@@ -68,52 +82,98 @@ export default function PreLivePreview() {
       autoAnswer: true,
       multiPlatformSync: false,
     },
+    plan: "free",
   });
 
+  const isPro = setup.plan === "pro" || setup.plan === "business";
+  const twinImage = setup.twinImage || "/images/bb.png";
+
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("liveSetup") || "{}");
+    const loadLiveSession = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-    const storedPlatforms =
-      saved.platforms ||
-      JSON.parse(localStorage.getItem("selectedPlatforms") || '["Instagram"]');
+        const res = await fetch(`${LIVE_API}/${id}`, {
+          credentials: "include",
+        });
 
-    const allowedPlatforms = isPro ? storedPlatforms : storedPlatforms.slice(0, 1);
+        const data = await res.json().catch(() => ({}));
 
-    const loadedSetup = {
-      twinName:
-        saved.twinName || localStorage.getItem("twinName") || "My AI Twin",
-      product:
-        saved.product ||
-        localStorage.getItem("selectedProduct") ||
-        "Vitamin C Glow Serum",
-      platforms: allowedPlatforms.length ? allowedPlatforms : ["Instagram"],
-      settings: saved.settings || {
-        liveChat: true,
-        productLink: true,
-        autoAnswer: true,
-        multiPlatformSync: false,
-      },
-      plan: isPro ? "pro" : "free",
+        if (!res.ok) {
+          throw new Error(data.message || "Unable to load live preview");
+        }
+
+        const live = data.liveSession || data.data || data;
+
+        const formattedPlatforms = Array.isArray(live.platforms)
+          ? live.platforms.map(platformLabel)
+          : ["Instagram"];
+
+        const loadedSetup = {
+          id: live._id || live.id || id,
+          twinName: live.twinName || "My AI Twin",
+          twinImage: live.twinImage || "/images/bb.png",
+          product: live.product || "Vitamin C Glow Serum",
+          platforms: formattedPlatforms.length ? formattedPlatforms : ["Instagram"],
+          settings: live.settings || {
+            liveChat: true,
+            productLink: true,
+            autoAnswer: true,
+            multiPlatformSync: false,
+          },
+          plan: live.plan || "free",
+        };
+
+        setSetup(loadedSetup);
+        setActivePlatform(loadedSetup.platforms[0] || "Instagram");
+      } catch (err) {
+        setError(err.message || "Unable to load preview");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setSetup(loadedSetup);
-    setActivePlatform(loadedSetup.platforms[0] || "Instagram");
-  }, [isPro]);
+    if (id) {
+      loadLiveSession();
+    }
+  }, [id]);
 
   const upgradeToPro = () => {
     navigate("/pricing");
   };
 
-  const startLive = () => {
-    const finalSetup = {
-      ...setup,
-      platforms: isPro ? setup.platforms : setup.platforms.slice(0, 1),
-      plan: isPro ? "pro" : "free",
-    };
+  const startLive = async () => {
+    try {
+      setStarting(true);
+      setError("");
 
-    localStorage.setItem("liveSetup", JSON.stringify(finalSetup));
-    navigate("/app/golive/live");
+      const res = await fetch(`${LIVE_API}/${id}/start`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to start live");
+      }
+
+      navigate(`/app/golive/live/${id}`);
+    } catch (err) {
+      setError(err.message || "Unable to start live");
+    } finally {
+      setStarting(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="rounded-3xl border border-border bg-card p-8 text-center text-sm font-bold text-muted-foreground">
+        Loading live preview...
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 bg-background text-foreground transition-colors duration-300 xl:grid-cols-[1fr_380px]">
@@ -125,6 +185,13 @@ export default function PreLivePreview() {
           <ArrowLeft className="h-4 w-4" />
           Back to Setup
         </button>
+
+        {error && (
+          <div className="mb-5 flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-600 dark:text-red-400">
+            <AlertCircle className="h-5 w-5" />
+            {error}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
@@ -149,9 +216,7 @@ export default function PreLivePreview() {
         </div>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-          <span className="brand-text">
-            {isPro ? "Pro Preview" : "Preview"}
-          </span>{" "}
+          <span className="brand-text">{isPro ? "Pro Preview" : "Preview"}</span>{" "}
           Before Live
         </h1>
 
@@ -255,11 +320,7 @@ export default function PreLivePreview() {
         <div className="mt-5 space-y-4">
           <Info icon={Radio} label="AI Twin" value={setup.twinName} />
           <Info icon={Package} label="Product" value={setup.product} />
-          <Info
-            icon={Users}
-            label="Platforms"
-            value={setup.platforms.join(", ")}
-          />
+          <Info icon={Users} label="Platforms" value={setup.platforms.join(", ")} />
           <Info
             icon={MessageSquare}
             label="Chat"
@@ -275,11 +336,7 @@ export default function PreLivePreview() {
             label="Auto Answer"
             value={setup.settings.autoAnswer ? "Enabled" : "Disabled"}
           />
-          <Info
-            icon={Crown}
-            label="Plan"
-            value={isPro ? "Pro Live" : "Free Live"}
-          />
+          <Info icon={Crown} label="Plan" value={isPro ? "Pro Live" : "Free Live"} />
         </div>
 
         <div className="mt-6 rounded-2xl bg-pink-50 p-4 dark:bg-white/10">
@@ -296,9 +353,10 @@ export default function PreLivePreview() {
 
         <button
           onClick={startLive}
-          className="brand-gradient mt-8 w-full rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+          disabled={starting}
+          className="brand-gradient mt-8 w-full rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isPro ? "Go Pro Live Now" : "Go Live Now"}
+          {starting ? "Starting..." : isPro ? "Go Pro Live Now" : "Go Live Now"}
         </button>
       </aside>
     </div>

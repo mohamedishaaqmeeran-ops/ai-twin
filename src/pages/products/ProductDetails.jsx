@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Radio,
   Pencil,
@@ -12,48 +14,125 @@ import {
   Lock,
   Percent,
   MessageSquare,
+  AlertCircle,
 } from "lucide-react";
+
+import { fetchMe } from "../../features/auth/authSlice";
+
+const API = "https://twinn-backend.onrender.com/api";
 
 export default function ProductDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const { user } = useSelector((state) => state.auth || {});
 
-  const products = JSON.parse(localStorage.getItem("products") || "[]");
+  const plan = user?.plan || "free";
+  const isPro = plan === "pro" || plan === "business";
 
-  const product =
-    products.find((item) => item.id === Number(id)) || {
-      id: 1,
-      name: "Vitamin C Glow Serum",
-      price: "₹799",
-      stock: "In Stock",
-      category: "Beauty",
-      img: "/images/6.jpeg",
-      description:
-        "Brightens skin, reduces pigmentation and provides natural glow.",
-      script:
-        "Introduce product, explain benefits, mention ingredients, answer FAQs and provide purchase link.",
-      offer: "Today only free shipping.",
-      objectionHandling:
-        "If customer says price is high, explain product value and results.",
-    };
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const loadProduct = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await fetch(`${API}/products/${id}`, {
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to load product");
+      }
+
+      setProduct(data.product || data.data || data);
+    } catch (err) {
+      setError(err.message || "Unable to load product");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      dispatch(fetchMe());
+    }
+
+    loadProduct();
+  }, [dispatch, id]);
 
   const sellLive = () => {
     localStorage.setItem("selectedProduct", product.name);
+    localStorage.setItem("selectedProductId", product._id || product.id);
     navigate("/app/golive");
   };
 
-  const deleteProduct = () => {
-    const updated = products.filter((item) => item.id !== product.id);
-    localStorage.setItem("products", JSON.stringify(updated));
-    navigate("/app/products");
+  const deleteProduct = async () => {
+    try {
+      const confirmDelete = window.confirm(
+        "Are you sure you want to delete this product?"
+      );
+
+      if (!confirmDelete) return;
+
+      const productId = product._id || product.id;
+
+      const res = await fetch(`${API}/products/${productId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to delete product");
+      }
+
+      navigate("/app/products");
+    } catch (err) {
+      alert(err.message || "Unable to delete product");
+    }
   };
 
   const upgradeToPro = () => {
     navigate("/pricing");
   };
+
+  if (loading) {
+    return (
+      <div className="rounded-3xl border border-border bg-card p-8 text-center text-sm font-bold text-muted-foreground">
+        Loading product details...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-sm font-bold text-red-600 dark:text-red-400">
+        <div className="flex items-center gap-3">
+          <AlertCircle className="h-5 w-5" />
+          {error}
+        </div>
+
+        <button
+          onClick={() => navigate("/app/products")}
+          className="brand-gradient mt-5 rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+        >
+          Back to Products
+        </button>
+      </div>
+    );
+  }
+
+  if (!product) return null;
+
+  const productId = product._id || product.id;
+  const image = product.img || product.image || "/images/6.jpeg";
 
   return (
     <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
@@ -123,7 +202,7 @@ export default function ProductDetails() {
             )}
 
             <img
-              src={product.img}
+              src={image}
               alt={product.name}
               className="h-80 w-full rounded-2xl object-contain sm:h-96"
             />
@@ -132,7 +211,7 @@ export default function ProductDetails() {
           <div className="mt-6 grid grid-cols-3 gap-3">
             <MiniStat
               icon={TrendingUp}
-              label={isPro ? "Pro Sales" : "245 Sold"}
+              label={product.sales || "0 Sold"}
               iconClass="text-[var(--brand-pink)]"
             />
             <MiniStat
@@ -142,7 +221,7 @@ export default function ProductDetails() {
             />
             <MiniStat
               icon={CheckCircle2}
-              label={product.stock}
+              label={product.stock || "In Stock"}
               iconClass="text-green-500"
             />
           </div>
@@ -161,12 +240,12 @@ export default function ProductDetails() {
                 </p>
 
                 <span className="mt-3 inline-flex rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold tracking-wide text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                  {product.stock}
+                  {product.stock || "In Stock"}
                 </span>
               </div>
 
               <span className="rounded-full bg-[#0d0d12] px-4 py-2 text-sm font-bold tracking-wide text-white">
-                {product.category}
+                {product.category || "General"}
               </span>
             </div>
 
@@ -239,7 +318,7 @@ export default function ProductDetails() {
             </button>
 
             <Link
-              to={`/app/products/edit/${product.id}`}
+              to={`/app/products/edit/${productId}`}
               className="flex h-12 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
             >
               <Pencil className="h-4 w-4" />

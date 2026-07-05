@@ -18,6 +18,9 @@ import {
   Crown,
   Lock,
 } from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchMe } from "../../features/auth/authSlice";
+
 
 const avatars = [
   { name: "Beauty Creator", image: "/images/bb.png", pro: false },
@@ -77,8 +80,13 @@ const gestures = [
 export default function EditTwin() {
   const navigate = useNavigate();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const dispatch = useDispatch();
+const { user } = useSelector((state) => state.auth);
+
+const plan = user?.plan || "free";
+const isPro = plan === "pro" || plan === "business";
+
+const currentTwin = user?.twins?.[0] || user?.twin || {};
 
   const [saved, setSaved] = useState(false);
   const [name, setName] = useState("My AI Twin");
@@ -97,26 +105,24 @@ export default function EditTwin() {
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-semibold leading-6 text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
 
   useEffect(() => {
-    const savedTwin = JSON.parse(localStorage.getItem("aiTwin") || "{}");
-
-    setName(savedTwin?.name || localStorage.getItem("twinName") || "My AI Twin");
-    setBrand(savedTwin?.brand || localStorage.getItem("twinBrand") || "My Brand");
-    setAvatar(savedTwin?.image || localStorage.getItem("twinImage") || "/images/bb.png");
-    setBackground(savedTwin?.background || localStorage.getItem("twinBackground") || "/images/ff.png");
-    setVoice(savedTwin?.voice || localStorage.getItem("voiceStyle") || "Warm Female");
-    setLanguage(savedTwin?.language || localStorage.getItem("twinLanguage") || "English");
-    setStyle(savedTwin?.style || localStorage.getItem("twinOutfit") || "Professional");
-    setGesture(savedTwin?.gesture || localStorage.getItem("gestureStyle") || "Friendly");
-    setTrainingText(savedTwin?.trainingText || localStorage.getItem("trainingText") || "");
-  }, []);
+  setName(currentTwin?.name || "My AI Twin");
+  setBrand(currentTwin?.brand || "My Brand");
+  setAvatar(currentTwin?.image || "/images/bb.png");
+  setBackground(currentTwin?.background || "/images/ff.png");
+  setVoice(currentTwin?.voice || "Warm Female");
+  setLanguage(currentTwin?.language || "English");
+  setStyle(currentTwin?.style || "Professional");
+  setGesture(currentTwin?.gesture || "Friendly");
+  setTrainingText(currentTwin?.trainingText || "");
+}, [currentTwin]);
 
   const upgradeToPro = () => {
     navigate("/pricing");
   };
 
-  const saveTwin = () => {
+  const saveTwin = async () => {
+  try {
     const updatedTwin = {
-      id: "default-twin",
       name: name.trim() || "My AI Twin",
       brand: brand.trim() || "My Brand",
       image: avatar,
@@ -126,31 +132,35 @@ export default function EditTwin() {
       style,
       gesture,
       trainingText: trainingText.trim(),
-      plan: isPro ? "pro" : "free",
       status: "Active",
-      updatedAt: new Date().toLocaleString(),
     };
 
-    localStorage.setItem("hasTwin", "true");
-    localStorage.setItem("aiTwin", JSON.stringify(updatedTwin));
-    localStorage.setItem("twinName", updatedTwin.name);
-    localStorage.setItem("twinBrand", updatedTwin.brand);
-    localStorage.setItem("twinImage", updatedTwin.image);
-    localStorage.setItem("twinBackground", updatedTwin.background);
-    localStorage.setItem("voiceStyle", updatedTwin.voice);
-    localStorage.setItem("twinLanguage", updatedTwin.language);
-    localStorage.setItem("voiceLanguage", updatedTwin.language);
-    localStorage.setItem("twinOutfit", updatedTwin.style);
-    localStorage.setItem("gestureStyle", updatedTwin.gesture);
-    localStorage.setItem("trainingText", updatedTwin.trainingText);
-    localStorage.setItem("isTwinTrained", updatedTwin.trainingText ? "true" : "false");
+    const res = await fetch("https://twinn-backend.onrender.com/api/twin/update", {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedTwin),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to update AI Twin");
+    }
+
+    await dispatch(fetchMe());
 
     setSaved(true);
 
     setTimeout(() => {
       navigate("/app/twin");
     }, 1000);
-  };
+  } catch (error) {
+    alert(error.message);
+  }
+};
 
   return (
     <div className="grid gap-6 bg-background text-foreground transition-colors duration-300 xl:grid-cols-[1fr_400px]">

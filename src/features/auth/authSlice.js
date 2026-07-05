@@ -2,16 +2,18 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 const API = "https://twinn-backend.onrender.com/api/auth";
 
+/* ---------------- LOGIN ---------------- */
+
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async ({ email, password }, { rejectWithValue }) => {
     try {
       const res = await fetch(`${API}/login`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -22,11 +24,13 @@ export const loginUser = createAsyncThunk(
       }
 
       return data.user;
-    } catch {
-      return rejectWithValue("Network error");
+    } catch (err) {
+      return rejectWithValue(err.message);
     }
   }
 );
+
+/* ---------------- GOOGLE LOGIN ---------------- */
 
 export const googleLoginUser = createAsyncThunk(
   "auth/googleLoginUser",
@@ -34,10 +38,10 @@ export const googleLoginUser = createAsyncThunk(
     try {
       const res = await fetch(`${API}/google`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
         body: JSON.stringify({ credential }),
       });
 
@@ -48,70 +52,146 @@ export const googleLoginUser = createAsyncThunk(
       }
 
       return data.user;
-    } catch {
-      return rejectWithValue("Network error");
+    } catch (err) {
+      return rejectWithValue(err.message);
     }
   }
 );
 
+/* ---------------- GET CURRENT USER ---------------- */
+
+export const fetchMe = createAsyncThunk(
+  "auth/fetchMe",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${API}/me`, {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        return rejectWithValue(data.message || "Unauthorized");
+      }
+
+      return data.user;
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+/* ---------------- LOGOUT ---------------- */
+
+export const logoutUser = createAsyncThunk(
+  "auth/logoutUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${API}/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        return rejectWithValue(data.message || "Logout failed");
+      }
+
+      return true;
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+/* ---------------- STATE ---------------- */
+
 const initialState = {
-  user: JSON.parse(localStorage.getItem("user") || "null"),
+  user: null,
   loading: false,
   error: null,
 };
 
+/* ---------------- SLICE ---------------- */
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
+
   reducers: {
-    logoutLocal: (state) => {
-      state.user = null;
-      state.error = null;
-      localStorage.clear();
-    },
-    clearAuthError: (state) => {
+    clearAuthError(state) {
       state.error = null;
     },
   },
+
   extraReducers: (builder) => {
     builder
+
+      // LOGIN
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
+
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
-
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("user", JSON.stringify(action.payload));
-        localStorage.setItem("role", action.payload.role || "user");
-        localStorage.setItem("plan", action.payload.plan || "free");
       })
+
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
 
+      // GOOGLE LOGIN
       .addCase(googleLoginUser.pending, (state) => {
         state.loading = true;
-        state.error = null;
       })
+
       .addCase(googleLoginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
-
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("user", JSON.stringify(action.payload));
-        localStorage.setItem("role", action.payload.role || "user");
-        localStorage.setItem("plan", action.payload.plan || "free");
       })
+
       .addCase(googleLoginUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-      });
+      })
+
+      // FETCH CURRENT USER
+      .addCase(fetchMe.pending, (state) => {
+  state.loading = true;
+})
+.addCase(fetchMe.fulfilled, (state, action) => {
+  state.loading = false;
+  state.user = action.payload;
+})
+.addCase(fetchMe.rejected, (state) => {
+  state.loading = false;
+  state.user = null;
+})
+
+      // LOGOUT
+     // LOGOUT
+.addCase(logoutUser.pending, (state) => {
+  state.loading = true;
+  state.error = null;
+})
+
+.addCase(logoutUser.fulfilled, (state) => {
+  state.loading = false;
+  state.user = null;
+  state.error = null;
+})
+
+.addCase(logoutUser.rejected, (state, action) => {
+  state.loading = false;
+  state.user = null;
+  state.error = action.payload || null;
+})
   },
 });
 
-export const { logoutLocal, clearAuthError } = authSlice.actions;
+export const { clearAuthError } = authSlice.actions;
+
 export default authSlice.reducer;

@@ -18,25 +18,34 @@ import {
   Youtube,
   Brain,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+
 
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+ const { user } = useSelector((state) => state.auth);
 
-  const hasTwin = localStorage.getItem("hasTwin") === "true";
-  const isTrained = localStorage.getItem("isTwinTrained") === "true";
-  const twinName = localStorage.getItem("twinName") || "My AI Twin";
-  const twinImage = "/images/bb.png";
+const plan = user?.plan || "free";
+const isPro = plan === "pro" || plan === "business";
 
-  const maxTwins = isPro ? 3 : 1;
-  const maxProducts = isPro ? 100 : 10;
-  const maxPlatforms = isPro ? 4 : 1;
+const twin = user?.twin || null;
+const hasTwin = Boolean(twin);
+const isTrained = Boolean(twin?.isTrained);
+const twinName = twin?.name || "My AI Twin";
 
-  const products = JSON.parse(localStorage.getItem("products") || "[]");
-  const schedules = JSON.parse(localStorage.getItem("liveSchedules") || "[]");
+const twinImage =
+  twin?.image ||
+  twin?.avatarImage ||
+  twin?.twinImage ||
+  "/images/bbb.png";
 
+const maxProducts = isPro ? 100 : 3;
+const maxPlatforms = isPro ? 4 : 1;
+const maxTwins = isPro ? 5 : 1;
+
+const products = user?.products || [];
+const schedules = user?.liveSchedules || [];
   const goLive = () => {
     if (!hasTwin) {
       navigate("/app/twin/create");
@@ -336,8 +345,7 @@ export default function Dashboard() {
 
                 <button
                   onClick={() => {
-                    localStorage.setItem("selectedProduct", product.name);
-                    goLive();
+                    navigate(`/app/golive?product=${encodeURIComponent(product.name)}`);
                   }}
                   className="brand-gradient rounded-[5px] px-5 py-2.5 text-sm font-bold text-white shadow-md transition hover:opacity-90"
                 >
@@ -374,12 +382,9 @@ export default function Dashboard() {
 
             <button
               onClick={() => {
-                localStorage.setItem("selectedProduct", live.product);
-                localStorage.setItem(
-                  "selectedPlatforms",
-                  JSON.stringify(live.platforms || [platform])
-                );
-                goLive();
+              navigate(
+  `/app/golive?product=${encodeURIComponent(live.product)}&platform=${encodeURIComponent(platform)}`
+);
               }}
               className="brand-gradient mt-5 h-11 w-full rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90"
             >

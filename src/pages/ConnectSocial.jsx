@@ -18,7 +18,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   fetchConnections,
   disconnectSocial,
-  addLocalConnection,
+ 
 } from "../features/social/socialSlice";
 
 import { connectAPI } from "../features/social/socialAPI";
@@ -62,14 +62,16 @@ export default function ConnectSocial() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { connections, loading } = useSelector((state) => state.social);
+  const { connections = [], loading } = useSelector((state) => state.social);
+  const { user } = useSelector((state) => state.auth);
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const plan = user?.plan || "free";
+  const isPro = plan === "pro" || plan === "business";
   const maxPlatforms = isPro ? 4 : 1;
 
-  const connected = connections.map((item) => item.platform);
-
+  const connected = Array.isArray(connections)
+    ? connections.map((item) => item.platform)
+    : [];
 useEffect(() => {
   const params = new URLSearchParams(window.location.search);
   const status = params.get("status");

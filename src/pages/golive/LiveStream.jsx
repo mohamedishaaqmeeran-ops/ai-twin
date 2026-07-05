@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Mic,
   Video,
@@ -23,7 +23,10 @@ import {
   MessageCircle,
   Crown,
   Lock,
+  AlertCircle,
 } from "lucide-react";
+
+const LIVE_API = "https://twinn-backend.onrender.com/api/live";
 
 const defaultComments = [
   "Does this work for sensitive skin?",
@@ -32,27 +35,27 @@ const defaultComments = [
   "Is there any discount today?",
 ];
 
+const platformLabel = (platform = "") => {
+  const value = platform.toString().toLowerCase();
+
+  const labels = {
+    instagram: "Instagram",
+    youtube: "YouTube",
+    facebook: "Facebook",
+    tiktok: "TikTok",
+  };
+
+  return labels[value] || platform;
+};
+
 export default function LiveStream() {
   const navigate = useNavigate();
+  const { id } = useParams();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
-
-  const twinImage = localStorage.getItem("twinImage") || "/images/bb.png";
-  const twinName = localStorage.getItem("twinName") || "My AI Twin";
-
-  const liveSetup = JSON.parse(localStorage.getItem("liveSetup") || "{}");
-
-  const product =
-    liveSetup.product ||
-    localStorage.getItem("selectedProduct") ||
-    "Vitamin C Glow Serum";
-
-  const rawPlatforms =
-    liveSetup.platforms ||
-    JSON.parse(localStorage.getItem("selectedPlatforms") || '["Instagram"]');
-
-  const platforms = isPro ? rawPlatforms : rawPlatforms.slice(0, 1);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [ending, setEnding] = useState(false);
+  const [error, setError] = useState("");
 
   const [micOn, setMicOn] = useState(true);
   const [cameraOn, setCameraOn] = useState(true);
@@ -62,54 +65,80 @@ export default function LiveStream() {
   const [comments, setComments] = useState(defaultComments);
   const [message, setMessage] = useState("");
 
-  const [viewers, setViewers] = useState(isPro ? 12800 : 4800);
-  const [orders, setOrders] = useState(isPro ? 210 : 85);
-  const [revenue, setRevenue] = useState(isPro ? 158900 : 58900);
+  const [viewers, setViewers] = useState(0);
+  const [orders, setOrders] = useState(0);
+  const [revenue, setRevenue] = useState(0);
 
-  const [liveStartedAt, setLiveStartedAt] = useState("");
   const [ended, setEnded] = useState(false);
-  const [liveLink, setLiveLink] = useState("");
   const [showShareModal, setShowShareModal] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    const oldSession = JSON.parse(localStorage.getItem("liveSession") || "{}");
+  const isPro = session?.plan === "pro" || session?.plan === "business";
 
-    if (oldSession.url) {
-      setLiveLink(oldSession.url);
-      setLiveStartedAt(oldSession.startedAt);
-    } else {
-      const liveId = crypto.randomUUID().slice(0, 8).toUpperCase();
-      const url = `${window.location.origin}/live/${liveId}`;
+  const platforms = useMemo(() => {
+    const list = Array.isArray(session?.platforms) ? session.platforms : [];
+    const formatted = list.map(platformLabel);
+    return isPro ? formatted : formatted.slice(0, 1);
+  }, [session, isPro]);
 
-      const startTime = new Date().toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      });
+  const product = session?.product || "Vitamin C Glow Serum";
+  const twinName = session?.twinName || "My AI Twin";
+  const twinImage = session?.twinImage || "/images/bb.png";
+  const liveLink =
+    session?.liveUrl || session?.liveLink || `${window.location.origin}/live/${id}`;
 
-      const session = {
-        id: liveId,
-        url,
-        twinName,
-        product,
-        platforms,
-        plan: isPro ? "pro" : "free",
-        startedAt: startTime,
-        status: "live",
-      };
-
-      localStorage.setItem("liveSession", JSON.stringify(session));
-
-      setLiveLink(url);
-      setLiveStartedAt(startTime);
-    }
-  }, []);
+  const liveStartedAt =
+    session?.startedAtFormatted ||
+    (session?.startedAt
+      ? new Date(session.startedAt).toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
+      : "--");
 
   useEffect(() => {
+    const loadSession = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const res = await fetch(`${LIVE_API}/${id}`, {
+          credentials: "include",
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(data.message || "Unable to load live session");
+        }
+
+        const live = data.liveSession || data.data || data;
+
+        setSession(live);
+        setViewers(live.viewers || (live.plan === "pro" ? 12800 : 4800));
+        setOrders(live.orders || (live.plan === "pro" ? 210 : 85));
+        setRevenue(live.revenue || (live.plan === "pro" ? 158900 : 58900));
+
+        if (Array.isArray(live.comments) && live.comments.length) {
+          setComments(live.comments);
+        }
+      } catch (err) {
+        setError(err.message || "Unable to load live session");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (id) loadSession();
+  }, [id]);
+
+  useEffect(() => {
+    if (!session || ended) return;
+
     const interval = setInterval(() => {
       setViewers((prev) => prev + Math.floor(Math.random() * (isPro ? 30 : 12)));
       setOrders((prev) => prev + Math.floor(Math.random() * (isPro ? 4 : 2)));
@@ -117,18 +146,33 @@ export default function LiveStream() {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isPro]);
+  }, [session, ended, isPro]);
 
   const formattedViewers = useMemo(() => {
     if (viewers >= 1000) return `${(viewers / 1000).toFixed(1)}K`;
     return viewers;
   }, [viewers]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!message.trim()) return;
 
-    setComments((prev) => [message, ...prev]);
+    const newMessage = message.trim();
+
+    setComments((prev) => [newMessage, ...prev]);
     setMessage("");
+
+    try {
+      await fetch(`${LIVE_API}/${id}/comment`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: newMessage }),
+      });
+    } catch {
+      // UI already updated.
+    }
   };
 
   const copyLiveLink = async () => {
@@ -182,27 +226,68 @@ export default function LiveStream() {
     copyLiveLink();
   };
 
-  const endLive = () => {
-    const summary = {
-      product,
-      platforms,
-      viewers,
-      orders,
-      revenue,
-      liveLink,
-      plan: isPro ? "pro" : "free",
-      endedAt: new Date().toLocaleString(),
-    };
+  const endLive = async () => {
+    try {
+      setEnding(true);
+      setError("");
 
-    localStorage.setItem("lastLiveSummary", JSON.stringify(summary));
-    localStorage.removeItem("liveSession");
+      const res = await fetch(`${LIVE_API}/${id}/end`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          viewers,
+          orders,
+          revenue,
+          comments,
+        }),
+      });
 
-    setEnded(true);
+      const data = await res.json().catch(() => ({}));
 
-    setTimeout(() => {
-      navigate("/app/analytics");
-    }, 1200);
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to end live");
+      }
+
+      setEnded(true);
+
+      setTimeout(() => {
+        navigate("/app/analytics");
+      }, 1200);
+    } catch (err) {
+      setError(err.message || "Unable to end live");
+    } finally {
+      setEnding(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="rounded-3xl border border-border bg-card p-8 text-center text-sm font-bold text-muted-foreground">
+        Loading live stream...
+      </div>
+    );
+  }
+
+  if (error && !session) {
+    return (
+      <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-sm font-bold text-red-600 dark:text-red-400">
+        <div className="flex items-center gap-3">
+          <AlertCircle className="h-5 w-5" />
+          {error}
+        </div>
+
+        <button
+          onClick={() => navigate("/app/golive")}
+          className="brand-gradient mt-5 rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+        >
+          Back to Go Live
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 bg-background text-foreground transition-colors duration-300 xl:grid-cols-[1fr_380px]">
@@ -258,7 +343,7 @@ export default function LiveStream() {
 
           <p className="mt-1 text-sm font-medium leading-6 text-gray-700">
             {isPro
-              ? `Pro live selling mode active. Today I’m presenting ${product} with offers, objections handling and instant answers.`
+              ? `Pro live selling mode active. Today I’m presenting ${product} with offers, objection handling and instant answers.`
               : `Today I’m showing you why ${product} is perfect for your daily routine. Drop your questions in the chat!`}
           </p>
         </div>
@@ -287,7 +372,7 @@ export default function LiveStream() {
                 </h3>
 
                 <p className="text-lg font-black tracking-tight brand-text">
-                  ₹799
+                  {session?.price || "₹799"}
                 </p>
 
                 <p className="text-xs font-medium leading-5 text-muted-foreground">
@@ -322,6 +407,13 @@ export default function LiveStream() {
       </section>
 
       <aside className="space-y-6">
+        {error && (
+          <div className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-600 dark:text-red-400">
+            <AlertCircle className="h-5 w-5" />
+            {error}
+          </div>
+        )}
+
         <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
             {isPro && <Crown className="h-5 w-5" />}
@@ -430,7 +522,7 @@ export default function LiveStream() {
           </div>
         </div>
 
-        {!isPro && rawPlatforms.length > 1 && (
+        {!isPro && platforms.length > 1 && (
           <button
             onClick={() => navigate("/pricing")}
             className="brand-gradient flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white"
@@ -442,9 +534,10 @@ export default function LiveStream() {
 
         <button
           onClick={endLive}
-          className="w-full rounded-[5px] bg-red-600 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-red-700"
+          disabled={ending}
+          className="w-full rounded-[5px] bg-red-600 py-3 text-sm font-bold tracking-wide text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          End Live
+          {ending ? "Ending..." : "End Live"}
         </button>
       </aside>
 

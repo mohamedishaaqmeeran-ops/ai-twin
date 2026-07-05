@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchMe } from "../../features/auth/authSlice";
 import {
   Upload,
   Mic,
@@ -86,9 +88,15 @@ const voices = [
 export default function CreateTwin() {
   const navigate = useNavigate();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
-  const savedTwins = JSON.parse(localStorage.getItem("aiTwins") || "[]");
+const dispatch = useDispatch();
+
+const { user } = useSelector((state) => state.auth);
+
+const isPro =
+  user?.plan === "pro" || user?.plan === "business";
+
+const savedTwins = user?.twins || [];
+
 const maxTwins = isPro ? 3 : 1;
 const canCreateTwin = savedTwins.length < maxTwins;
   const [step, setStep] = useState(1);
@@ -123,55 +131,51 @@ const canCreateTwin = savedTwins.length < maxTwins;
     navigate("/pricing");
   };
 
-  const finishCreate = () => {
-  const oldTwins = JSON.parse(localStorage.getItem("aiTwins") || "[]");
-  const maxTwins = isPro ? 3 : 1;
-
-  if (oldTwins.length >= maxTwins) {
-    if (isPro) {
-      alert("Pro plan allows maximum 3 avatars.");
-    } else {
-      navigate("/pricing");
+ const finishCreate = async () => {
+  try {
+    if (savedTwins.length >= maxTwins) {
+      alert(
+        isPro
+          ? "Maximum 3 AI Twins allowed."
+          : "Free plan allows only one AI Twin."
+      );
+      return;
     }
-    return;
+
+    const twin = {
+      name: name || `AI Twin ${savedTwins.length + 1}`,
+      brand: brand || "My Brand",
+      image: avatar,
+      background,
+      outfit: style,
+      gesture,
+      voice,
+      language,
+      trainingText,
+    };
+
+    const API = import.meta.env.VITE_API_URL;
+
+const res = await fetch(`${API}/api/twin/create`, {
+  method: "POST",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify(twin),
+});
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Unable to create twin");
+    }
+
+    await dispatch(fetchMe());
+
+    navigate("/app/twin");
+  } catch (err) {
+    alert(err.message);
   }
-
-  const newTwin = {
-    id: Date.now(),
-    name: name || `AI Twin ${oldTwins.length + 1}`,
-    brand: brand || "My Brand",
-    image: avatar,
-    background,
-    outfit: style,
-    gesture,
-    voice,
-    language,
-    trainingText,
-    plan: isPro ? "pro" : "free",
-    createdAt: new Date().toLocaleString(),
-  };
-
-  const updatedTwins = [...oldTwins, newTwin];
-
-  localStorage.setItem("aiTwins", JSON.stringify(updatedTwins));
-  localStorage.setItem("hasTwin", "true");
-
-  localStorage.setItem("aiTwin", JSON.stringify(newTwin));
-  localStorage.setItem("twinName", newTwin.name);
-  localStorage.setItem("twinBrand", newTwin.brand);
-  localStorage.setItem("twinImage", newTwin.image);
-  localStorage.setItem("twinBackground", newTwin.background);
-  localStorage.setItem("twinOutfit", newTwin.outfit);
-  localStorage.setItem("gestureStyle", newTwin.gesture);
-  localStorage.setItem("voiceStyle", newTwin.voice);
-  localStorage.setItem("voiceLanguage", newTwin.language);
-  localStorage.setItem("trainingText", newTwin.trainingText);
-  localStorage.setItem(
-    "isTwinTrained",
-    trainingText.trim() ? "true" : "false"
-  );
-
-  navigate("/app/twin");
 };
 
   return (
@@ -675,29 +679,23 @@ const canCreateTwin = savedTwins.length < maxTwins;
   Next <ArrowRight size={18} />
 </button>
 ) : (
-  (() => {
-    const twins = JSON.parse(localStorage.getItem("aiTwins") || "[]");
-    const maxTwins = isPro ? 3 : 1;
-    const canCreate = twins.length < maxTwins;
-
-    return canCreate ? (
-      <button
-        onClick={finishCreate}
-        className="brand-gradient rounded-[5px] px-6 py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-      >
-        Finalize & Save Twin
-      </button>
-    ) : (
-      <button
-        disabled
-        className="cursor-not-allowed rounded-[5px] border-2 border-gray-300 bg-gray-100 px-6 py-3 text-sm font-bold tracking-wide text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-400"
-      >
-        {isPro
-          ? "Maximum 3 Avatars Created"
-          : "Avatar Already Created"}
-      </button>
-    );
-  })()
+  canCreateTwin ? (
+  <button
+    onClick={finishCreate}
+    className="brand-gradient rounded-[5px] px-6 py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+  >
+    Finalize & Save Twin
+  </button>
+) : (
+  <button
+    disabled
+    className="cursor-not-allowed rounded-[5px] border-2 border-gray-300 bg-gray-100 px-6 py-3 text-sm font-bold tracking-wide text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-400"
+  >
+    {isPro
+      ? "Maximum 3 Avatars Created"
+      : "Avatar Already Created"}
+  </button>
+)()
 )}
           
         </div>

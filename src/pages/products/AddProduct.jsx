@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Upload,
   Sparkles,
@@ -16,17 +17,28 @@ import {
   Crown,
   Lock,
   Percent,
+  AlertCircle,
 } from "lucide-react";
+
+import { fetchMe } from "../../features/auth/authSlice";
+
+const API = "https://twinn-backend.onrender.com/api";
 
 export default function AddProduct() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const { user } = useSelector((state) => state.auth || {});
+
+  const plan = user?.plan || "free";
+  const isPro = plan === "pro" || plan === "business";
   const maxProducts = isPro ? 100 : 3;
 
-  const existingProducts = JSON.parse(localStorage.getItem("products") || "[]");
-  const reachedLimit = existingProducts.length >= maxProducts;
+  const [existingCount, setExistingCount] = useState(0);
+  const [loadingCount, setLoadingCount] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   const [product, setProduct] = useState({
     name: "",
@@ -40,7 +52,8 @@ export default function AddProduct() {
   });
 
   const [images, setImages] = useState([]);
-  const [saved, setSaved] = useState(false);
+
+  const reachedLimit = existingCount >= maxProducts;
 
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100 dark:focus:ring-pink-500/20";
@@ -48,16 +61,45 @@ export default function AddProduct() {
   const textareaClass =
     "w-full rounded-2xl border border-border bg-background p-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-100 dark:focus:ring-pink-500/20";
 
-  const upgradeToPro = () => {
-    navigate("/pricing");
-  };
+  const upgradeToPro = () => navigate("/pricing");
 
   const updateField = (field, value) => {
     setProduct((prev) => ({ ...prev, [field]: value }));
   };
 
+  const loadProductCount = async () => {
+    try {
+      setLoadingCount(true);
+
+      const res = await fetch(`${API}/products`, {
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) return;
+
+      const list = Array.isArray(data)
+        ? data
+        : data.products || data.data || [];
+
+      setExistingCount(Array.isArray(list) ? list.length : 0);
+    } finally {
+      setLoadingCount(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      dispatch(fetchMe());
+    }
+
+    loadProductCount();
+  }, [dispatch]);
+
   const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files).map((file) => ({
+    const files = Array.from(e.target.files || []).map((file) => ({
+      file,
       name: file.name,
       url: URL.createObjectURL(file),
     }));
@@ -74,39 +116,78 @@ export default function AddProduct() {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const saveProduct = () => {
-    if (reachedLimit) {
-      upgradeToPro();
-      return;
+  const saveProduct = async () => {
+    try {
+      setError("");
+
+      if (reachedLimit) {
+        upgradeToPro();
+        return;
+      }
+
+      if (!product.name.trim() || !product.price.trim()) {
+        setError("Product name and price are required.");
+        return;
+      }
+
+      setSaving(true);
+
+      const status = product.script.trim() ? "Ready to sell" : "Needs script";
+
+      const formData = new FormData();
+
+      formData.append("name", product.name);
+      formData.append("price", product.price);
+      formData.append("category", product.category || "General");
+      formData.append("stock", product.stock || "0");
+      formData.append("description", product.description);
+      formData.append("script", product.script);
+      formData.append("offer", isPro ? product.offer : "");
+      formData.append(
+        "objectionHandling",
+        isPro ? product.objectionHandling : ""
+      );
+      formData.append("status", status);
+      formData.append("sales", "0 sold");
+      formData.append("plan", isPro ? "pro" : "free");
+
+      const allowedImages = isPro ? images : images.slice(0, 1);
+
+      allowedImages.forEach((img) => {
+        formData.append("images", img.file);
+      });
+
+      if (!allowedImages.length) {
+        formData.append("img", "/images/product1.png");
+      }
+
+      const res = await fetch(`${API}/products`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to save product");
+      }
+
+      const newProduct = data.product || data.data || data;
+
+      localStorage.setItem("selectedProduct", newProduct.name || product.name);
+      localStorage.setItem("selectedProductId", newProduct._id || newProduct.id || "");
+
+      setSaved(true);
+
+      setTimeout(() => {
+        navigate("/app/products");
+      }, 1000);
+    } catch (err) {
+      setError(err.message || "Unable to save product");
+    } finally {
+      setSaving(false);
     }
-
-    const newProduct = {
-      id: Date.now(),
-      ...product,
-      price: product.price || "₹0",
-      stock: product.stock || "0",
-      status: product.script.trim() ? "Ready to sell" : "Needs script",
-      sales: "0 sold",
-      img: images[0]?.url || "/images/product1.png",
-      images: images.map((img) => img.url),
-      plan: isPro ? "pro" : "free",
-      createdAt: new Date().toLocaleString(),
-    };
-
-    const oldProducts = JSON.parse(localStorage.getItem("products") || "[]");
-
-    localStorage.setItem(
-      "products",
-      JSON.stringify([...oldProducts, newProduct])
-    );
-
-    localStorage.setItem("selectedProduct", newProduct.name);
-
-    setSaved(true);
-
-    setTimeout(() => {
-      navigate("/app/products");
-    }, 1000);
   };
 
   const canSave = product.name.trim() && product.price.trim() && !reachedLimit;
@@ -140,14 +221,14 @@ export default function AddProduct() {
             }`}
           >
             {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-            {isPro ? "PRO PLAN ACTIVE" : `FREE ${existingProducts.length}/${maxProducts}`}
+            {isPro
+              ? "PRO PLAN ACTIVE"
+              : `FREE ${loadingCount ? "..." : existingCount}/${maxProducts}`}
           </span>
         </div>
 
         <h1 className="mt-5 text-3xl font-black sm:text-4xl">
-          <span className="brand-text">
-            {isPro ? "Add Pro" : "Add New"}
-          </span>{" "}
+          <span className="brand-text">{isPro ? "Add Pro" : "Add New"}</span>{" "}
           Product
         </h1>
 
@@ -162,7 +243,7 @@ export default function AddProduct() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-black text-[var(--brand-pink)]">
-                  Product Limit: {existingProducts.length}/{maxProducts}
+                  Product Limit: {loadingCount ? "..." : existingCount}/{maxProducts}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Upgrade to Pro for 100 products, multiple images and advanced
@@ -183,6 +264,13 @@ export default function AddProduct() {
         {reachedLimit && (
           <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-bold text-orange-600 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-400">
             Free product limit reached. Upgrade to Pro to add more products.
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-600 dark:text-red-400">
+            <AlertCircle className="h-5 w-5" />
+            {error}
           </div>
         )}
       </div>
@@ -332,11 +420,15 @@ export default function AddProduct() {
 
           <button
             onClick={saveProduct}
-            disabled={!canSave}
+            disabled={!canSave || saving}
             className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            {reachedLimit ? "Upgrade Required" : "Save Product"}
+            {saving
+              ? "Saving..."
+              : reachedLimit
+              ? "Upgrade Required"
+              : "Save Product"}
           </button>
         </section>
 

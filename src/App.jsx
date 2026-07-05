@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchMe } from "./features/auth/authSlice";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -71,9 +73,13 @@ import PaymentFailed from "./pages/PaymentFailed.jsx";
 
 
 function RequireAdmin({ children }) {
-  const role = localStorage.getItem("role");
+  const { user } = useSelector((state) => state.auth);
 
-  if (role !== "admin") {
+  if (!user) {
+    return <Navigate to="/signin" replace />;
+  }
+
+  if (user.role !== "admin") {
     return <Navigate to="/app" replace />;
   }
 
@@ -121,9 +127,12 @@ function RequireTwin({ children }) {
 }
 
 export default function App() {
+  const dispatch = useDispatch();
+
   useEffect(() => {
     applySavedTheme();
-  }, []);
+    dispatch(fetchMe());
+  }, [dispatch]);
 
   return (
     <>
@@ -163,7 +172,7 @@ export default function App() {
         <Route path="/app" element={<AppLayout />}>
         
           <Route index element={<Dashboard />} />
-<Route path="/app/pro" element={<Dashboard />} />
+
           <Route path="twin" element={<TwinDashboard />} />
           <Route path="twin/create" element={<CreateTwin />} />
           <Route path="twin/edit" element={<EditTwin />} />
@@ -233,17 +242,10 @@ export default function App() {
             }
           />
 
-          <Route
-            path="golive/preview"
-            element={
-              <RequireTwin>
-                <PreLivePreview />
-              </RequireTwin>
-            }
-          />
+        <Route path="golive/preview/:id" element={<RequireTwin><PreLivePreview /></RequireTwin>} />
 
           <Route
-            path="golive/live"
+            path="golive/live/:id"
             element={
               <RequireTwin>
                 <LiveStream />
@@ -254,6 +256,9 @@ export default function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
         </Route>
+        <Route path="/app/pro" element={<AppLayout />}>
+  <Route index element={<Dashboard />} />
+</Route>
 
         <Route path="*" element={<NotFound />} />
 

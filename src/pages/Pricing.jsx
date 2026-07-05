@@ -4,27 +4,26 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Check,
-  X,
   Crown,
   Sparkles,
   Rocket,
   Building2,
-  Users,
   HelpCircle,
   ArrowRight,
 } from "lucide-react";
-import Logo from "../components/Logo";
 import Nav from "../components/Nav";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const plans = [
   {
-     name: "Free",
-  tag: "Try your AI Twin, on us.",
-  monthly: "$0",
-  monthlyOriginal: "$0",
-  yearly: "$0",
-  yearlyOriginal: "$0",
-  period: "Free forever",
+    name: "Free",
+    tag: "Try your AI Twin, on us.",
+    monthly: "$0",
+    monthlyOriginal: "$0",
+    yearly: "$0",
+    yearlyOriginal: "$0",
+    period: "Free forever",
     button: "Get Started Free",
     link: "/signup",
     icon: Sparkles,
@@ -42,18 +41,17 @@ const plans = [
   },
   {
     name: "Pro",
-  tag: "For creators ready to go live.",
-  monthly: "$29",
-  monthlyOriginal: "$49",
-  yearly: "$290",
-  yearlyOriginal: "$490",
-  period: "/ month",
+    tag: "For creators ready to go live.",
+    monthly: "$29",
+    monthlyOriginal: "$49",
+    yearly: "$290",
+    yearlyOriginal: "$490",
+    period: "/ month",
     button: "Start",
-    link: "/checkout/pro",
     icon: Crown,
     popular: true,
     features: [
-      "Everything in Starter",
+      "Everything in Free",
       "Up to 3 AI Twins",
       "Connect up to 4 platforms",
       "Up to 100 products",
@@ -67,18 +65,17 @@ const plans = [
   },
   {
     name: "Business",
-  tag: "Scale across every channel.",
-  monthly: "$99",
-  monthlyOriginal: "$149",
-  yearly: "$990",
-  yearlyOriginal: "$1,490",
-  period: "/ month",
+    tag: "Scale across every channel.",
+    monthly: "$99",
+    monthlyOriginal: "$149",
+    yearly: "$990",
+    yearlyOriginal: "$1,490",
+    period: "/ month",
     button: "Start",
-    link: "/checkout/business",
     icon: Rocket,
     popular: false,
     features: [
-      "Everything in Creator",
+      "Everything in Pro",
       "Unlimited AI Twins",
       "Instagram, Facebook, YouTube, TikTok & LinkedIn",
       "Unlimited products",
@@ -90,13 +87,13 @@ const plans = [
     ],
   },
   {
-     name: "Agency",
-  tag: "Run AI Twins for every client.",
-  monthly: "Custom",
-  monthlyOriginal: "",
-  yearly: "Custom",
-  yearlyOriginal: "",
-  period: "Volume-based pricing",
+    name: "Agency",
+    tag: "Run AI Twins for every client.",
+    monthly: "Custom",
+    monthlyOriginal: "",
+    yearly: "Custom",
+    yearlyOriginal: "",
+    period: "Volume-based pricing",
     button: "Contact Sales",
     link: "/waitlist",
     icon: Building2,
@@ -135,7 +132,7 @@ const faqs = [
   },
   {
     q: "Is there a free trial on paid plans?",
-    a: "Yes. Creator and Business plans include a 14-day free trial, no credit card required.",
+    a: "Yes. Pro and Business plans include a 14-day free trial, no credit card required.",
   },
   {
     q: "What happens if I reach my limit?",
@@ -160,7 +157,7 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-                 <Nav />
+      <Nav />
 
       <main>
         <section className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
@@ -170,7 +167,8 @@ export default function Pricing() {
           </span>
 
           <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-6xl">
-            Simple Plans. <span className="brand-text">Sell Around the Clock.</span>
+            Simple Plans.{" "}
+            <span className="brand-text">Sell Around the Clock.</span>
           </h1>
 
           <p className="mx-auto mt-5 max-w-2xl text-sm font-medium leading-7 text-muted-foreground sm:text-base">
@@ -218,8 +216,8 @@ export default function Pricing() {
                 <thead>
                   <tr className="border-b border-border">
                     <th className="py-4 text-sm font-black">Feature</th>
-                    <th>Starter</th>
-                    <th>Creator</th>
+                    <th>Free</th>
+                    <th>Pro</th>
                     <th>Business</th>
                     <th>Agency</th>
                   </tr>
@@ -302,7 +300,8 @@ export default function Pricing() {
           </div>
         </section>
       </main>
-      <footer className="border-t border-border bg-[#0d0d12] ">
+
+      <footer className="border-t border-border bg-[#0d0d12]">
         <p className="px-4 py-5 text-center text-sm font-medium tracking-wide text-white/50">
           © {new Date().getFullYear()} Twinn. All rights reserved.
         </p>
@@ -313,6 +312,107 @@ export default function Pricing() {
 
 function PlanCard({ plan, billing }) {
   const Icon = plan.icon;
+  const [loading, setLoading] = useState(false);
+
+  const handlePayment = async () => {
+    if (plan.name === "Free") {
+      window.location.href = "/signup";
+      return;
+    }
+
+    if (plan.name === "Agency") {
+      window.location.href = "/waitlist";
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_URL}/api/payments/create-checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          plan: plan.name.toLowerCase(),
+          billing,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        alert(data.message || "Unable to start payment");
+        return;
+      }
+
+      if (data.gateway === "stripe") {
+        window.location.href = data.checkoutUrl;
+        return;
+      }
+
+      if (!window.Razorpay) {
+        alert("Razorpay SDK not loaded");
+        return;
+      }
+
+      const options = {
+        key: data.key,
+        amount: data.amount,
+        currency: data.currency,
+        name: "Twinn",
+        description: `${plan.name} Plan`,
+        order_id: data.orderId,
+
+        handler: async function (response) {
+          const verifyRes = await fetch(
+            `${API_URL}/api/payments/razorpay/verify`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+              body: JSON.stringify({
+                plan: plan.name.toLowerCase(),
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              }),
+            }
+          );
+
+          const verifyData = await verifyRes.json();
+
+          if (!verifyRes.ok || !verifyData.success) {
+            alert(verifyData.message || "Payment verification failed");
+            return;
+          }
+
+          alert("Payment successful. Plan upgraded.");
+          window.location.href = "/app";
+        },
+
+        modal: {
+          ondismiss: function () {
+            setLoading(false);
+          },
+        },
+
+        theme: {
+          color: "#ec4899",
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      alert(error.message || "Payment error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div
@@ -339,42 +439,43 @@ function PlanCard({ plan, billing }) {
       </p>
 
       <div className="mt-6">
-  {plan.name !== "Agency" && (
-    <p className="text-sm font-bold text-muted-foreground line-through">
-      {billing === "monthly" ? plan.monthlyOriginal : plan.yearlyOriginal}
-    </p>
-  )}
+        {plan.name !== "Agency" && (
+          <p className="text-sm font-bold text-muted-foreground line-through">
+            {billing === "monthly" ? plan.monthlyOriginal : plan.yearlyOriginal}
+          </p>
+        )}
 
-  <p className="mt-1 text-4xl font-black brand-text">
-    {billing === "monthly" ? plan.monthly : plan.yearly}
-  </p>
+        <p className="mt-1 text-4xl font-black brand-text">
+          {billing === "monthly" ? plan.monthly : plan.yearly}
+        </p>
 
-  {plan.name !== "Free" && plan.name !== "Agency" && (
-    <p className="mt-1 text-xs font-black text-emerald-600">
-      Limited time offer
-    </p>
-  )}
+        {plan.name !== "Free" && plan.name !== "Agency" && (
+          <p className="mt-1 text-xs font-black text-emerald-600">
+            Limited time offer
+          </p>
+        )}
 
-  <p className="mt-1 text-sm font-bold text-muted-foreground">
-    {plan.name === "Agency"
-      ? plan.period
-      : billing === "monthly"
-      ? plan.period
-      : "/ year"}
-  </p>
-</div>
+        <p className="mt-1 text-sm font-bold text-muted-foreground">
+          {plan.name === "Agency"
+            ? plan.period
+            : billing === "monthly"
+            ? plan.period
+            : "/ year"}
+        </p>
+      </div>
 
-      <Link
-        to={plan.link}
-        className={`mt-6 flex h-12 items-center justify-center gap-2 rounded-[5px] text-sm font-black transition ${
+      <button
+        onClick={handlePayment}
+        disabled={loading}
+        className={`mt-6 flex h-12 items-center justify-center gap-2 rounded-[5px] text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-70 ${
           plan.popular
             ? "brand-gradient text-white"
             : "border-2 border-[var(--brand-pink)] text-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10"
         }`}
       >
-        {plan.button}
+        {loading ? "Processing..." : plan.button}
         <ArrowRight className="h-4 w-4" />
-      </Link>
+      </button>
 
       <ul className="mt-6 flex-1 space-y-3">
         {plan.features.map((feature) => (
@@ -384,8 +485,6 @@ function PlanCard({ plan, billing }) {
           </li>
         ))}
       </ul>
-      
     </div>
-    
   );
 }

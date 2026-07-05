@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Youtube,
   Facebook,
@@ -7,7 +8,6 @@ import {
   Music2,
   Radio,
   Sparkles,
-  CheckCircle2,
   MessageSquare,
   Link2,
   Bot,
@@ -16,16 +16,20 @@ import {
   ScanFace,
   Crown,
   Lock,
+  AlertCircle,
 } from "lucide-react";
 
-const LIVE_API = "https://twinn-backend.onrender.com/api/live";
-const SOCIAL_API = "https://twinn-backend.onrender.com/api/social";
+import { fetchMe } from "../../features/auth/authSlice";
+import { fetchConnections } from "../../features/social/socialSlice";
+
+const API = "https://twinn-backend.onrender.com/api";
+const LIVE_API = `${API}/live`;
 
 const platforms = [
-  { name: "Instagram", icon: Instagram, pro: false },
-  { name: "YouTube", icon: Youtube, pro: true },
-  { name: "Facebook", icon: Facebook, pro: true },
-  { name: "TikTok", icon: Music2, pro: true },
+  { id: "instagram", name: "Instagram", icon: Instagram, pro: false },
+  { id: "youtube", name: "YouTube", icon: Youtube, pro: true },
+  { id: "facebook", name: "Facebook", icon: Facebook, pro: true },
+  { id: "tiktok", name: "TikTok", icon: Music2, pro: true },
 ];
 
 const defaultProducts = [
@@ -34,21 +38,32 @@ const defaultProducts = [
   "Smart Watch",
 ];
 
+const normalizePlatform = (platform = "") =>
+  platform.toString().trim().toLowerCase();
+
 export default function GoLive() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
 
-  const [videoFile, setVideoFile] = useState(null);
-  const [instagramConnected, setInstagramConnected] = useState(false);
-  const [checkingConnection, setCheckingConnection] = useState(true);
+  const { user } = useSelector((state) => state.auth || {});
+  const { connections = [], loading: socialLoading } = useSelector(
+    (state) => state.social || {}
+  );
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const plan = user?.plan || "free";
+  const isPro = plan === "pro" || plan === "business";
   const maxPlatforms = isPro ? 4 : 1;
 
+  const scheduleState = location.state?.schedule;
+  const productState = location.state?.product;
+  const platformState = location.state?.platforms;
+
+  const [videoFile, setVideoFile] = useState(null);
   const [twinName, setTwinName] = useState("My AI Twin");
-  const [product, setProduct] = useState("Vitamin C Glow Serum");
+  const [product, setProduct] = useState(productState || "Vitamin C Glow Serum");
   const [products, setProducts] = useState(defaultProducts);
-  const [selectedPlatforms, setSelectedPlatforms] = useState(["Instagram"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState([]);
 
   const [rtmpUrl, setRtmpUrl] = useState(
     "rtmps://live-upload.instagram.com:443/rtmp"
@@ -57,6 +72,7 @@ export default function GoLive() {
   const [videoPath, setVideoPath] = useState("");
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveStatus, setLiveStatus] = useState("");
+  const [loadingProducts, setLoadingProducts] = useState(false);
 
   const [settings, setSettings] = useState({
     liveChat: true,
@@ -65,59 +81,97 @@ export default function GoLive() {
     multiPlatformSync: false,
   });
 
+  const connectedPlatforms = useMemo(() => {
+    return connections
+      .filter((item) => item?.connected !== false)
+      .map((item) => normalizePlatform(item.platform))
+      .filter(Boolean);
+  }, [connections]);
+
+  const instagramConnected = connectedPlatforms.includes("instagram");
+
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
 
   const upgradeToPro = () => navigate("/pricing");
 
-  useEffect(() => {
-    const checkInstagram = async () => {
-      try {
-        const res = await fetch(`${SOCIAL_API}/connections`);
-        const data = await res.json();
+  const loadProducts = async () => {
+    try {
+      setLoadingProducts(true);
 
-        const isConnected = data.data?.some(
-          (item) => item.platform === "instagram" && item.connected
-        );
+      const res = await fetch(`${API}/products`, {
+        credentials: "include",
+      });
 
-        setInstagramConnected(Boolean(isConnected));
+      const data = await res.json().catch(() => ({}));
 
-        if (!isConnected) {
-          setLiveStatus("Please connect Instagram before going live.");
-        }
-      } catch {
-        setLiveStatus("Unable to check Instagram connection.");
-      } finally {
-        setCheckingConnection(false);
+      if (!res.ok) return;
+
+      const list = Array.isArray(data)
+        ? data
+        : data.products || data.data || [];
+
+      if (Array.isArray(list) && list.length) {
+        const productNames = list.map((item) => item.name).filter(Boolean);
+        setProducts([...new Set([...defaultProducts, ...productNames])]);
       }
-    };
-
-    checkInstagram();
-  }, []);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
   useEffect(() => {
+    if (!user) {
+      dispatch(fetchMe());
+    }
+
+    dispatch(fetchConnections());
+    loadProducts();
+
     setTwinName(localStorage.getItem("twinName") || "My AI Twin");
 
-    const selectedProduct = localStorage.getItem("selectedProduct");
-    if (selectedProduct) setProduct(selectedProduct);
+    const selectedProduct =
+      productState ||
+      scheduleState?.product ||
+      scheduleState?.productName ||
+      localStorage.getItem("selectedProduct");
 
-    const savedProducts = JSON.parse(localStorage.getItem("products") || "[]");
-    if (savedProducts.length) {
-      const productNames = savedProducts.map((item) => item.name);
-      setProducts([...new Set([...defaultProducts, ...productNames])]);
+    if (selectedProduct) {
+      setProduct(selectedProduct);
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!connectedPlatforms.length) {
+      setSelectedPlatforms([]);
+      setLiveStatus("Please connect Instagram before going live.");
+      return;
     }
 
-    const connectedPlatforms = JSON.parse(
-      localStorage.getItem("connectedPlatforms") || "[]"
+    let preferredPlatforms = [];
+
+    if (Array.isArray(platformState) && platformState.length) {
+      preferredPlatforms = platformState.map(normalizePlatform);
+    } else if (Array.isArray(scheduleState?.platforms)) {
+      preferredPlatforms = scheduleState.platforms.map(normalizePlatform);
+    } else {
+      preferredPlatforms = connectedPlatforms;
+    }
+
+    const allowedConnected = preferredPlatforms.filter((platform) =>
+      connectedPlatforms.includes(platform)
     );
 
-    if (connectedPlatforms.length) {
-      const formatted = connectedPlatforms.map(
-        (item) => item.charAt(0).toUpperCase() + item.slice(1)
-      );
-      setSelectedPlatforms(isPro ? formatted : formatted.slice(0, 1));
+    setSelectedPlatforms(
+      isPro ? allowedConnected : allowedConnected.slice(0, 1)
+    );
+
+    if (!connectedPlatforms.includes("instagram")) {
+      setLiveStatus("Instagram is not connected. Connect Instagram first.");
+    } else {
+      setLiveStatus("");
     }
-  }, [isPro]);
+  }, [connectedPlatforms, isPro, platformState, scheduleState]);
 
   const uploadVideo = async () => {
     if (!videoFile) {
@@ -130,36 +184,53 @@ export default function GoLive() {
 
     const res = await fetch(`${LIVE_API}/upload-video`, {
       method: "POST",
+      credentials: "include",
       body: formData,
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
       throw new Error(data.message || "Video upload failed");
     }
 
-    return data.videoPath;
+    return data.videoPath || data.path || data.url;
   };
 
-  const togglePlatform = (name) => {
-    const item = platforms.find((p) => p.name === name);
-    const active = selectedPlatforms.includes(name);
+  const togglePlatform = (platformId) => {
+    const item = platforms.find((p) => p.id === platformId);
+    const active = selectedPlatforms.includes(platformId);
+    const isConnected = connectedPlatforms.includes(platformId);
 
-    if (item?.pro && !isPro && !active) return upgradeToPro();
-
-    if (active) {
-      setSelectedPlatforms((prev) => prev.filter((item) => item !== name));
+    if (!isConnected) {
+      alert("Please connect this platform first.");
+      navigate("/app/connect");
       return;
     }
 
-    if (!isPro && selectedPlatforms.length >= maxPlatforms) return upgradeToPro();
+    if (item?.pro && !isPro && !active) {
+      upgradeToPro();
+      return;
+    }
 
-    setSelectedPlatforms((prev) => [...prev, name]);
+    if (active) {
+      setSelectedPlatforms((prev) => prev.filter((item) => item !== platformId));
+      return;
+    }
+
+    if (!isPro && selectedPlatforms.length >= maxPlatforms) {
+      upgradeToPro();
+      return;
+    }
+
+    setSelectedPlatforms((prev) => [...prev, platformId]);
   };
 
   const toggleSetting = (key, proOnly = false) => {
-    if (proOnly && !isPro) return upgradeToPro();
+    if (proOnly && !isPro) {
+      upgradeToPro();
+      return;
+    }
 
     setSettings((prev) => ({
       ...prev,
@@ -191,6 +262,7 @@ export default function GoLive() {
 
       const res = await fetch(`${LIVE_API}/start-instagram-rtmp`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -198,10 +270,13 @@ export default function GoLive() {
           rtmpUrl,
           streamKey,
           videoPath: uploadedVideoPath,
+          product,
+          twinName,
+          platforms: ["instagram"],
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         throw new Error(data.message || "Failed to start live");
@@ -222,9 +297,10 @@ export default function GoLive() {
 
       const res = await fetch(`${LIVE_API}/stop-instagram-rtmp`, {
         method: "POST",
+        credentials: "include",
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
         throw new Error(data.message || "Failed to stop live");
@@ -238,7 +314,11 @@ export default function GoLive() {
     }
   };
 
-  const continuePreview = () => {
+  const continuePreview = async () => {
+  try {
+    setLiveLoading(true);
+    setLiveStatus("");
+
     if (!instagramConnected) {
       setLiveStatus("Please connect Instagram before continuing.");
       navigate("/app/connect");
@@ -249,25 +329,45 @@ export default function GoLive() {
       ? selectedPlatforms
       : selectedPlatforms.slice(0, 1);
 
-    const liveSetup = {
-      twinName,
-      product,
-      platforms: allowedPlatforms,
-      settings,
-      rtmpUrl,
-      videoPath,
-      plan: isPro ? "pro" : "free",
-      createdAt: new Date().toLocaleString(),
-    };
+    const res = await fetch(`${LIVE_API}/setup`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        scheduleId: scheduleState?._id || scheduleState?.id || null,
+        twinName,
+        product,
+        platforms: allowedPlatforms,
+        settings,
+        rtmpUrl,
+        videoPath,
+        plan: isPro ? "pro" : "free",
+      }),
+    });
 
-    localStorage.setItem("selectedProduct", product);
-    localStorage.setItem("selectedPlatforms", JSON.stringify(allowedPlatforms));
-    localStorage.setItem("liveSetup", JSON.stringify(liveSetup));
+    const data = await res.json().catch(() => ({}));
 
-    navigate("/app/golive/preview");
-  };
+    if (!res.ok) {
+      throw new Error(data.message || "Unable to create live setup");
+    }
 
-  const canContinue = product && selectedPlatforms.length > 0 && instagramConnected;
+    const liveSessionId = data.liveSession?._id || data.data?._id || data._id;
+
+    navigate(`/app/golive/preview/${liveSessionId}`);
+  } catch (err) {
+    setLiveStatus(err.message || "Unable to continue preview.");
+  } finally {
+    setLiveLoading(false);
+  }
+};
+
+  const canContinue =
+    product &&
+    selectedPlatforms.length > 0 &&
+    instagramConnected &&
+    !socialLoading;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 bg-background text-foreground transition-colors duration-300">
@@ -290,7 +390,7 @@ export default function GoLive() {
             }`}
           >
             <Instagram className="h-4 w-4" />
-            {checkingConnection
+            {socialLoading
               ? "Checking Instagram..."
               : instagramConnected
               ? "Instagram Connected"
@@ -306,7 +406,7 @@ export default function GoLive() {
           Connect Instagram first, then paste Instagram Live Producer RTMP URL and Stream Key.
         </p>
 
-        {!instagramConnected && !checkingConnection && (
+        {!instagramConnected && !socialLoading && (
           <button
             onClick={() => navigate("/app/connect")}
             className="brand-gradient mt-5 rounded-[5px] px-6 py-3 text-sm font-bold tracking-wide text-white"
@@ -315,6 +415,13 @@ export default function GoLive() {
           </button>
         )}
       </section>
+
+      {liveStatus && (
+        <section className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-sm font-bold text-foreground shadow-sm">
+          <AlertCircle className="h-5 w-5 text-[var(--brand-pink)]" />
+          {liveStatus}
+        </section>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
@@ -325,7 +432,7 @@ export default function GoLive() {
                 onChange={(e) => setTwinName(e.target.value)}
                 className={inputClass}
               >
-                <option>{twinName}</option>
+                <option value={twinName}>{twinName}</option>
               </select>
             </Field>
 
@@ -335,32 +442,43 @@ export default function GoLive() {
                 onChange={(e) => setProduct(e.target.value)}
                 className={inputClass}
               >
-                {products.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
+                {loadingProducts ? (
+                  <option>Loading products...</option>
+                ) : (
+                  products.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))
+                )}
               </select>
             </Field>
           </div>
 
           <div className="mt-6">
             <h2 className="text-xl font-black tracking-tight brand-text">
-              Select Platforms
+              Select Connected Platforms
             </h2>
 
+            <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
+              Free plan allows one connected platform. Pro can select multiple platforms.
+            </p>
+
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {platforms.map(({ name, icon: Icon, pro }) => {
-                const active = selectedPlatforms.includes(name);
+              {platforms.map(({ id, name, icon: Icon, pro }) => {
+                const active = selectedPlatforms.includes(id);
                 const locked = pro && !isPro;
+                const isConnected = connectedPlatforms.includes(id);
 
                 return (
                   <button
-                    key={name}
-                    onClick={() => togglePlatform(name)}
+                    key={id}
+                    onClick={() => togglePlatform(id)}
                     className={`relative rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
                       active
                         ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
                         : "border-border bg-background text-foreground"
-                    }`}
+                    } ${!isConnected ? "opacity-70" : ""}`}
                   >
                     {locked && (
                       <span className="absolute right-3 top-3 rounded-full bg-pink-500 px-2 py-1 text-[10px] font-black text-white">
@@ -368,7 +486,7 @@ export default function GoLive() {
                       </span>
                     )}
 
-                    {locked ? (
+                    {!isConnected || locked ? (
                       <Lock className="h-6 w-6 text-[var(--brand-pink)]" />
                     ) : (
                       <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
@@ -379,7 +497,13 @@ export default function GoLive() {
                     </p>
 
                     <p className="mt-1 text-xs font-medium text-muted-foreground">
-                      {active ? "Selected" : locked ? "Pro only" : "Click to select"}
+                      {active
+                        ? "Selected"
+                        : !isConnected
+                        ? "Connect first"
+                        : locked
+                        ? "Pro only"
+                        : "Click to select"}
                     </p>
                   </button>
                 );
@@ -417,24 +541,18 @@ export default function GoLive() {
                 <input
                   type="file"
                   accept="video/*"
-                  onChange={(e) => setVideoFile(e.target.files[0])}
+                  onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
                   className={inputClass}
                 />
               </Field>
 
-              {liveStatus && (
-                <div className="rounded-2xl border border-border bg-card p-4 text-sm font-bold text-foreground">
-                  {liveStatus}
-                </div>
-              )}
-
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   onClick={startInstagramRTMP}
-                  disabled={liveLoading || checkingConnection || !instagramConnected}
+                  disabled={liveLoading || socialLoading || !instagramConnected}
                   className="brand-gradient rounded-[5px] py-3 text-sm font-bold tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {checkingConnection
+                  {socialLoading
                     ? "Checking Instagram..."
                     : liveLoading
                     ? "Please wait..."
@@ -455,10 +573,38 @@ export default function GoLive() {
           </div>
 
           <div className="mt-6 space-y-4">
-            <LiveToggle icon={MessageSquare} title="Enable Live Chat" desc="Allow viewers to comment and ask questions." active={settings.liveChat} onClick={() => toggleSetting("liveChat")} />
-            <LiveToggle icon={Link2} title="Show Product Link" desc="Display buy link while AI Twin is selling." active={settings.productLink} onClick={() => toggleSetting("productLink")} />
-            <LiveToggle icon={Bot} title="Auto Answer Customer Questions" desc="AI Twin answers product questions automatically." active={settings.autoAnswer} onClick={() => toggleSetting("autoAnswer")} />
-            <LiveToggle icon={Radio} title="Multi-Platform Sync" desc="Sync AI Twin live flow across all selected platforms." active={settings.multiPlatformSync} proOnly={!isPro} onClick={() => toggleSetting("multiPlatformSync", true)} />
+            <LiveToggle
+              icon={MessageSquare}
+              title="Enable Live Chat"
+              desc="Allow viewers to comment and ask questions."
+              active={settings.liveChat}
+              onClick={() => toggleSetting("liveChat")}
+            />
+
+            <LiveToggle
+              icon={Link2}
+              title="Show Product Link"
+              desc="Display buy link while AI Twin is selling."
+              active={settings.productLink}
+              onClick={() => toggleSetting("productLink")}
+            />
+
+            <LiveToggle
+              icon={Bot}
+              title="Auto Answer Customer Questions"
+              desc="AI Twin answers product questions automatically."
+              active={settings.autoAnswer}
+              onClick={() => toggleSetting("autoAnswer")}
+            />
+
+            <LiveToggle
+              icon={Radio}
+              title="Multi-Platform Sync"
+              desc="Sync AI Twin live flow across all selected platforms."
+              active={settings.multiPlatformSync}
+              proOnly={!isPro}
+              onClick={() => toggleSetting("multiPlatformSync", true)}
+            />
           </div>
 
           <button
@@ -470,6 +616,37 @@ export default function GoLive() {
             <ArrowRight className="h-4 w-4" />
           </button>
         </section>
+
+        <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <h2 className="text-xl font-black tracking-tight brand-text">
+            Live Setup Preview
+          </h2>
+
+          <div className="mt-5 space-y-3 rounded-3xl border border-border bg-background p-5">
+            <PreviewItem label="AI Twin" value={twinName} />
+            <PreviewItem label="Product" value={product} />
+            <PreviewItem
+              label="Platforms"
+              value={
+                selectedPlatforms.length
+                  ? selectedPlatforms
+                      .map(
+                        (id) => platforms.find((item) => item.id === id)?.name || id
+                      )
+                      .join(", ")
+                  : "No platform selected"
+              }
+            />
+            <PreviewItem
+              label="Instagram"
+              value={instagramConnected ? "Connected" : "Not connected"}
+            />
+            <PreviewItem
+              label="Video"
+              value={videoFile ? videoFile.name : "No video selected"}
+            />
+          </div>
+        </aside>
       </div>
     </div>
   );
@@ -512,5 +689,16 @@ function LiveToggle({ icon: Icon, title, desc, active, onClick, proOnly }) {
         {proOnly ? "PRO" : active ? "ON" : "OFF"}
       </span>
     </button>
+  );
+}
+
+function PreviewItem({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <p className="text-xs font-bold tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-black text-foreground">{value}</p>
+    </div>
   );
 }

@@ -15,12 +15,16 @@ import {
   Volume2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+
 
 export default function TrainTwin() {
   const navigate = useNavigate();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const { user } = useSelector((state) => state.auth);
+
+const plan = user?.plan || "free";
+const isPro = plan === "pro" || plan === "business";
 
   const [files, setFiles] = useState([]);
   const [links, setLinks] = useState([""]);
@@ -32,14 +36,12 @@ export default function TrainTwin() {
   const maxKnowledgeChars = isPro ? 10000 : 1000;
 
   useEffect(() => {
-    const savedTraining = JSON.parse(
-      localStorage.getItem("twinTraining") || "{}"
-    );
+  const training = user?.twinTraining || {};
 
-    if (savedTraining.files) setFiles(savedTraining.files);
-    if (savedTraining.links) setLinks(savedTraining.links);
-    if (savedTraining.knowledge) setKnowledge(savedTraining.knowledge);
-  }, []);
+  if (training.files) setFiles(training.files);
+  if (training.links) setLinks(training.links.length ? training.links : [""]);
+  if (training.knowledge) setKnowledge(training.knowledge);
+}, [user]);
 
   const upgradeToPro = () => {
     navigate("/pricing");
@@ -82,22 +84,38 @@ export default function TrainTwin() {
     setLinks((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const saveTraining = () => {
+  const saveTraining = async () => {
+  try {
     const data = {
       files,
       links: links.filter((link) => link.trim() !== ""),
       knowledge: knowledge.slice(0, maxKnowledgeChars),
-      plan: isPro ? "pro" : "free",
-      trainedAt: new Date().toLocaleString(),
     };
 
-    localStorage.setItem("twinTraining", JSON.stringify(data));
-    localStorage.setItem("trainingText", data.knowledge);
-    localStorage.setItem("isTwinTrained", "true");
+    const res = await fetch(
+      "https://twinn-backend.onrender.com/api/twin/training",
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      }
+    );
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      throw new Error(result.message || "Training save failed");
+    }
 
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
-  };
+  } catch (error) {
+    alert(error.message);
+  }
+};
 
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
@@ -183,13 +201,13 @@ export default function TrainTwin() {
         <StatCard
           icon={CheckCircle2}
           label="Status"
-          value={
-            localStorage.getItem("isTwinTrained") === "true"
-              ? isPro
-                ? "Pro Trained"
-                : "Trained"
-              : "Draft"
-          }
+         value={
+  user?.isTwinTrained || user?.twinTraining?.isTrained
+    ? isPro
+      ? "Pro Trained"
+      : "Trained"
+    : "Draft"
+}
         />
       </section>
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Plus,
   Search,
@@ -14,73 +15,77 @@ import {
   X,
   Crown,
   Lock,
+  AlertCircle,
 } from "lucide-react";
 
-const defaultProducts = [
-  {
-    id: 1,
-    name: "Vitamin C Glow Serum",
-    price: "₹799",
-    stock: "In Stock",
-    status: "Ready to sell",
-    category: "Beauty",
-    sales: "342 sold",
-    img: "/images/6.jpeg",
-  },
-  {
-    id: 2,
-    name: "Wireless Headphone",
-    price: "₹1,299",
-    stock: "In Stock",
-    status: "Ready to sell",
-    category: "Electronics",
-    sales: "218 sold",
-    img: "/images/5.jpeg",
-  },
-  {
-    id: 3,
-    name: "Smart Watch",
-    price: "₹2,499",
-    stock: "Low Stock",
-    status: "Needs script",
-    category: "Gadgets",
-    sales: "97 sold",
-    img: "/images/7.jpeg",
-  },
-];
+import { fetchMe } from "../../features/auth/authSlice";
+
+const API = "https://twinn-backend.onrender.com/api";
 
 export default function Products() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const plan = localStorage.getItem("plan") || "free";
-  const isPro = plan === "pro";
+  const { user } = useSelector((state) => state.auth || {});
+
+  const plan = user?.plan || "free";
+  const isPro = plan === "pro" || plan === "business";
   const maxProducts = isPro ? 100 : 3;
 
   const [products, setProducts] = useState([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All Products");
   const [editingProduct, setEditingProduct] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("products") || "[]");
-
-    if (saved.length) {
-      setProducts(saved);
-    } else {
-      setProducts(defaultProducts);
-      localStorage.setItem("products", JSON.stringify(defaultProducts));
-    }
-  }, []);
-
-  const upgradeToPro = () => {
-    navigate("/pricing");
-  };
+  const upgradeToPro = () => navigate("/pricing");
 
   const canAddProduct = products.length < maxProducts;
 
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await fetch(`${API}/products`, {
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to load products");
+      }
+
+      const list = Array.isArray(data)
+        ? data
+        : data.products || data.data || [];
+
+      setProducts(Array.isArray(list) ? list : []);
+    } catch (err) {
+      setError(err.message || "Unable to load products");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) {
+      dispatch(fetchMe());
+    }
+
+    loadProducts();
+  }, [dispatch]);
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesSearch = `${product.name} ${product.category} ${product.status}`
+      const matchesSearch = `
+        ${product.name || ""}
+        ${product.category || ""}
+        ${product.status || ""}
+      `
         .toLowerCase()
         .includes(query.toLowerCase());
 
@@ -91,20 +96,78 @@ export default function Products() {
     });
   }, [products, query, filter]);
 
-  const deleteProduct = (id) => {
-    const updated = products.filter((product) => product.id !== id);
-    setProducts(updated);
-    localStorage.setItem("products", JSON.stringify(updated));
+  const deleteProduct = async (id) => {
+    try {
+      if (!id) return;
+
+      const confirmDelete = window.confirm(
+        "Are you sure you want to delete this product?"
+      );
+
+      if (!confirmDelete) return;
+
+      const res = await fetch(`${API}/products/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to delete product");
+      }
+
+      setProducts((prev) =>
+        prev.filter((product) => (product._id || product.id) !== id)
+      );
+    } catch (err) {
+      alert(err.message || "Unable to delete product");
+    }
   };
 
-  const saveEdit = () => {
-    const updated = products.map((product) =>
-      product.id === editingProduct.id ? editingProduct : product
-    );
+  const saveEdit = async () => {
+    try {
+      if (!editingProduct) return;
 
-    setProducts(updated);
-    localStorage.setItem("products", JSON.stringify(updated));
-    setEditingProduct(null);
+      setSavingEdit(true);
+
+      const id = editingProduct._id || editingProduct.id;
+
+      const res = await fetch(`${API}/products/${id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editingProduct),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to update product");
+      }
+
+      const updatedProduct = data.product || data.data || editingProduct;
+
+      setProducts((prev) =>
+        prev.map((product) =>
+          (product._id || product.id) === id ? updatedProduct : product
+        )
+      );
+
+      setEditingProduct(null);
+    } catch (err) {
+      alert(err.message || "Unable to update product");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const selectProductForLive = (product) => {
+    localStorage.setItem("selectedProduct", product.name);
+    localStorage.setItem("selectedProductId", product._id || product.id);
+    navigate("/app/golive");
   };
 
   return (
@@ -193,21 +256,36 @@ export default function Products() {
         </div>
       </section>
 
+      {error && (
+        <section className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-600 dark:text-red-400">
+          <AlertCircle className="h-5 w-5" />
+          {error}
+        </section>
+      )}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={Package}
           label="Total Products"
-          value={`${products.length}/${maxProducts}`}
+          value={loading ? "..." : `${products.length}/${maxProducts}`}
         />
         <StatCard
           icon={Radio}
           label="Live Ready"
-          value={products.filter((p) => p.status === "Ready to sell").length}
+          value={
+            loading
+              ? "..."
+              : products.filter((p) => p.status === "Ready to sell").length
+          }
         />
         <StatCard
           icon={Tag}
           label="Need Script"
-          value={products.filter((p) => p.status === "Needs script").length}
+          value={
+            loading
+              ? "..."
+              : products.filter((p) => p.status === "Needs script").length
+          }
         />
         <StatCard
           icon={TrendingUp}
@@ -241,103 +319,111 @@ export default function Products() {
         </div>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {filteredProducts.map((product) => (
-          <div
-            key={product.id}
-            className="group rounded-3xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-          >
-            <Link to={`/app/products/${product.id}`}>
-              <div className="relative overflow-hidden rounded-2xl bg-pink-50 p-4 dark:bg-white/10">
-                {isPro && (
-                  <span className="absolute bottom-3 right-3 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
-                    PRO SELLING
-                  </span>
-                )}
+      {loading ? (
+        <section className="rounded-3xl border border-border bg-card p-8 text-center text-sm font-bold text-muted-foreground shadow-sm">
+          Loading products...
+        </section>
+      ) : (
+        <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {filteredProducts.map((product) => {
+            const productId = product._id || product.id;
+            const image = product.img || product.image || "/images/6.jpeg";
 
-                <img
-                  src={product.img}
-                  alt={product.name}
-                  className="h-56 w-full rounded-[5px] object-contain transition duration-300 group-hover:scale-105"
-                />
+            return (
+              <div
+                key={productId}
+                className="group rounded-3xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+              >
+                <Link to={`/app/products/${productId}`}>
+                  <div className="relative overflow-hidden rounded-2xl bg-pink-50 p-4 dark:bg-white/10">
+                    {isPro && (
+                      <span className="absolute bottom-3 right-3 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
+                        PRO SELLING
+                      </span>
+                    )}
 
-                <span className="absolute left-3 top-3 rounded-full bg-card px-3 py-1 text-xs font-black tracking-wide text-[var(--brand-pink)] shadow-sm">
-                  {product.status}
-                </span>
+                    <img
+                      src={image}
+                      alt={product.name}
+                      className="h-56 w-full rounded-[5px] object-contain transition duration-300 group-hover:scale-105"
+                    />
 
-                <span className="absolute right-3 top-3 rounded-full bg-[#0d0d12] px-3 py-1 text-xs font-bold tracking-wide text-white">
-                  {product.category}
-                </span>
+                    <span className="absolute left-3 top-3 rounded-full bg-card px-3 py-1 text-xs font-black tracking-wide text-[var(--brand-pink)] shadow-sm">
+                      {product.status || "Ready to sell"}
+                    </span>
+
+                    <span className="absolute right-3 top-3 rounded-full bg-[#0d0d12] px-3 py-1 text-xs font-bold tracking-wide text-white">
+                      {product.category || "General"}
+                    </span>
+                  </div>
+                </Link>
+
+                <div className="mt-5">
+                  <h3 className="text-lg font-black tracking-tight text-foreground">
+                    {product.name}
+                  </h3>
+
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <p className="text-2xl font-black tracking-tight brand-text">
+                      {product.price}
+                    </p>
+
+                    <p className="text-xs font-bold tracking-wide text-muted-foreground">
+                      {product.sales || "0 sold"}
+                    </p>
+                  </div>
+
+                  <p
+                    className={`mt-2 text-sm font-bold ${
+                      product.stock === "Low Stock"
+                        ? "text-orange-500 dark:text-orange-400"
+                        : "text-emerald-600 dark:text-emerald-400"
+                    }`}
+                  >
+                    {product.stock || "In Stock"}
+                  </p>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setEditingProduct(product)}
+                    className="flex h-11 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={() => selectProductForLive(product)}
+                    className="brand-gradient flex h-11 items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white transition hover:opacity-90"
+                  >
+                    <Radio className="h-4 w-4" />
+                    {isPro ? "Pro Live" : "Sell Live"}
+                  </button>
+
+                  <Link
+                    to={`/app/products/${productId}`}
+                    className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-border bg-background text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)]"
+                  >
+                    <Package className="h-4 w-4" />
+                    Details
+                  </Link>
+
+                  <button
+                    onClick={() => deleteProduct(productId)}
+                    className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-red-200 text-sm font-bold tracking-wide text-red-500 transition hover:bg-red-50 dark:border-red-500/30 dark:hover:bg-red-500/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </button>
+                </div>
               </div>
-            </Link>
+            );
+          })}
+        </section>
+      )}
 
-            <div className="mt-5">
-              <h3 className="text-lg font-black tracking-tight text-foreground">
-                {product.name}
-              </h3>
-
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <p className="text-2xl font-black tracking-tight brand-text">
-                  {product.price}
-                </p>
-
-                <p className="text-xs font-bold tracking-wide text-muted-foreground">
-                  {product.sales}
-                </p>
-              </div>
-
-              <p
-                className={`mt-2 text-sm font-bold ${
-                  product.stock === "Low Stock"
-                    ? "text-orange-500 dark:text-orange-400"
-                    : "text-emerald-600 dark:text-emerald-400"
-                }`}
-              >
-                {product.stock}
-              </p>
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setEditingProduct(product)}
-                className="flex h-11 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
-              >
-                <Pencil className="h-4 w-4" />
-                Edit
-              </button>
-
-              <Link
-                to="/app/golive"
-                onClick={() =>
-                  localStorage.setItem("selectedProduct", product.name)
-                }
-                className="brand-gradient flex h-11 items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white transition hover:opacity-90"
-              >
-                <Radio className="h-4 w-4" />
-                {isPro ? "Pro Live" : "Sell Live"}
-              </Link>
-
-              <Link
-                to={`/app/products/${product.id}`}
-                className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-border bg-background text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)]"
-              >
-                <Package className="h-4 w-4" />
-                Details
-              </Link>
-
-              <button
-                onClick={() => deleteProduct(product.id)}
-                className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-red-200 text-sm font-bold tracking-wide text-red-500 transition hover:bg-red-50 dark:border-red-500/30 dark:hover:bg-red-500/10"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {filteredProducts.length === 0 && (
+      {!loading && filteredProducts.length === 0 && (
         <section className="rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
           <Package className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
           <h2 className="mt-4 text-xl font-black tracking-tight text-foreground">
@@ -368,7 +454,7 @@ export default function Products() {
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <EditInput
                 label="Product Name"
-                value={editingProduct.name}
+                value={editingProduct.name || ""}
                 onChange={(value) =>
                   setEditingProduct({ ...editingProduct, name: value })
                 }
@@ -376,7 +462,7 @@ export default function Products() {
 
               <EditInput
                 label="Price"
-                value={editingProduct.price}
+                value={editingProduct.price || ""}
                 onChange={(value) =>
                   setEditingProduct({ ...editingProduct, price: value })
                 }
@@ -384,7 +470,7 @@ export default function Products() {
 
               <EditInput
                 label="Category"
-                value={editingProduct.category}
+                value={editingProduct.category || ""}
                 onChange={(value) =>
                   setEditingProduct({ ...editingProduct, category: value })
                 }
@@ -392,7 +478,7 @@ export default function Products() {
 
               <EditInput
                 label="Stock"
-                value={editingProduct.stock}
+                value={editingProduct.stock || ""}
                 onChange={(value) =>
                   setEditingProduct({ ...editingProduct, stock: value })
                 }
@@ -400,7 +486,7 @@ export default function Products() {
 
               <EditInput
                 label="Status"
-                value={editingProduct.status}
+                value={editingProduct.status || ""}
                 onChange={(value) =>
                   setEditingProduct({ ...editingProduct, status: value })
                 }
@@ -408,9 +494,13 @@ export default function Products() {
 
               <EditInput
                 label="Image Path"
-                value={editingProduct.img}
+                value={editingProduct.img || editingProduct.image || ""}
                 onChange={(value) =>
-                  setEditingProduct({ ...editingProduct, img: value })
+                  setEditingProduct({
+                    ...editingProduct,
+                    img: value,
+                    image: value,
+                  })
                 }
               />
 
@@ -448,10 +538,11 @@ export default function Products() {
 
             <button
               onClick={saveEdit}
-              className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+              disabled={savingEdit}
+              className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Save className="h-4 w-4" />
-              Save Changes
+              {savingEdit ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </div>
