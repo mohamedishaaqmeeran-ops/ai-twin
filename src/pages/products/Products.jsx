@@ -126,43 +126,64 @@ export default function Products() {
   };
 
   const saveEdit = async () => {
-    try {
-      if (!editingProduct) return;
+  try {
+    if (!editingProduct) return;
 
-      setSavingEdit(true);
+    setSavingEdit(true);
 
-      const id = editingProduct._id || editingProduct.id;
+    const id = editingProduct._id || editingProduct.id;
 
-      const res = await fetch(`${API}/products/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editingProduct),
-      });
+    const payload = {
+      name: editingProduct.name,
+      price: Number(editingProduct.price),
+      category: editingProduct.category || "General",
+      stock: Number(editingProduct.stock || 0),
+      description: editingProduct.description || "",
+      status: editingProduct.status || "active",
+      images: editingProduct.images || [],
+      script: editingProduct.script || "",
+      offer: isPro ? editingProduct.offer || "" : "",
+      objectionHandling: isPro
+        ? editingProduct.objectionHandling || ""
+        : "",
+    };
 
-      const data = await res.json().catch(() => ({}));
+    const res = await fetch(`${API}/products/${id}`, {
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-      if (!res.ok) {
-        throw new Error(data.message || "Unable to update product");
-      }
+    const data = await res.json().catch(() => ({}));
 
-      const updatedProduct = data.product || data.data || editingProduct;
-
-      setProducts((prev) =>
-        prev.map((product) =>
-          (product._id || product.id) === id ? updatedProduct : product
-        )
-      );
-
-      setEditingProduct(null);
-    } catch (err) {
-      alert(err.message || "Unable to update product");
-    } finally {
-      setSavingEdit(false);
+    if (res.status === 401) {
+      alert("Please login to continue");
+      navigate("/signin");
+      return;
     }
-  };
+
+    if (!res.ok) {
+      throw new Error(data.message || "Unable to update product");
+    }
+
+    const updatedProduct = data.product || data.data;
+
+    setProducts((prev) =>
+      prev.map((product) =>
+        (product._id || product.id) === id ? updatedProduct : product
+      )
+    );
+
+    setEditingProduct(null);
+  } catch (err) {
+    alert(err.message || "Unable to update product");
+  } finally {
+    setSavingEdit(false);
+  }
+};
 
   const selectProductForLive = (product) => {
   navigate("/app/golive", {
@@ -469,6 +490,14 @@ export default function Products() {
                   setEditingProduct({ ...editingProduct, name: value })
                 }
               />
+
+              <EditInput
+  label="Description"
+  value={editingProduct.description || ""}
+  onChange={(value) =>
+    setEditingProduct({ ...editingProduct, description: value })
+  }
+/>
 
               <EditInput
                 label="Price"
