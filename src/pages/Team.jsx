@@ -23,7 +23,7 @@ export default function Team() {
     {
       name: "Arunkumar S",
       role: "Founder & CEO",
-      image: "/images/fo.png",
+      image: "/images/fo.jpeg",
       icon: Rocket,
       desc: "Building the future of AI-powered live commerce.",
     },
@@ -34,20 +34,7 @@ export default function Team() {
       icon: Brain,
       desc: "Designing AI Twin flows for creators, brands and agencies.",
     },
-    {
-      name: "Engineering Team",
-      role: "Frontend & Backend",
-      image: "/images/2.jpeg",
-      icon: Code2,
-      desc: "Developing scalable dashboards, live tools and AI integrations.",
-    },
-    {
-      name: "Design Team",
-      role: "UI/UX & Brand",
-      image: "/images/3.jpeg",
-      icon: Palette,
-      desc: "Creating clean, premium and conversion-focused experiences.",
-    },
+    
   ];
 
   const values = [
