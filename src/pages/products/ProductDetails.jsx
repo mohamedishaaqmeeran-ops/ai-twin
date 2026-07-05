@@ -337,13 +337,7 @@ export default function ProductDetails() {
               {isPro ? "Pro Live" : "Sell Live"}
             </button>
 
-            <Link
-              to={`/app/products/edit/${productId}`}
-              className="flex h-12 items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
-            >
-              <Pencil className="h-4 w-4" />
-              Edit
-            </Link>
+          
 
             <button
               onClick={deleteProduct}
