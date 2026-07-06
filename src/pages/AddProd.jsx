@@ -1,6 +1,5 @@
-// src/pages/AddProd.jsx
-
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ArrowRight,
   Sparkles,
@@ -24,6 +23,8 @@ import Logo from "../components/Logo";
 import Nav from "../components/Nav";
 
 export default function AddProd() {
+  const { user } = useSelector((state) => state.auth || {});
+const trainPath = user ? "/app/twin/train" : "/signin";
   const features = [
     {
       icon: Upload,
@@ -90,7 +91,7 @@ export default function AddProd() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to="/app/twin/train"
+                 to={trainPath}
                   className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
                 >
                   Upload Your Products
@@ -150,7 +151,7 @@ export default function AddProd() {
                   </div>
 
                   <Link
-                    to="/app/twin/train"
+                    to={trainPath}
                     className="mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
                   >
                     Open Train AI Step
@@ -213,7 +214,7 @@ export default function AddProd() {
                 </div>
 
                 <Link
-                  to="/app/twin/train"
+                  to={trainPath}
                   className="inline-flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] px-5 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
                 >
                   Open Training
@@ -285,7 +286,7 @@ export default function AddProd() {
             </p>
 
             <Link
-              to="/app/twin/train"
+              to={trainPath}
               className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
             >
               Get Started

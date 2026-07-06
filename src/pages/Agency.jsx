@@ -1,6 +1,5 @@
-// src/pages/Agency.jsx
-
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ArrowRight,
   Sparkles,
@@ -21,6 +20,8 @@ import Logo from "../components/Logo";
 import Nav from "../components/Nav";
 
 export default function Agency() {
+    const { user } = useSelector((state) => state.auth || {});
+  const salesPath = user ? "/contactus" : "/contactus";
   const stats = [
     { value: "10K+", label: "Creators & Brands using Twin", icon: Users },
     { value: "25M+", label: "Viewers engaged", icon: Eye },
@@ -94,7 +95,7 @@ export default function Agency() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to="/contact"
+                 to={salesPath}
                   className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
                 >
                   Talk to Sales
@@ -312,7 +313,7 @@ export default function Agency() {
             </p>
 
             <Link
-              to="/contact"
+              to={salesPath}
               className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
             >
               Talk to Sales

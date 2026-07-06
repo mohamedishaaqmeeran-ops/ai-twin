@@ -1,6 +1,5 @@
-// src/pages/UploadAndStream.jsx
-
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ArrowRight,
   Sparkles,
@@ -19,6 +18,8 @@ import {
 import Nav from "../components/Nav";
 
 export default function UploadAndStream() {
+   const { user } = useSelector((state) => state.auth || {});
+  const uploadPath = user ? "/app/golive" : "/signin";
   const features = [
     {
       icon: FileVideo,
@@ -78,7 +79,7 @@ export default function UploadAndStream() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to="/app/golive"
+                  to={uploadPath}
                   className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
                 >
                   Upload Your First Video
@@ -144,7 +145,7 @@ export default function UploadAndStream() {
                   </div>
 
                   <Link
-                    to="/app/golive"
+                    to={uploadPath}
                     className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white"
                   >
                     Start Upload Flow
@@ -262,7 +263,7 @@ export default function UploadAndStream() {
             </p>
 
             <Link
-              to="/app/golive"
+              to={uploadPath}
               className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
             >
               Get Started

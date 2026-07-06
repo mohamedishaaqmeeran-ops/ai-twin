@@ -238,9 +238,9 @@ export default function App() {
           <Route
             path="golive"
             element={
-              <RequireTwin>
+              
                 <GoLive />
-              </RequireTwin>
+              
             }
           />
 

@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   Activity,
   X,
@@ -123,6 +124,8 @@ function TopBanner() {
 <Nav/>
 
 function Hero() {
+  const navigate = useNavigate();
+const { user } = useSelector((state) => state.auth);
   const avatars = ["/images/1.jpeg", "/images/2.jpeg", "/images/3.jpeg"];
   const platforms = [
   {
@@ -189,12 +192,12 @@ const [showVideo, setShowVideo] = useState(false);
 
           <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center lg:justify-start">
             <Link
-              to="/signin"
-              className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-            >
-              Create Your AI Twin
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+  to={user ? "/app/twin/create" : "/signin"}
+  className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+>
+  Create Your AI Twin
+  <ArrowRight className="h-4 w-4" />
+</Link>
 
             <button
   onClick={() => setShowVideo(true)}
@@ -348,12 +351,12 @@ const [showVideo, setShowVideo] = useState(false);
     })}
   </div>
 
-  <a
-    href="/app/connect"
-    className="mt-7 flex h-12 w-full items-center justify-center rounded-xl border-2 border-pink-200 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
-  >
-    Manage Accounts
-  </a>
+ <button
+  onClick={() => navigate(user ? "/app/connect" : "/signin")}
+  className="mt-7 flex h-12 w-full items-center justify-center rounded-xl border-2 border-pink-200 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+>
+  Manage Accounts
+</button>
 
 </div>
 

@@ -1,6 +1,5 @@
-// src/pages/CreateAI.jsx
-
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ArrowRight,
   Sparkles,
@@ -17,6 +16,8 @@ import {
 import Nav from "../components/Nav";
 
 export default function CreateAI() {
+  const { user } = useSelector((state) => state.auth || {});
+const createTwinPath = user ? "/app/twin/create" : "/signin";
   const features = [
     {
       icon: ScanFace,
@@ -83,7 +84,7 @@ export default function CreateAI() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to="/app/twin/create"
+                  to={createTwinPath}
                   className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
                 >
                   Start Building
@@ -140,7 +141,7 @@ export default function CreateAI() {
                   </div>
 
                   <Link
-                    to="/app/twin/create"
+                    to={createTwinPath}
                     className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white"
                   >
                     Start Building
@@ -260,7 +261,7 @@ export default function CreateAI() {
             </p>
 
             <Link
-              to="/app/twin/create"
+              to={createTwinPath}
               className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
             >
               Get Started

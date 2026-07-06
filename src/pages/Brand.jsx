@@ -1,6 +1,5 @@
-// src/pages/Brands.jsx
-
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ArrowRight,
   Sparkles,
@@ -24,10 +23,12 @@ import wordpressLogo from "/images/ddd.png";
 import woocommerceLogo from "/images/fff.png";
 import klaviyoLogo from "/images/ggg.png";
 import zapierLogo from "/images/hhh.png";
-import stripeLogo from "/images/iii.png";
+
 import Nav from "../components/Nav";
 
 export default function Brands() {
+  const { user } = useSelector((state) => state.auth || {});
+const createTwinPath = user ? "/app/twin/create" : "/signin";
   const stats = [
     { value: "10K+", label: "Creators & Brands using Twin", icon: Users },
     { value: "25M+", label: "Viewers engaged", icon: Eye },
@@ -81,7 +82,7 @@ export default function Brands() {
     { name: "WooCommerce", logo: woocommerceLogo },
     { name: "Klaviyo", logo: klaviyoLogo },
     { name: "Zapier", logo: zapierLogo },
-    { name: "Stripe", logo: stripeLogo },
+    
   ];
 
   return (
@@ -112,7 +113,7 @@ export default function Brands() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to="/signup"
+                  to={createTwinPath}
                   className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
                 >
                   Create Your AI Twin
@@ -350,7 +351,7 @@ export default function Brands() {
             </p>
 
             <Link
-              to="/signup"
+              to={createTwinPath}
               className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
             >
               Get Started

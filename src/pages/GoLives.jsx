@@ -1,6 +1,5 @@
-// src/pages/GoLives.jsx
-
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 import {
   ArrowRight,
@@ -24,6 +23,8 @@ import Logo from "../components/Logo";
 import Nav from "../components/Nav";
 
 export default function GoLives() {
+  const { user } = useSelector((state) => state.auth || {});
+const goLivePath = user ? "/app/golive" : "/signin";
   const features = [
     {
       icon: Radio,
@@ -95,7 +96,7 @@ export default function GoLives() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to="/app/golive"
+                 to={goLivePath}
                   className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
                 >
                   Launch a Live Session
@@ -190,7 +191,7 @@ export default function GoLives() {
                 </div>
 
                 <Link
-                  to="/app/golive"
+                  to={goLivePath}
                   className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white"
                 >
                   Start Live Setup
@@ -252,7 +253,7 @@ export default function GoLives() {
                 </div>
 
                 <Link
-                  to="/app/golive"
+                  to={goLivePath}
                   className="inline-flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] px-5 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
                 >
                   Open Go Live
@@ -363,7 +364,7 @@ export default function GoLives() {
             </p>
 
             <Link
-              to="/app/golive"
+              to={goLivePath}
               className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
             >
               Get Started

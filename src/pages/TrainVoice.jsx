@@ -1,6 +1,5 @@
-// src/pages/TrainVoice.jsx
-
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ArrowRight,
   Sparkles,
@@ -18,6 +17,8 @@ import {
 import Logo from "../components/Logo";
 import Nav from "../components/Nav";
 export default function TrainVoice() {
+   const { user } = useSelector((state) => state.auth || {});
+  const voicePath = user ? "/app/twin/create" : "/signin";
   const features = [
     {
       icon: Mic,
@@ -84,7 +85,7 @@ export default function TrainVoice() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to="/app/twin/create"
+                  to={voicePath}
                   className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
                 >
                   Explore Voice Options
@@ -162,7 +163,7 @@ export default function TrainVoice() {
                   </div>
 
                   <Link
-                    to="/app/twin/create"
+                    to={voicePath}
                     className="mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
                   >
                     Continue to Voice Step
@@ -225,7 +226,7 @@ export default function TrainVoice() {
                 </div>
 
                 <Link
-                  to="/app/twin/create"
+                  to={voicePath}
                   className="inline-flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] px-5 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
                 >
                   Open Voice Step
@@ -302,7 +303,7 @@ export default function TrainVoice() {
             </p>
 
             <Link
-              to="/app/twin/create"
+             to={voicePath}
               className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
             >
               Get Started

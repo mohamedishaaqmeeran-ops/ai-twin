@@ -1,6 +1,5 @@
-// src/pages/AITwins.jsx
-
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ArrowRight,
   Sparkles,
@@ -19,6 +18,8 @@ import {
 import Nav from "../components/Nav";
 
 export default function AITwins() {
+  const { user } = useSelector((state) => state.auth || {});
+const createTwinPath = user ? "/app/twin/create" : "/signin";
   const features = [
     {
       icon: Eye,
@@ -159,7 +160,7 @@ export default function AITwins() {
                   </div>
 
                   <Link
-                    to="/app/twin/create"
+                    to={createTwinPath}
                     className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white"
                   >
                     Build Your Own Twin
@@ -225,7 +226,7 @@ export default function AITwins() {
                 </div>
 
                 <Link
-                  to="/app/twin/create"
+                 to={createTwinPath}
                   className="inline-flex h-11 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] px-5 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
                 >
                   Create Your Twin
@@ -322,7 +323,7 @@ export default function AITwins() {
             </p>
 
             <Link
-              to="/app/twin/create"
+              to={createTwinPath}
               className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
             >
               Get Started

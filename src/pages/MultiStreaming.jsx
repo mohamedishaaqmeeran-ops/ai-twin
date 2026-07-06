@@ -1,6 +1,7 @@
 // src/pages/MultiStreaming.jsx
 
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ArrowRight,
   Sparkles,
@@ -22,6 +23,8 @@ import {
 import Nav from "../components/Nav";
 
 export default function MultiStreaming() {
+  const { user } = useSelector((state) => state.auth || {});
+const goLivePath = user ? "/app/golive" : "/signin";
   const features = [
     {
       icon: Users,
@@ -94,13 +97,13 @@ export default function MultiStreaming() {
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  to="/app/golive"
-                  className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-                >
-                  Go Live Everywhere
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+               <Link
+  to={goLivePath}
+  className="brand-gradient glow-pink flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
+>
+  Go Live Everywhere
+  <ArrowRight className="h-4 w-4" />
+</Link>
               </div>
             </div>
 
@@ -167,13 +170,13 @@ export default function MultiStreaming() {
                     </div>
                   </div>
 
-                  <Link
-                    to="/app/golive"
-                    className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white"
-                  >
-                    Start Multistream
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                 <Link
+  to={goLivePath}
+  className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white"
+>
+  Start Multistream
+  <ArrowRight className="h-4 w-4" />
+</Link>
                 </div>
               </div>
             </div>
@@ -323,12 +326,12 @@ export default function MultiStreaming() {
             </p>
 
             <Link
-              to="/app/golive"
-              className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
-            >
-              Get Started
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+  to={goLivePath}
+  className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black tracking-wide text-[var(--brand-pink)] transition hover:opacity-90"
+>
+  Get Started
+  <ArrowRight className="h-4 w-4" />
+</Link>
           </div>
         </section>
       </main>
