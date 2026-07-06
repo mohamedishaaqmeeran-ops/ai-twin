@@ -284,10 +284,7 @@ export default function PrivacyPolicy() {
 
               <List items={retention} />
 
-              <LegalFlag>
-                Specific retention periods should be confirmed with the
-                engineering and legal teams and stated explicitly once finalised.
-              </LegalFlag>
+             
             </PolicyCard>
 
             <PolicyCard
@@ -314,10 +311,7 @@ export default function PrivacyPolicy() {
                 accordance with applicable law.
               </p>
 
-              <LegalFlag>
-                Specific statutory response timelines should be confirmed with
-                legal counsel and stated explicitly here.
-              </LegalFlag>
+             
             </PolicyCard>
 
             <PolicyCard
@@ -493,19 +487,7 @@ function List({ items }) {
   );
 }
 
-function LegalFlag({ children }) {
-  return (
-    <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/10">
-      <div className="flex gap-3">
-        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-orange-500" />
-        <p className="text-sm font-medium leading-6 text-orange-700 dark:text-orange-300">
-          <span className="font-black">Legal review flag: </span>
-          {children}
-        </p>
-      </div>
-    </div>
-  );
-}
+
 
 function ContactItem({ icon: Icon, label, value, href }) {
   const content = (

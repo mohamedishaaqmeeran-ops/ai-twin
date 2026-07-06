@@ -122,17 +122,7 @@ export default function RefundPolicy() {
               <ShieldAlert className="h-6 w-6" />
             </div>
 
-            <div>
-              <h2 className="text-2xl font-black tracking-tight text-orange-700 dark:text-orange-300">
-                Draft for Legal Review
-              </h2>
-
-              <p className="mt-3 text-sm font-medium leading-7 text-orange-700/80 dark:text-orange-200/80 sm:text-base">
-                This page is a policy draft for internal review and is not legal
-                advice. It should be reviewed by qualified legal counsel before
-                publication.
-              </p>
-            </div>
+            
           </div>
         </section>
 
