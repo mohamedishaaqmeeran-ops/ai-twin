@@ -1,91 +1,114 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchMe } from "./features/auth/authSlice";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Routes, Route, Navigate } from "react-router-dom";
-import Landing from "./pages/Landing";
-import Signin from "./pages/SignIn";
-import AppLayout from "./components/AppLayout";
 
-import Dashboard from "./pages/Dashboard";
-import TwinDashboard from "./pages/twin/TwinDashboard";
-import CreateTwin from "./pages/twin/CreateTwin";
-import TrainTwin from "./pages/twin/TrainTwin";
-import TestTwin from "./pages/twin/TestTwin";
-import EditTwin from "./pages/twin/EditTwin";
-
-import Products from "./pages/products/Products";
-import AddProduct from "./pages/products/AddProduct";
-import ProductDetails from "./pages/products/ProductDetails";
-
-import ConnectSocial from "./pages/ConnectSocial";
-import ScheduleLive from "./pages/schedule/ScheduleLive";
-import CreateSchedule from "./pages/schedule/CreateSchedule";
-
-import GoLive from "./pages/golive/GoLive";
-import PreLivePreview from "./pages/golive/PreLivePreview";
-import LiveStream from "./pages/golive/LiveStream";
-
+import { fetchMe } from "./features/auth/authSlice";
 import ScrollToTop from "./components/ScrollToTop";
-import Analytics from "./pages/Analytics";
-import NotFound from "./pages/NotFound";
-import WaitlistForm from "./pages/WaitlistForm";
-import Settings from "./pages/Settings";
-import creators from "./pages/Creators";
 
+const Landing = lazy(() => import("./pages/Landing"));
+const Signin = lazy(() => import("./pages/SignIn"));
+const SignUp = lazy(() => import("./pages/SignUp"));
 
-import AdminLayout from "./components/AdminLayout";
-import AdminDashboard from "./admin/AdminDashboard";
-import AdminUsers from "./admin/AdminUsers";
-import AdminTwins from "./admin/AdminTwins";
-import AdminProducts from "./admin/AdminProducts";
-import AdminLives from "./admin/AdminLives";
-import AdminAnalytics from "./admin/AdminAnalytics";
-import AdminSettings from "./admin/AdminSettings";
-import SignUp from "./pages/SignUp";
-import Pricing from "./pages/Pricing";
-import TermsCondition from "./pages/TermsCondition";
-import CookiePolicy from "./pages/CookiePolicy";
-import RefundPolicy from "./pages/RefundPolicy";
-import AboutUs from "./pages/AboutUs";
-import Creators from "./pages/Creators";
-import Brands from "./pages/Brand";
-import Agency from "./pages/Agency";
-import Createai from "./pages/CreateAI.jsx";
-import CreateAI from "./pages/CreateAI.jsx";
-import TrainVoice from "./pages/TrainVoice.jsx";
-import AddProd from "./pages/AddProd.jsx";
-import GoLives from "./pages/GoLives.jsx";
-import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
-import MultiStreaming from "./pages/MultiStreaming.jsx";
-import UploadAndStream from "./pages/UploadAndStream.jsx";
-import ShortClips from "./pages/ShortClips.jsx";
-import AITwins from "./pages/AITwins.jsx";
-import Careers from "./pages/Careers.jsx";
-import Team from "./pages/Team.jsx";
-import ContactUs from "./pages/ContactUs.jsx";
-import DataDeletion from "./pages/DataDeletion.jsx";
-import Blog from "./pages/Blog.jsx";
-import Checkout from "./pages/Checkout.jsx";
-import PaymentSuccess from "./pages/PaymentSuccess.jsx";
-import PaymentFailed from "./pages/PaymentFailed.jsx";
-import EditProduct from "./pages/products/EditProduct.jsx";
+const AppLayout = lazy(() => import("./components/AppLayout"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 
+const TwinDashboard = lazy(() => import("./pages/twin/TwinDashboard"));
+const CreateTwin = lazy(() => import("./pages/twin/CreateTwin"));
+const TrainTwin = lazy(() => import("./pages/twin/TrainTwin"));
+const TestTwin = lazy(() => import("./pages/twin/TestTwin"));
+const EditTwin = lazy(() => import("./pages/twin/EditTwin"));
+
+const Products = lazy(() => import("./pages/products/Products"));
+const AddProduct = lazy(() => import("./pages/products/AddProduct"));
+const ProductDetails = lazy(() => import("./pages/products/ProductDetails"));
+const EditProduct = lazy(() => import("./pages/products/EditProduct"));
+
+const ConnectSocial = lazy(() => import("./pages/ConnectSocial"));
+const ScheduleLive = lazy(() => import("./pages/schedule/ScheduleLive"));
+const CreateSchedule = lazy(() => import("./pages/schedule/CreateSchedule"));
+
+const GoLive = lazy(() => import("./pages/golive/GoLive"));
+const PreLivePreview = lazy(() => import("./pages/golive/PreLivePreview"));
+const LiveStream = lazy(() => import("./pages/golive/LiveStream"));
+
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Settings = lazy(() => import("./pages/Settings"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const WaitlistForm = lazy(() => import("./pages/WaitlistForm"));
+
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
+const PaymentFailed = lazy(() => import("./pages/PaymentFailed"));
+
+const TermsCondition = lazy(() => import("./pages/TermsCondition"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+
+const AboutUs = lazy(() => import("./pages/AboutUs"));
+const Blog = lazy(() => import("./pages/Blog"));
+const Careers = lazy(() => import("./pages/Careers"));
+const ContactUs = lazy(() => import("./pages/ContactUs"));
+const Team = lazy(() => import("./pages/Team"));
+const DataDeletion = lazy(() => import("./pages/DataDeletion"));
+
+const Creators = lazy(() => import("./pages/Creators"));
+const Brands = lazy(() => import("./pages/Brand"));
+const Agency = lazy(() => import("./pages/Agency"));
+const CreateAI = lazy(() => import("./pages/CreateAI"));
+const TrainVoice = lazy(() => import("./pages/TrainVoice"));
+const AddProd = lazy(() => import("./pages/AddProd"));
+const GoLives = lazy(() => import("./pages/GoLives"));
+const MultiStreaming = lazy(() => import("./pages/MultiStreaming"));
+const UploadAndStream = lazy(() => import("./pages/UploadAndStream"));
+const ShortClips = lazy(() => import("./pages/ShortClips"));
+const AITwins = lazy(() => import("./pages/AITwins"));
+
+const AdminLayout = lazy(() => import("./components/AdminLayout"));
+const AdminDashboard = lazy(() => import("./admin/AdminDashboard"));
+const AdminUsers = lazy(() => import("./admin/AdminUsers"));
+const AdminTwins = lazy(() => import("./admin/AdminTwins"));
+const AdminProducts = lazy(() => import("./admin/AdminProducts"));
+const AdminLives = lazy(() => import("./admin/AdminLives"));
+const AdminAnalytics = lazy(() => import("./admin/AdminAnalytics"));
+const AdminSettings = lazy(() => import("./admin/AdminSettings"));
+
+function PageLoader() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-background text-foreground">
+      <p className="text-sm font-bold text-[var(--brand-pink)]">Loading...</p>
+    </div>
+  );
+}
 
 function RequireAdmin({ children }) {
-  const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.auth || {});
 
-  if (!user) {
-    return <Navigate to="/signin" replace />;
-  }
-
-  if (user.role !== "admin") {
-    return <Navigate to="/app" replace />;
-  }
+  if (!user) return <Navigate to="/signin" replace />;
+  if (user.role !== "admin") return <Navigate to="/app" replace />;
 
   return children;
 }
+
+function RequireTwin({ children }) {
+  const hasTwin = localStorage.getItem("hasTwin") === "true";
+
+  useEffect(() => {
+    if (!hasTwin) {
+      toast.warning("Please create your AI Twin first to access this section.", {
+        toastId: "create-twin-warning",
+      });
+    }
+  }, [hasTwin]);
+
+  if (!hasTwin) return <Navigate to="/app/twin/create" replace />;
+
+  return children;
+}
+
 function applySavedTheme() {
   const theme = localStorage.getItem("theme") || "Light";
 
@@ -99,32 +122,8 @@ function applySavedTheme() {
     return;
   }
 
-  const prefersDark = window.matchMedia(
-    "(prefers-color-scheme: dark)"
-  ).matches;
-
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.classList.toggle("dark", prefersDark);
-}
-
-function RequireTwin({ children }) {
-  const hasTwin = localStorage.getItem("hasTwin") === "true";
-
-  useEffect(() => {
-    if (!hasTwin) {
-      toast.warning(
-        "Please create your AI Twin first to access this section.",
-        {
-          toastId: "create-twin-warning",
-        }
-      );
-    }
-  }, [hasTwin]);
-
-  if (!hasTwin) {
-    return <Navigate to="/app/twin/create" replace />;
-  }
-
-  return children;
 }
 
 export default function App() {
@@ -139,143 +138,109 @@ export default function App() {
     <>
       <ScrollToTop />
 
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/signin" element={<Signin />} />
-        <Route path="/about" element={<AboutUs />} />
-        <Route path="/blog" element={<Blog />} />
-        <Route path="/careers" element={<Careers />} />
-        <Route path="/contactus" element={<ContactUs />} />
-        <Route path="/creators" element={<Creators />} />
-        <Route path="/createai" element={<CreateAI />} />
-        <Route path="/brand" element={<Brands />} />
-        <Route path="/team" element={<Team />} />
-        <Route path="/agency" element={<Agency />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/checkout/:plan" element={<Checkout />} />
-<Route path="/payment-success" element={<PaymentSuccess />} />
-<Route path="/payment-failed" element={<PaymentFailed />} />
-        <Route path="/aitwins" element={<AITwins />} />
-         <Route path="/shortclips" element={<ShortClips />} />
-        <Route path="/multistreaming" element={<MultiStreaming />} />
-        <Route path="/uploadandstream" element={<UploadAndStream />} />
-        <Route path="/go-live" element={<GoLives />} />
-        <Route path="/cookie-policy" element={<CookiePolicy />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/refund-policy" element={<RefundPolicy />} />
-        <Route path="/trainvoice" element={<TrainVoice />} />
-        <Route path="/add-products" element={<AddProd />} />
-        <Route path="/terms-and-conditions" element={<TermsCondition />} />
-        <Route path="/waitlist" element={<WaitlistForm />} />
-        <Route path="/data-deletion" element={<DataDeletion />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/signin" element={<Signin />} />
 
-        <Route path="/app" element={<AppLayout />}>
-        
-          <Route index element={<Dashboard />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/contactus" element={<ContactUs />} />
+          <Route path="/team" element={<Team />} />
 
-          <Route path="twin" element={<TwinDashboard />} />
-          <Route path="twin/create" element={<CreateTwin />} />
-          <Route path="twin/edit" element={<EditTwin />} />
-          <Route path="twin/train" element={<TrainTwin />} />
-          <Route path="twin/test" element={<TestTwin />} />
+          <Route path="/creators" element={<Creators />} />
+          <Route path="/brand" element={<Brands />} />
+          <Route path="/agency" element={<Agency />} />
 
-          <Route
-            path="products"
-            element={
-            
-                <Products />
-            
-            }
-          />
-          <Route path="/app/products/edit/:id" element={<EditProduct />} />
+          <Route path="/createai" element={<CreateAI />} />
+          <Route path="/trainvoice" element={<TrainVoice />} />
+          <Route path="/add-products" element={<AddProd />} />
+          <Route path="/go-live" element={<GoLives />} />
+          <Route path="/aitwins" element={<AITwins />} />
+          <Route path="/shortclips" element={<ShortClips />} />
+          <Route path="/multistreaming" element={<MultiStreaming />} />
+          <Route path="/uploadandstream" element={<UploadAndStream />} />
 
-          <Route
-            path="products/add"
-            element={
-            
-                <AddProduct />
-          
-            }
-          />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/checkout/:plan" element={<Checkout />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-failed" element={<PaymentFailed />} />
 
-          <Route
-            path="products/:id"
-            element={
-              
-                <ProductDetails />
-             
-            }
-          />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/terms-and-conditions" element={<TermsCondition />} />
+          <Route path="/data-deletion" element={<DataDeletion />} />
+          <Route path="/waitlist" element={<WaitlistForm />} />
 
-          <Route
-            path="connect"
-            element={
-             
-                <ConnectSocial />
-             
-            }
-          />
+          <Route path="/app" element={<AppLayout />}>
+            <Route index element={<Dashboard />} />
 
-          <Route
-            path="schedule"
-            element={
-              
-                <ScheduleLive />
-              
-            }
-          />
+            <Route path="twin" element={<TwinDashboard />} />
+            <Route path="twin/create" element={<CreateTwin />} />
+            <Route path="twin/edit" element={<EditTwin />} />
+            <Route path="twin/train" element={<TrainTwin />} />
+            <Route path="twin/test" element={<TestTwin />} />
+
+            <Route path="products" element={<Products />} />
+            <Route path="products/add" element={<AddProduct />} />
+            <Route path="products/:id" element={<ProductDetails />} />
+            <Route path="products/edit/:id" element={<EditProduct />} />
+
+            <Route path="connect" element={<ConnectSocial />} />
+            <Route path="schedule" element={<ScheduleLive />} />
+            <Route path="schedule/create" element={<CreateSchedule />} />
+
+            <Route path="golive" element={<GoLive />} />
+            <Route
+              path="golive/preview/:id"
+              element={
+                <RequireTwin>
+                  <PreLivePreview />
+                </RequireTwin>
+              }
+            />
+            <Route
+              path="golive/live/:id"
+              element={
+                <RequireTwin>
+                  <LiveStream />
+                </RequireTwin>
+              }
+            />
+
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+
+          <Route path="/app/pro" element={<AppLayout />}>
+            <Route index element={<Dashboard />} />
+          </Route>
 
           <Route
-            path="schedule/create"
+            path="/admin"
             element={
-              
-                <CreateSchedule />
-              
+              <RequireAdmin>
+                <AdminLayout />
+              </RequireAdmin>
             }
-          />
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="twins" element={<AdminTwins />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="lives" element={<AdminLives />} />
+            <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
 
-          <Route
-            path="golive"
-            element={
-              
-                <GoLive />
-              
-            }
-          />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
 
-        <Route path="golive/preview/:id" element={<RequireTwin><PreLivePreview /></RequireTwin>} />
-
-          <Route
-            path="golive/live/:id"
-            element={
-              <RequireTwin>
-                <LiveStream />
-              </RequireTwin>
-            }
-          />
-
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-        <Route path="/app/pro" element={<AppLayout />}>
-  <Route index element={<Dashboard />} />
-</Route>
-
-        <Route path="*" element={<NotFound />} />
-
-
-        <Route path="/admin" element={ <RequireAdmin><AdminLayout /></RequireAdmin>}>
-  <Route index element={<AdminDashboard />} />
-  <Route path="users" element={<AdminUsers />} />
-  <Route path="twins" element={<AdminTwins />} />
-  <Route path="products" element={<AdminProducts />} />
-  <Route path="lives" element={<AdminLives />} />
-  <Route path="analytics" element={<AdminAnalytics />} />
-  <Route path="settings" element={<AdminSettings />} />
-</Route>
-      </Routes>
-       <ToastContainer
+      <ToastContainer
         position="top-right"
         autoClose={2500}
         hideProgressBar={false}
