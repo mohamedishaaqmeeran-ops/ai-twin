@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect , useState } from "react";
 import {
   Youtube,
   Facebook,
@@ -64,7 +64,7 @@ export default function ConnectSocial() {
 
   const { connections = [], loading } = useSelector((state) => state.social);
   const { user } = useSelector((state) => state.auth);
-
+ const [selectedAccount, setSelectedAccount] = useState(null);
   const plan = user?.plan || "free";
   const isPro = plan === "pro" || plan === "business";
   const maxPlatforms = isPro ? 4 : 1;
@@ -273,13 +273,22 @@ useEffect(() => {
                     </button>
 
                     <button
-                      onClick={() => {
-                        if (locked) upgradeToPro();
-                      }}
-                      className="rounded-[5px] border border-border bg-background py-3 text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-accent"
-                    >
-                      {locked ? "Pro Account" : "View Account"}
-                    </button>
+  onClick={() => {
+    if (locked) {
+      upgradeToPro();
+      return;
+    }
+
+    if (account) {
+      setSelectedAccount(account);
+    } else {
+      alert("No account connected");
+    }
+  }}
+  className="rounded-[5px] border border-border bg-background py-3 text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-accent"
+>
+  {locked ? "Pro Account" : "View Account"}
+</button>
                   </div>
                 </div>
               </div>
@@ -312,6 +321,44 @@ useEffect(() => {
           </button>
         </div>
       </section>
+      {selectedAccount && (
+  <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+    <div className="w-full max-w-lg rounded-3xl border border-border bg-card p-6 text-foreground shadow-xl">
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-2xl font-black tracking-tight brand-text">
+          Connected Account
+        </h2>
+
+        <button
+          onClick={() => setSelectedAccount(null)}
+          className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background text-xl font-black"
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="mt-6 space-y-4">
+        <AccountRow label="Platform" value={selectedAccount.platform} />
+        <AccountRow
+          label="Account Name"
+          value={selectedAccount.username || selectedAccount.name || "Not available"}
+        />
+        <AccountRow
+          label="Platform User ID"
+          value={selectedAccount.platformUserId || "Not available"}
+        />
+        <AccountRow
+          label="Page Name"
+          value={selectedAccount.pageName || "Not available"}
+        />
+        <AccountRow
+          label="Status"
+          value={selectedAccount.connected ? "Connected" : "Disconnected"}
+        />
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
@@ -331,6 +378,20 @@ function Stat({ title, value, icon: Icon }) {
           </h2>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+function AccountRow({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-border bg-background p-4">
+      <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 break-words text-sm font-bold text-foreground">
+        {value}
+      </p>
     </div>
   );
 }
