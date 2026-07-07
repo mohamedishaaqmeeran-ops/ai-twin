@@ -1,3 +1,5 @@
+// src/pages/golive/GoLive.jsx
+
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -89,6 +91,7 @@ export default function GoLive() {
   }, [connections]);
 
   const instagramConnected = connectedPlatforms.includes("instagram");
+  const facebookConnected = connectedPlatforms.includes("facebook");
 
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
@@ -121,9 +124,7 @@ export default function GoLive() {
   };
 
   useEffect(() => {
-    if (!user) {
-      dispatch(fetchMe());
-    }
+    if (!user) dispatch(fetchMe());
 
     dispatch(fetchConnections());
     loadProducts();
@@ -136,15 +137,13 @@ export default function GoLive() {
       scheduleState?.productName ||
       localStorage.getItem("selectedProduct");
 
-    if (selectedProduct) {
-      setProduct(selectedProduct);
-    }
+    if (selectedProduct) setProduct(selectedProduct);
   }, [dispatch]);
 
   useEffect(() => {
     if (!connectedPlatforms.length) {
       setSelectedPlatforms([]);
-      setLiveStatus("Please connect Instagram before going live.");
+      setLiveStatus("Please connect Instagram or Facebook before going live.");
       return;
     }
 
@@ -166,11 +165,7 @@ export default function GoLive() {
       isPro ? allowedConnected : allowedConnected.slice(0, 1)
     );
 
-    if (!connectedPlatforms.includes("instagram")) {
-      setLiveStatus("Instagram is not connected. Connect Instagram first.");
-    } else {
-      setLiveStatus("");
-    }
+    setLiveStatus("");
   }, [connectedPlatforms, isPro, platformState, scheduleState]);
 
   const uploadVideo = async () => {
@@ -255,7 +250,6 @@ export default function GoLive() {
       }
 
       const uploadedVideoPath = await uploadVideo();
-
       if (!uploadedVideoPath) return;
 
       setVideoPath(uploadedVideoPath);
@@ -263,9 +257,7 @@ export default function GoLive() {
       const res = await fetch(`${LIVE_API}/start-instagram-rtmp`, {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           rtmpUrl,
           streamKey,
@@ -279,12 +271,12 @@ export default function GoLive() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to start live");
+        throw new Error(data.message || "Failed to start Instagram live");
       }
 
       setLiveStatus("Instagram RTMP stream started successfully.");
     } catch (error) {
-      setLiveStatus(error.message || "Failed to start live.");
+      setLiveStatus(error.message || "Failed to start Instagram live.");
     } finally {
       setLiveLoading(false);
     }
@@ -303,71 +295,137 @@ export default function GoLive() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.message || "Failed to stop live");
+        throw new Error(data.message || "Failed to stop Instagram live");
       }
 
       setLiveStatus("Instagram RTMP stream stopped.");
     } catch (error) {
-      setLiveStatus(error.message || "Failed to stop live.");
+      setLiveStatus(error.message || "Failed to stop Instagram live.");
+    } finally {
+      setLiveLoading(false);
+    }
+  };
+
+  const startFacebookLive = async () => {
+    try {
+      setLiveLoading(true);
+      setLiveStatus("");
+
+      if (!facebookConnected) {
+        setLiveStatus("Facebook is not connected. Please connect Facebook first.");
+        navigate("/app/connect");
+        return;
+      }
+
+      if (!videoFile) {
+        setLiveStatus("Please choose a video file.");
+        return;
+      }
+
+      const uploadedVideoPath = await uploadVideo();
+      if (!uploadedVideoPath) return;
+
+      setVideoPath(uploadedVideoPath);
+
+      const res = await fetch(`${LIVE_API}/start-facebook`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoPath: uploadedVideoPath,
+          product,
+          twinName,
+          title: `${twinName} Live Selling`,
+          description: `Live selling ${product}`,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to start Facebook live");
+      }
+
+      setLiveStatus("Facebook Live started successfully.");
+    } catch (error) {
+      setLiveStatus(error.message || "Failed to start Facebook live.");
+    } finally {
+      setLiveLoading(false);
+    }
+  };
+
+  const stopFacebookLive = async () => {
+    try {
+      setLiveLoading(true);
+      setLiveStatus("");
+
+      const res = await fetch(`${LIVE_API}/stop-facebook`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to stop Facebook live");
+      }
+
+      setLiveStatus("Facebook Live stopped.");
+    } catch (error) {
+      setLiveStatus(error.message || "Failed to stop Facebook live.");
     } finally {
       setLiveLoading(false);
     }
   };
 
   const continuePreview = async () => {
-  try {
-    setLiveLoading(true);
-    setLiveStatus("");
+    try {
+      setLiveLoading(true);
+      setLiveStatus("");
 
-    if (!instagramConnected) {
-      setLiveStatus("Please connect Instagram before continuing.");
-      navigate("/app/connect");
-      return;
+      const allowedPlatforms = isPro
+        ? selectedPlatforms
+        : selectedPlatforms.slice(0, 1);
+
+      if (!allowedPlatforms.length) {
+        setLiveStatus("Please select at least one connected platform.");
+        return;
+      }
+
+      const res = await fetch(`${LIVE_API}/setup`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scheduleId: scheduleState?._id || scheduleState?.id || null,
+          twinName,
+          product,
+          platforms: allowedPlatforms,
+          settings,
+          rtmpUrl,
+          videoPath,
+          plan: isPro ? "pro" : "free",
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.message || "Unable to create live setup");
+      }
+
+      const liveSessionId = data.liveSession?._id || data.data?._id || data._id;
+
+      navigate(`/app/golive/preview/${liveSessionId}`);
+    } catch (err) {
+      setLiveStatus(err.message || "Unable to continue preview.");
+    } finally {
+      setLiveLoading(false);
     }
-
-    const allowedPlatforms = isPro
-      ? selectedPlatforms
-      : selectedPlatforms.slice(0, 1);
-
-    const res = await fetch(`${LIVE_API}/setup`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        scheduleId: scheduleState?._id || scheduleState?.id || null,
-        twinName,
-        product,
-        platforms: allowedPlatforms,
-        settings,
-        rtmpUrl,
-        videoPath,
-        plan: isPro ? "pro" : "free",
-      }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(data.message || "Unable to create live setup");
-    }
-
-    const liveSessionId = data.liveSession?._id || data.data?._id || data._id;
-
-    navigate(`/app/golive/preview/${liveSessionId}`);
-  } catch (err) {
-    setLiveStatus(err.message || "Unable to continue preview.");
-  } finally {
-    setLiveLoading(false);
-  }
-};
+  };
 
   const canContinue =
-    product &&
-    selectedPlatforms.length > 0 &&
-    instagramConnected &&
-    !socialLoading;
+    product && selectedPlatforms.length > 0 && !socialLoading;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 bg-background text-foreground transition-colors duration-300">
@@ -382,38 +440,41 @@ export default function GoLive() {
             {isPro ? "PRO GO LIVE SETUP" : "GO LIVE SETUP"}
           </span>
 
-          <span
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
-              instagramConnected
-                ? "bg-green-100 text-green-600"
-                : "bg-orange-100 text-orange-600"
-            }`}
-          >
-            <Instagram className="h-4 w-4" />
-            {socialLoading
-              ? "Checking Instagram..."
-              : instagramConnected
-              ? "Instagram Connected"
-              : "Instagram Not Connected"}
-          </span>
+          <div className="flex flex-wrap gap-2">
+            <PlatformBadge
+              icon={Instagram}
+              label={
+                socialLoading
+                  ? "Checking Instagram..."
+                  : instagramConnected
+                  ? "Instagram Connected"
+                  : "Instagram Not Connected"
+              }
+              active={instagramConnected}
+            />
+
+            <PlatformBadge
+              icon={Facebook}
+              label={
+                socialLoading
+                  ? "Checking Facebook..."
+                  : facebookConnected
+                  ? "Facebook Connected"
+                  : "Facebook Not Connected"
+              }
+              active={facebookConnected}
+              blue
+            />
+          </div>
         </div>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-          <span className="brand-text">Instagram RTMP Live</span> With Your AI Twin
+          <span className="brand-text">Go Live</span> With Your AI Twin
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-          Connect Instagram first, then paste Instagram Live Producer RTMP URL and Stream Key.
+          Select connected platforms, upload a video and start live streaming to Instagram or Facebook.
         </p>
-
-        {!instagramConnected && !socialLoading && (
-          <button
-            onClick={() => navigate("/app/connect")}
-            className="brand-gradient mt-5 rounded-[5px] px-6 py-3 text-sm font-bold tracking-wide text-white"
-          >
-            Connect Instagram First
-          </button>
-        )}
       </section>
 
       {liveStatus && (
@@ -513,6 +574,24 @@ export default function GoLive() {
 
           <div className="mt-6 rounded-3xl border border-border bg-background p-5">
             <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
+              <Package className="h-5 w-5" />
+              Upload Live Video
+            </h2>
+
+            <div className="mt-5">
+              <Field icon={Package} label="Choose Video">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                  className={inputClass}
+                />
+              </Field>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-3xl border border-border bg-background p-5">
+            <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
               <Instagram className="h-5 w-5" />
               Instagram RTMP Details
             </h2>
@@ -537,27 +616,16 @@ export default function GoLive() {
                 />
               </Field>
 
-              <Field icon={Package} label="Choose Video">
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                  className={inputClass}
-                />
-              </Field>
-
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   onClick={startInstagramRTMP}
                   disabled={liveLoading || socialLoading || !instagramConnected}
                   className="brand-gradient rounded-[5px] py-3 text-sm font-bold tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {socialLoading
-                    ? "Checking Instagram..."
-                    : liveLoading
-                    ? "Please wait..."
-                    : instagramConnected
-                    ? "Start Instagram RTMP"
+                  {instagramConnected
+                    ? liveLoading
+                      ? "Please wait..."
+                      : "Start Instagram RTMP"
                     : "Connect Instagram First"}
                 </button>
 
@@ -566,9 +634,42 @@ export default function GoLive() {
                   disabled={liveLoading}
                   className="rounded-[5px] border border-red-500 py-3 text-sm font-bold tracking-wide text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Stop Live
+                  Stop Instagram Live
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-3xl border border-border bg-background p-5">
+            <h2 className="flex items-center gap-2 text-xl font-black tracking-tight text-blue-600">
+              <Facebook className="h-5 w-5" />
+              Facebook Live
+            </h2>
+
+            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+              Facebook Live uses your connected Facebook Page token. No manual stream key is needed.
+            </p>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <button
+                onClick={startFacebookLive}
+                disabled={liveLoading || socialLoading || !facebookConnected}
+                className="rounded-[5px] bg-blue-600 py-3 text-sm font-bold tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {facebookConnected
+                  ? liveLoading
+                    ? "Please wait..."
+                    : "Start Facebook Live"
+                  : "Connect Facebook First"}
+              </button>
+
+              <button
+                onClick={stopFacebookLive}
+                disabled={liveLoading}
+                className="rounded-[5px] border border-blue-600 py-3 text-sm font-bold tracking-wide text-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Stop Facebook Live
+              </button>
             </div>
           </div>
 
@@ -631,7 +732,8 @@ export default function GoLive() {
                 selectedPlatforms.length
                   ? selectedPlatforms
                       .map(
-                        (id) => platforms.find((item) => item.id === id)?.name || id
+                        (id) =>
+                          platforms.find((item) => item.id === id)?.name || id
                       )
                       .join(", ")
                   : "No platform selected"
@@ -642,6 +744,10 @@ export default function GoLive() {
               value={instagramConnected ? "Connected" : "Not connected"}
             />
             <PreviewItem
+              label="Facebook"
+              value={facebookConnected ? "Connected" : "Not connected"}
+            />
+            <PreviewItem
               label="Video"
               value={videoFile ? videoFile.name : "No video selected"}
             />
@@ -649,6 +755,23 @@ export default function GoLive() {
         </aside>
       </div>
     </div>
+  );
+}
+
+function PlatformBadge({ icon: Icon, label, active, blue }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
+        active
+          ? blue
+            ? "bg-blue-100 text-blue-600"
+            : "bg-green-100 text-green-600"
+          : "bg-orange-100 text-orange-600"
+      }`}
+    >
+      <Icon className="h-4 w-4" />
+      {label}
+    </span>
   );
 }
 
