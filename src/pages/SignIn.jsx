@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Apple,
@@ -29,19 +28,15 @@ export default function SignIn() {
   const [showMore, setShowMore] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
   const redirectByRoleAndPlan = (user) => {
     const role = user?.role || "user";
     const plan = (user?.plan || "free").toLowerCase();
 
-    if (role === "admin") {
-      navigate("/admin", { replace: true });
-      return;
-    }
-
-    if (plan === "pro" || plan === "business") {
-      navigate("/app/pro", { replace: true });
-      return;
-    }
+    if (role === "admin") return navigate("/admin", { replace: true });
+    if (plan === "pro" || plan === "business")
+      return navigate("/app/pro", { replace: true });
 
     navigate("/app", { replace: true });
   };
@@ -61,27 +56,35 @@ export default function SignIn() {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    const credential = credentialResponse?.credential;
-
-    if (!credential) {
-      alert("Google credential not received");
+  const handleCustomGoogleLogin = () => {
+    if (!window.google) {
+      alert("Google login is not loaded yet");
       return;
     }
 
-    const result = await dispatch(googleLoginUser(credential));
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        const credential = response?.credential;
 
-    if (googleLoginUser.fulfilled.match(result)) {
-      redirectByRoleAndPlan(result.payload?.user || result.payload);
-    }
-  };
+        if (!credential) {
+          alert("Google credential not received");
+          return;
+        }
 
-  const handleGoogleError = () => {
-    alert("Google login failed");
+        const result = await dispatch(googleLoginUser(credential));
+
+        if (googleLoginUser.fulfilled.match(result)) {
+          redirectByRoleAndPlan(result.payload?.user || result.payload);
+        }
+      },
+    });
+
+    window.google.accounts.id.prompt();
   };
 
   const socialButtonClass =
-    "flex h-12 w-full items-center justify-center gap-3 rounded-[5px] border border-border bg-background text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10";
+    "flex h-12 w-full items-center justify-center gap-3 rounded-[5px] border border-border bg-background text-sm font-bold tracking-wide text-foreground cursor-pointer transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10";
 
   const inputWrapperClass =
     "flex items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3 transition focus-within:border-[var(--brand-pink)] focus-within:ring-2 focus-within:ring-pink-200 dark:focus-within:ring-pink-500/20";
@@ -130,38 +133,33 @@ export default function SignIn() {
             </p>
 
             <div className="mt-7 space-y-3">
-              <div className="w-full rounded-[5px] overflow-hidden">
-  <GoogleLogin
-    onSuccess={handleGoogleSuccess}
-    onError={handleGoogleError}
-    useOneTap={false}
-    auto_select={false}
-    theme="outline"
-    shape="rectangular"
-    text="signin_with"
-    size="large"
-    width="100%"
-  />
-</div>
+              <button
+                type="button"
+                onClick={handleCustomGoogleLogin}
+                className={socialButtonClass}
+              >
+                <img src="/images/go.png" alt="Google" className="h-5 w-5" />
+                Continue with Google
+              </button>
 
-<button
-  type="button"
-  disabled
-  className="mt-3 flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-[5px] bg-[#0d0d12] text-sm font-bold tracking-wide text-white "
->
-  <Apple className="h-5 w-5" />
-  Continue with Apple
-</button>
+              <button
+                type="button"
+                disabled
+                className="flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-[5px] bg-[#0d0d12] text-sm font-bold tracking-wide text-white"
+              >
+                <Apple className="h-5 w-5" />
+                Continue with Apple
+              </button>
 
               {showMore && (
-                <>
-                  <button type="button" disabled className={`${socialButtonClass} cursor-not-allowed opacity-50`}>
-                    <Github className="h-5 w-5" />
-                    Continue with GitHub
-                  </button>
-
-                 
-                </>
+                <button
+                  type="button"
+                  disabled
+                  className={`${socialButtonClass} cursor-not-allowed opacity-50`}
+                >
+                  <Github className="h-5 w-5" />
+                  Continue with GitHub
+                </button>
               )}
 
               <button
@@ -188,7 +186,6 @@ export default function SignIn() {
               <div className="space-y-4">
                 <div className={inputWrapperClass}>
                   <Mail className="h-5 w-5 text-[var(--brand-pink)]" />
-
                   <input
                     value={email}
                     onChange={(e) =>
@@ -203,7 +200,6 @@ export default function SignIn() {
 
                 <div className={inputWrapperClass}>
                   <Lock className="h-5 w-5 text-[var(--brand-pink)]" />
-
                   <input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -237,7 +233,7 @@ export default function SignIn() {
                 <button
                   type="submit"
                   disabled={loading || !email.trim() || !password.trim()}
-                  className="brand-gradient mt-5 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed "
+                  className="brand-gradient mt-5 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loading ? <ButtonLoader text="Signing In..." /> : "Sign In"}
                   {!loading && <ArrowRight className="h-4 w-4" />}
