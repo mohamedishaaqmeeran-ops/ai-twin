@@ -61,34 +61,20 @@ export default function SignIn() {
     }
   };
 
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const credential = credentialResponse?.credential;
 
-const handleCustomGoogleLogin = () => {
-  if (!window.google) {
-    alert("Google login is not loaded yet");
-    return;
-  }
+    if (!credential) {
+      alert("Google credential not received");
+      return;
+    }
 
-  window.google.accounts.id.initialize({
-    client_id: GOOGLE_CLIENT_ID,
-    callback: async (response) => {
-      const credential = response?.credential;
+    const result = await dispatch(googleLoginUser(credential));
 
-      if (!credential) {
-        alert("Google credential not received");
-        return;
-      }
-
-      const result = await dispatch(googleLoginUser(credential));
-
-      if (googleLoginUser.fulfilled.match(result)) {
-        redirectByRoleAndPlan(result.payload?.user || result.payload);
-      }
-    },
-  });
-
-  window.google.accounts.id.prompt();
-};
+    if (googleLoginUser.fulfilled.match(result)) {
+      redirectByRoleAndPlan(result.payload?.user || result.payload);
+    }
+  };
 
   const handleGoogleError = () => {
     alert("Google login failed");
