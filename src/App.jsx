@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import CookieConsent from "./components/CookieConsent";
 import { fetchMe } from "./features/auth/authSlice";
 import ScrollToTop from "./components/ScrollToTop";
 import LiveShop from "./pages/LiveShop";
@@ -241,7 +241,7 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
-
+<CookieConsent />
       <ToastContainer
         position="top-right"
         autoClose={2500}
