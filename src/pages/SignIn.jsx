@@ -1,6 +1,5 @@
 // src/pages/SignIn.jsx
-
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -28,8 +27,33 @@ export default function SignIn() {
   const [showMore, setShowMore] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
+const googleInitialized = useRef(false);
+
+useEffect(() => {
+  if (!window.google || googleInitialized.current) return;
+
+  window.google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: async (response) => {
+      const credential = response?.credential;
+
+      if (!credential) {
+        alert("Google credential not received");
+        return;
+      }
+
+      const result = await dispatch(googleLoginUser(credential));
+
+      if (googleLoginUser.fulfilled.match(result)) {
+        redirectByRoleAndPlan(result.payload?.user || result.payload);
+      }
+    },
+  });
+
+  googleInitialized.current = true;
+}, [dispatch, GOOGLE_CLIENT_ID]);
   const redirectByRoleAndPlan = (user) => {
     const role = user?.role || "user";
     const plan = (user?.plan || "free").toLowerCase();
@@ -57,31 +81,13 @@ export default function SignIn() {
   };
 
   const handleCustomGoogleLogin = () => {
-    if (!window.google) {
-      alert("Google login is not loaded yet");
-      return;
-    }
+  if (!window.google) {
+    alert("Google login is not loaded yet");
+    return;
+  }
 
-    window.google.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: async (response) => {
-        const credential = response?.credential;
-
-        if (!credential) {
-          alert("Google credential not received");
-          return;
-        }
-
-        const result = await dispatch(googleLoginUser(credential));
-
-        if (googleLoginUser.fulfilled.match(result)) {
-          redirectByRoleAndPlan(result.payload?.user || result.payload);
-        }
-      },
-    });
-
-    window.google.accounts.id.prompt();
-  };
+  window.google.accounts.id.prompt();
+};
 
   const socialButtonClass =
     "flex h-12 w-full items-center justify-center gap-3 rounded-[5px] border border-border bg-background text-sm font-bold tracking-wide text-foreground cursor-pointer transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10";
