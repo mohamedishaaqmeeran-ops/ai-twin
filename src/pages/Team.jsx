@@ -20,23 +20,23 @@ import Nav from "../components/Nav";
 
 export default function Team() {
   const team = [
-    {
-      name: "Arunkumar S",
-      role: "Founder & CEO",
-      image: "/images/fo.jpeg",
-      icon: Rocket,
-      desc: "Building the future of AI-powered live commerce.",
-    },
-    {
-      name: "Vijaysree",
-      role: "Co-Founder",
-      image: "/images/co.jpeg",
-      icon: Brain,
-      desc: "Designing AI Twin flows for creators, brands and agencies.",
-    },
-    
-  ];
-
+  {
+    name: "Arunkumar S",
+    role: "Founder & CEO",
+    image: "/images/fo.jpeg",
+    icon: Rocket,
+    desc: "Building the future of AI-powered live commerce.",
+    linkedin: "https://www.linkedin.com/in/parkqwikarunkumar",
+  },
+  {
+    name: "Vijaysree",
+    role: "Co-Founder",
+    image: "/images/co.jpeg",
+    icon: Brain,
+    desc: "Designing AI Twin flows for creators, brands and agencies.",
+    linkedin: "https://www.linkedin.com/in/vijaysree-arunkumar/",
+  },
+];
   const values = [
     {
       icon: Rocket,
@@ -100,7 +100,7 @@ export default function Team() {
           </h2>
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-            {team.map(({ name, role, image, icon: Icon, desc }) => (
+            {team.map(({ name, role, image, icon: Icon, desc, linkedin }) => (
               <div
                 key={name}
                 className="rounded-3xl border border-border bg-card p-5 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
@@ -131,13 +131,14 @@ export default function Team() {
 
                 <div className="mt-5 flex justify-center gap-3">
                   <a
-                    href="https://www.linkedin.com/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
-                  >
-                    <Linkedin className="h-4 w-4" />
-                  </a>
+  href={linkedin}
+  target="_blank"
+  rel="noopener noreferrer"
+  aria-label={`${name} LinkedIn`}
+  className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background text-[var(--brand-pink)] transition hover:bg-pink-50 hover:text-blue-600 dark:hover:bg-white/10"
+>
+  <Linkedin className="h-4 w-4" />
+</a>
 
                   <a
                     href="mailto:hello@twinn.live"
