@@ -184,6 +184,14 @@ const handleDisconnect = async (platform) => {
     icon: Youtube,
     color: "text-red-600",
   },
+   {
+    id: "x",
+    name: "X",
+    username: "@twinn-live",
+    icon: X,
+    color: "text-black-400",
+  },
+
 ];
 
 const [platform, setPlatform] = useState("Facebook & Instagram");
