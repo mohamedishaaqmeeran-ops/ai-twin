@@ -140,7 +140,7 @@ export default function SignIn() {
     shape="rectangular"
     text="signin_with"
     size="large"
-    width="100%"
+    width="Math.max(240, Math.min(400, currentWidth));"
   />
 </div>
 

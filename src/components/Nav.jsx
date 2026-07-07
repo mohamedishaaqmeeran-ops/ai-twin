@@ -166,7 +166,9 @@ const handleLogout = async () => {
             <DesktopDropdown label="Discover" items={discoverMenu} />
             <DesktopDropdown label="Create" items={createMenu} />
             <DesktopDropdown label="Solution" items={solutionMenu} />
-
+<Link to="/live-shop" className="transition hover:text-[var(--brand-pink)]">
+              Live Shop
+            </Link>
             <Link to="/pricing" className="transition hover:text-[var(--brand-pink)]">
               Pricing
             </Link>
@@ -236,9 +238,15 @@ const handleLogout = async () => {
               <MobileSection label="Discover" items={discoverMenu} closeMenu={closeMenu} />
               <MobileSection label="Create" items={createMenu} closeMenu={closeMenu} />
               <MobileSection label="Solution" items={solutionMenu} closeMenu={closeMenu} />
-
-              <Link
+<Link
                 to="/pricing"
+                onClick={closeMenu}
+                className="block rounded-xl px-2 py-2 text-sm font-bold text-foreground"
+              >
+                Live Shop
+              </Link>
+              <Link
+                to="/live-shop"
                 onClick={closeMenu}
                 className="block rounded-xl px-2 py-2 text-sm font-bold text-foreground"
               >

@@ -36,6 +36,14 @@ export default function Team() {
     desc: "Designing AI Twin flows for creators, brands and agencies.",
     linkedin: "https://www.linkedin.com/in/vijaysree-arunkumar/",
   },
+ {
+  name: "Mohamed Ishaaq",
+  role: "Product Manager",
+  image: "/images/ishaaq.png",
+  icon: Code2,
+  desc: "Turning ideas into high-performance full-stack applications.",
+  linkedin: "https://www.linkedin.com/in/mohamed-ishaaq/",
+},
 ];
   const values = [
     {

@@ -6,6 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { fetchMe } from "./features/auth/authSlice";
 import ScrollToTop from "./components/ScrollToTop";
+import LiveShop from "./pages/LiveShop";
 
 const Landing = lazy(() => import("./pages/Landing"));
 const Signin = lazy(() => import("./pages/SignIn"));
@@ -162,6 +163,7 @@ export default function App() {
           <Route path="/shortclips" element={<ShortClips />} />
           <Route path="/multistreaming" element={<MultiStreaming />} />
           <Route path="/uploadandstream" element={<UploadAndStream />} />
+          <Route path="/live-shop" element={<LiveShop />} />
 
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/checkout/:plan" element={<Checkout />} />
