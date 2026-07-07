@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchConnections } from "../features/social/socialSlice";
+import { fetchConnections , disconnectSocial} from "../features/social/socialSlice";
 import {
   Activity,
   X,
@@ -147,6 +147,13 @@ const getPlatformUsername = (platformId, fallbackUsername) => {
     ? `@${account.username}`
     : account.name || fallbackUsername;
 };
+
+const handleDisconnect = async (platform) => {
+  await dispatch(disconnectSocial(platform));
+  dispatch(fetchConnections()); // Refresh connections
+};
+
+
   const avatars = ["/images/1.jpeg", "/images/2.jpeg", "/images/3.jpeg"];
  const platforms = [
   {
@@ -322,14 +329,17 @@ const [showVideo, setShowVideo] = useState(false);
             </div>
           </div>
 
-          {connectedPlatforms.includes(item.id) ? (
-  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+      {connectedPlatforms.includes(item.id) ? (
+  <button
+    onClick={() => handleDisconnect(item.id)}
+    className="cursor-pointer px-2  py-1 text-xs font-black text-emerald-600 transition hover:text-red-600 dark:text-emerald-400"
+  >
     Connected
-  </span>
+  </button>
 ) : (
   <button
     onClick={() => navigate(user ? "/app/connect" : "/signin")}
-    className="text-xs font-bold text-red-500 transition hover:text-emerald-600"
+    className="cursor-pointer text-xs font-bold text-red-500 transition hover:text-emerald-600"
   >
     Connect
   </button>
