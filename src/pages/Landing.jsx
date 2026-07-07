@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchConnections } from "../features/social/socialSlice";
 import {
   Activity,
   X,
@@ -56,7 +57,7 @@ import {
   Sparkle
 } from "lucide-react";
 import Logo from "../components/Logo";
-import { useState } from "react";
+import { useState , useEffect} from "react";
 import Nav from "../components/Nav";
 import shopifyLogo from "/images/eee.png";
 import wordpressLogo from "/images/ddd.png";
@@ -126,44 +127,56 @@ function TopBanner() {
 function Hero() {
   const navigate = useNavigate();
 const { user } = useSelector((state) => state.auth);
+const dispatch = useDispatch();
+const { connections = [] } = useSelector((state) => state.social || {});
+
+useEffect(() => {
+  if (user) {
+    dispatch(fetchConnections());
+  }
+}, [dispatch, user]);
+
+const connectedPlatforms = connections.map((item) => item.platform);
+
+const getPlatformUsername = (platformId, fallbackUsername) => {
+  const account = connections.find((item) => item.platform === platformId);
+
+  if (!account) return fallbackUsername;
+
+  return account.username
+    ? `@${account.username}`
+    : account.name || fallbackUsername;
+};
   const avatars = ["/images/1.jpeg", "/images/2.jpeg", "/images/3.jpeg"];
-  const platforms = [
+ const platforms = [
   {
+    id: "instagram",
     name: "Instagram",
     username: "@twinnlive",
     icon: Instagram,
     color: "text-pink-500",
-    href: "https://www.instagram.com/",
   },
   {
+    id: "facebook",
     name: "Facebook",
     username: "@twinnlive",
     icon: Facebook,
     color: "text-blue-600",
-    href: "https://www.facebook.com/",
   },
   {
+    id: "tiktok",
     name: "TikTok",
     username: "@twinnlive",
     icon: Music2,
     color: "text-black dark:text-white",
-    href: "https://www.tiktok.com/",
   },
   {
+    id: "youtube",
     name: "YouTube",
     username: "@twinn-live",
     icon: Youtube,
     color: "text-red-600",
-    href: "/sigin",
   },
-   {
-    name: "X",
-    username: "@twinn-live",
-    icon: X,
-    color: "text-black-600",
-    href: "/sigin",
-  },
-  
 ];
 
 const [platform, setPlatform] = useState("Facebook & Instagram");
@@ -253,54 +266,23 @@ const [showVideo, setShowVideo] = useState(false);
         </div>
 
        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-[280px_260px] xl:grid-cols-[300px_270px] items-start justify-center">
-         <div className="relative mx-auto w-full max-w-[420px] sm:max-w-[430px] lg:max-w-[450px] xl:max-w-[480px] overflow-hidden rounded-[40px] border-[8px] border-white bg-[#0d0d12] shadow-2xl dark:border-white/10">
-            <img
-              src="/images/bbb.png"
-              alt="Live AI Twin"
-              className="h-[560px] w-full object-cover"
-            />
+         <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[40px] border-[8px] border-white bg-[#0d0d12] shadow-2xl dark:border-white/10 sm:max-w-[430px] lg:max-w-[450px] xl:max-w-[480px]">
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+  <video
+    autoPlay
 
-            <div className="absolute left-4 top-4 flex gap-2">
-              <span className="rounded-full bg-red-600 px-3 py-1 text-xs font-black text-white">
-                LIVE
-              </span>
-              <span className="rounded-full bg-black/60 px-3 py-1 text-xs font-black text-white">
-                👁 4.8K
-              </span>
-            </div>
+  loop
+  playsInline
+  preload="metadata"
+  disablePictureInPicture
+  controls={false}
+  className="h-[560px] w-full object-cover"
+  >
+    <source src="/videos/live-demo.mp4" type="video/mp4" />
+  </video>
 
-            <div className="absolute bottom-20 left-4 right-4 space-y-2 text-white">
-              {[
-                "Is it good for sensitive skin?",
-                "What is the best offer today?",
-                "Show ingredients please",
-              ].map((x) => (
-                <div
-                  key={x}
-                  className="rounded-2xl bg-black/50 px-3 py-2 text-xs font-medium backdrop-blur"
-                >
-                  {x}
-                </div>
-              ))}
-            </div>
-
-            <div className="absolute bottom-4 left-4 right-4 rounded-2xl bg-white p-3 shadow-lg dark:bg-card">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-black text-foreground">
-                    Glow Boost Serum
-                  </p>
-                  <p className="text-xs font-black brand-text">₹799</p>
-                </div>
-
-                <button className="brand-gradient rounded-full px-4 py-2 text-xs font-bold text-white">
-                  Buy Now
-                </button>
-              </div>
-            </div>
-          </div>
+  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />  
+</div>
 
     <div className="w-full space-y-6  lg:block">
    <div className="mx-auto w-full max-w-[400px] md:max-w-[235px] rounded-[32px] border border-border bg-card p-4 shadow-xl transition duration-300 hover:-translate-y-1 hover:shadow-2xl">
@@ -334,18 +316,24 @@ const [showVideo, setShowVideo] = useState(false);
                 {item.name}
               </h4>
 
-              <p className="text-xs text-muted-foreground">
-                {item.username}
-              </p>
+             <p className="text-xs text-muted-foreground">
+  {getPlatformUsername(item.id, item.username)}
+</p>
             </div>
           </div>
 
-          <Link
-  to="/app/connect"
-  className="text-xs font-bold text-red-500 transition hover:text-emerald-600"
->
-  Connect
-</Link>
+          {connectedPlatforms.includes(item.id) ? (
+  <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+    Connected
+  </span>
+) : (
+  <button
+    onClick={() => navigate(user ? "/app/connect" : "/signin")}
+    className="text-xs font-bold text-red-500 transition hover:text-emerald-600"
+  >
+    Connect
+  </button>
+)}
         </div>
       );
     })}
@@ -1287,26 +1275,7 @@ function Footer() {
                 twinn.live
               </a>
             </li>
-
-            <li>
-              <a
-                href="tel:+918428527015"
-                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
-              >
-                <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-                +91 84285 27015
-              </a>
-            </li>
- <li>
-              <a
-                href="tel:+447423021644"
-                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
-              >
-                <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
-                +44 7423 021644
-              </a>
-            </li>
-            <li>
+  <li>
               <a
                 href="https://maps.google.com/?q=Chennai,India"
                 target="_blank"
@@ -1317,6 +1286,16 @@ function Footer() {
                 Chennai, India
               </a>
             </li>
+            <li>
+              <a
+                href="tel:+918428527015"
+                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+              >
+                <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+                +91 84285 27015
+              </a>
+            </li>
+
              <li>
               <a
                 href="https://maps.google.com/?q=London,UnitedKingdom"
@@ -1328,6 +1307,17 @@ function Footer() {
                 London, United Kingdom
               </a>
             </li>
+ <li>
+              <a
+                href="tel:+447423021644"
+                className="flex items-center gap-3 transition hover:text-[var(--brand-pink)]"
+              >
+                <Phone className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
+                +44 7423 021644
+              </a>
+            </li>
+          
+            
           </ul>
         </div>
       </div>

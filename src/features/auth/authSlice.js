@@ -2,6 +2,42 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 const API = "https://twinn-backend.onrender.com/api/auth";
 
+
+
+
+
+export const registerUser = createAsyncThunk(
+  "auth/register",
+  async (userData, { rejectWithValue }) => {
+    try {
+      const res = await fetch(`${API}/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(userData),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        return rejectWithValue(data.message || "Registration failed");
+      }
+
+      return data;
+    } catch (err) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
+
+
+
+
+
 /* ---------------- LOGIN ---------------- */
 
 export const loginUser = createAsyncThunk(
@@ -126,7 +162,20 @@ const authSlice = createSlice({
 
   extraReducers: (builder) => {
     builder
-
+// REGISTER
+.addCase(registerUser.pending, (state) => {
+  state.loading = true;
+  state.error = null;
+})
+.addCase(registerUser.fulfilled, (state, action) => {
+  state.loading = false;
+  state.error = null;
+  state.user = action.payload.user || action.payload;
+})
+.addCase(registerUser.rejected, (state, action) => {
+  state.loading = false;
+  state.error = action.payload || "Registration failed";
+})
       // LOGIN
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
@@ -167,8 +216,9 @@ const authSlice = createSlice({
   state.user = action.payload;
 })
 .addCase(fetchMe.rejected, (state) => {
-  state.loading = false;
-  state.user = null;
+    state.loading = false;
+    state.user = null;
+    state.error = null;   // don't show error
 })
 
       // LOGOUT

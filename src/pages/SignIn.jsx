@@ -22,7 +22,7 @@ export default function SignIn() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { loading, error } = useSelector((state) => state.auth);
+  const { loading, error } = useSelector((state) => state.auth || {});
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,11 +33,17 @@ export default function SignIn() {
     const role = user?.role || "user";
     const plan = (user?.plan || "free").toLowerCase();
 
-    if (role === "admin") return navigate("/admin");
-    if (plan === "pro") return navigate("/app/pro");
-    if (plan === "enterprise") return navigate("/app/enterprise");
+    if (role === "admin") {
+      navigate("/admin", { replace: true });
+      return;
+    }
 
-    navigate("/app");
+    if (plan === "pro" || plan === "business") {
+      navigate("/app/pro", { replace: true });
+      return;
+    }
+
+    navigate("/app", { replace: true });
   };
 
   const handleEmailLogin = async (e) => {
@@ -51,8 +57,7 @@ export default function SignIn() {
     );
 
     if (loginUser.fulfilled.match(result)) {
-      localStorage.setItem("loginProvider", "email");
-      redirectByRoleAndPlan(result.payload);
+      redirectByRoleAndPlan(result.payload?.user || result.payload);
     }
   };
 
@@ -67,24 +72,12 @@ export default function SignIn() {
     const result = await dispatch(googleLoginUser(credential));
 
     if (googleLoginUser.fulfilled.match(result)) {
-      localStorage.setItem("loginProvider", "google");
-      redirectByRoleAndPlan(result.payload);
+      redirectByRoleAndPlan(result.payload?.user || result.payload);
     }
   };
 
   const handleGoogleError = () => {
     alert("Google login failed");
-  };
-
-  const demoSocialLogin = (provider) => {
-    localStorage.setItem("loginProvider", provider);
-
-    redirectByRoleAndPlan({
-      name: "Demo User",
-      email: "demo@twinn.live",
-      role: "user",
-      plan: "free",
-    });
   };
 
   const socialButtonClass =
@@ -94,11 +87,11 @@ export default function SignIn() {
     "flex items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3 transition focus-within:border-[var(--brand-pink)] focus-within:ring-2 focus-within:ring-pink-200 dark:focus-within:ring-pink-500/20";
 
   const inputClass =
-    "w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground";
+    "w-full bg-transparent text-base font-medium text-foreground outline-none placeholder:text-muted-foreground";
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <div className="mx-auto grid min-h-screen max-w-7xl gap-8 px-4 py-10 lg:grid-cols-2 lg:items-stretch">
+    <div className="min-h-dvh overflow-x-hidden bg-background text-foreground transition-colors duration-300">
+      <div className="mx-auto grid min-h-dvh max-w-7xl gap-8 px-4 py-6 sm:py-10 lg:grid-cols-2 lg:items-stretch">
         <section className="hidden h-full flex-col rounded-[40px] border border-border bg-card p-8 shadow-sm lg:flex">
           <div className="brand-gradient flex-1 overflow-hidden rounded-[32px]">
             <img
@@ -118,8 +111,8 @@ export default function SignIn() {
             </h1>
 
             <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">
-              Sign in to create your twin, train it, add products, connect social
-              platforms and go live.
+              Sign in to create your twin, train it, add products, connect
+              social platforms and go live.
             </p>
           </div>
         </section>
@@ -137,48 +130,37 @@ export default function SignIn() {
             </p>
 
             <div className="mt-7 space-y-3">
-              <div className="flex h-12 w-full items-center justify-center overflow-hidden rounded-[5px] ">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap={false}
-                  auto_select={false}
-                  theme="outline"
-                  shape="rectangular"
-                  text="signin_with"
-                  size="large"
-                  width="400"
-                />
-              </div>
+              <div className="w-full rounded-[5px] overflow-hidden">
+  <GoogleLogin
+    onSuccess={handleGoogleSuccess}
+    onError={handleGoogleError}
+    useOneTap={false}
+    auto_select={false}
+    theme="outline"
+    shape="rectangular"
+    text="signin_with"
+    size="large"
+    width="100%"
+  />
+</div>
 
-              <button
-                type="button"
-                onClick={() => demoSocialLogin("apple")}
-                className="flex h-12 w-full items-center justify-center gap-3 rounded-[5px] bg-[#0d0d12] text-sm font-bold tracking-wide text-white transition hover:opacity-90"
-              >
-                <Apple className="h-5 w-5" />
-                Continue with Apple
-              </button>
+<button
+  type="button"
+  disabled
+  className="mt-3 flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-[5px] bg-[#0d0d12] text-sm font-bold tracking-wide text-white "
+>
+  <Apple className="h-5 w-5" />
+  Continue with Apple
+</button>
 
               {showMore && (
                 <>
-                  <button
-                    type="button"
-                    onClick={() => demoSocialLogin("github")}
-                    className={socialButtonClass}
-                  >
+                  <button type="button" disabled className={`${socialButtonClass} cursor-not-allowed opacity-50`}>
                     <Github className="h-5 w-5" />
                     Continue with GitHub
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => demoSocialLogin("phone")}
-                    className={socialButtonClass}
-                  >
-                    <span className="text-sm font-black">+91</span>
-                    Continue with Phone
-                  </button>
+                 
                 </>
               )}
 
@@ -206,6 +188,7 @@ export default function SignIn() {
               <div className="space-y-4">
                 <div className={inputWrapperClass}>
                   <Mail className="h-5 w-5 text-[var(--brand-pink)]" />
+
                   <input
                     value={email}
                     onChange={(e) =>
@@ -214,17 +197,20 @@ export default function SignIn() {
                     className={inputClass}
                     placeholder="Email address"
                     type="email"
+                    autoComplete="email"
                   />
                 </div>
 
                 <div className={inputWrapperClass}>
                   <Lock className="h-5 w-5 text-[var(--brand-pink)]" />
+
                   <input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={inputClass}
                     placeholder="Password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                   />
 
                   <button
@@ -249,15 +235,16 @@ export default function SignIn() {
 
               <div className="mt-6">
                 <button
+                  type="submit"
                   disabled={loading || !email.trim() || !password.trim()}
-                  className="brand-gradient mt-5 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="brand-gradient mt-5 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed "
                 >
                   {loading ? <ButtonLoader text="Signing In..." /> : "Sign In"}
                   {!loading && <ArrowRight className="h-4 w-4" />}
                 </button>
 
                 <p className="mt-6 text-center text-sm text-muted-foreground">
-                  Don't have an account?
+                  Don&apos;t have an account?
                   <Link
                     to="/signup"
                     className="ml-2 font-bold text-[var(--brand-pink)] hover:underline"

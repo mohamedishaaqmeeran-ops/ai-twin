@@ -1,27 +1,28 @@
+// src/pages/SignUp.jsx
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  Mail,
-  Lock,
-  User,
-  Eye,
-  Phone,
-  EyeOff,
-  ArrowRight,
-} from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+
 import Logo from "../components/Logo";
+import ButtonLoader from "../components/ButtonLoader";
+import { registerUser, fetchMe } from "../features/auth/authSlice";
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { loading } = useSelector((state) => state.auth || {});
 
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
-const [form, setForm] = useState({
-  
-  email: "",
-  password: "",
-  confirmPassword: "",
-});
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
   const handleChange = (key, value) => {
     setForm((prev) => ({
@@ -30,96 +31,65 @@ const [form, setForm] = useState({
     }));
   };
 
-const [loading, setLoading] = useState(false);
-const [error, setError] = useState("");
+  const validatePassword = (password) => {
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#()_\-+=])[A-Za-z\d@$!%*?&^#()_\-+=]{8,}$/;
 
+    return passwordRegex.test(password);
+  };
 
+  const handleSignup = async (e) => {
+    e.preventDefault();
+    setError("");
 
-const validatePassword = (password) => {
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&^#()_\-+=])[A-Za-z\d@$!%*?&^#()_\-+=]{8,}$/;
+    if (
+      !form.email.trim() ||
+      !form.password.trim() ||
+      !form.confirmPassword.trim()
+    ) {
+      setError("Please fill all fields.");
+      return;
+    }
 
-  return passwordRegex.test(password);
-};
-const handleSignup = async (e) => {
-  e.preventDefault();
-  setError("");
+    if (!validatePassword(form.password)) {
+      setError(
+        "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character."
+      );
+      return;
+    }
 
-  if (
-   
-    !form.email.trim() ||
-    !form.password.trim() ||
-    !form.confirmPassword.trim()
-  ) {
-    setError("Please fill all fields.");
-    return;
-  }
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
- 
-  if (!validatePassword(form.password)) {
-  setError(
-    "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character."
-  );
-  return;
-}
-
-  if (form.password !== form.confirmPassword) {
-    setError("Passwords do not match.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const res = await fetch(
-      "https://twinn-backend.onrender.com/api/auth/register",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      body: JSON.stringify({
-
-  email: form.email,
-  password: form.password,
-  confirmPassword: form.confirmPassword,
- 
-}),
-      }
+    const result = await dispatch(
+      registerUser({
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+      })
     );
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || data.message || "Registration failed");
+    if (registerUser.fulfilled.match(result)) {
+      await dispatch(fetchMe());
+      navigate("/app/twin/create", { replace: true });
     }
 
-    localStorage.setItem("user", JSON.stringify(data.user || data));
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("role", data.user?.role || "user");
-
-    if (data.token) {
-      localStorage.setItem("token", data.token);
+    if (registerUser.rejected.match(result)) {
+      setError(result.payload || "Registration failed");
     }
-
-    navigate("/app/twin/create");
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const inputClass =
     "flex items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3 transition focus-within:border-[var(--brand-pink)] focus-within:ring-2 focus-within:ring-pink-200 dark:focus-within:ring-pink-500/20";
 
   const inputFieldClass =
-    "w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground";
+    "w-full bg-transparent text-base font-medium text-foreground outline-none placeholder:text-muted-foreground";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto grid min-h-screen max-w-7xl gap-10 px-4 py-10 lg:grid-cols-2 lg:items-stretch">
-        {/* Left */}
+    <div className="min-h-dvh overflow-x-hidden bg-background text-foreground">
+      <div className="mx-auto grid min-h-dvh max-w-7xl gap-10 px-4 py-6 sm:py-10 lg:grid-cols-2 lg:items-stretch">
         <section className="hidden h-full flex-col rounded-[40px] border border-border bg-card p-8 shadow-sm lg:flex">
           <div className="brand-gradient flex-1 overflow-hidden rounded-[32px]">
             <img
@@ -141,7 +111,6 @@ const handleSignup = async (e) => {
           </div>
         </section>
 
-        {/* Right */}
         <section className="mx-auto flex h-full w-full max-w-md flex-col rounded-3xl border border-border bg-card p-6 shadow-xl sm:p-8">
           <Logo />
 
@@ -160,18 +129,17 @@ const handleSignup = async (e) => {
             className="flex flex-1 flex-col justify-between"
           >
             <div className="space-y-4">
-             
-
-         
-
               <div className={inputClass}>
                 <Mail className="h-5 w-5 text-[var(--brand-pink)]" />
                 <input
                   placeholder="Email"
                   type="email"
+                  autoComplete="email"
                   className={inputFieldClass}
                   value={form.email}
-                  onChange={(e) => handleChange("email", e.target.value)}
+                  onChange={(e) =>
+                    handleChange("email", e.target.value.trimStart())
+                  }
                 />
               </div>
 
@@ -180,6 +148,7 @@ const handleSignup = async (e) => {
                 <input
                   placeholder="Password"
                   type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
                   className={inputFieldClass}
                   value={form.password}
                   onChange={(e) => handleChange("password", e.target.value)}
@@ -198,25 +167,26 @@ const handleSignup = async (e) => {
                 </button>
               </div>
 
-             <div className={inputClass}>
-  <Lock className="h-5 w-5 text-[var(--brand-pink)]" />
+              <div className={inputClass}>
+                <Lock className="h-5 w-5 text-[var(--brand-pink)]" />
 
-  <input
-    placeholder="Confirm Password"
-    type="password"
-    className={inputFieldClass}
-    value={form.confirmPassword}
-    onChange={(e) =>
-      handleChange("confirmPassword", e.target.value)
-    }
-  />
-</div>
+                <input
+                  placeholder="Confirm Password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  className={inputFieldClass}
+                  value={form.confirmPassword}
+                  onChange={(e) =>
+                    handleChange("confirmPassword", e.target.value)
+                  }
+                />
+              </div>
 
-{error && (
-  <div className="rounded-[5px] bg-red-50 p-3 text-sm font-semibold text-red-600 dark:bg-red-500/10 dark:text-red-400">
-    {error}
-  </div>
-)}
+              {error && (
+                <div className="rounded-[5px] bg-red-50 p-3 text-sm font-semibold text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                  {error}
+                </div>
+              )}
             </div>
 
             <div className="mt-6">
@@ -226,13 +196,19 @@ const handleSignup = async (e) => {
               </label>
 
               <button
-  disabled={loading}
-  className="brand-gradient mt-5 flex h-12 w-full items-center cursor-pointer justify-center gap-2 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
->
-  {loading ? "Creating Account..." : "Create Account"}
-  <ArrowRight className="h-4 w-4" />
-</button>
-              
+                type="submit"
+                disabled={loading}
+                className="brand-gradient mt-5 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? (
+                  <ButtonLoader text="Creating Account..." />
+                ) : (
+                  <>
+                    Create Account
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
 
               <div className="mt-8 text-center text-sm text-muted-foreground">
                 Already have an account?
