@@ -239,14 +239,14 @@ const handleLogout = async () => {
               <MobileSection label="Create" items={createMenu} closeMenu={closeMenu} />
               <MobileSection label="Solution" items={solutionMenu} closeMenu={closeMenu} />
 <Link
-                to="/pricing"
+                to="/live-shop"
                 onClick={closeMenu}
                 className="block rounded-xl px-2 py-2 text-sm font-bold text-foreground"
               >
                 Live Shop
               </Link>
               <Link
-                to="/live-shop"
+                to="/pricing"
                 onClick={closeMenu}
                 className="block rounded-xl px-2 py-2 text-sm font-bold text-foreground"
               >
