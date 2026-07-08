@@ -7,6 +7,8 @@ import CookieConsent from "./components/CookieConsent";
 import { fetchMe } from "./features/auth/authSlice";
 import ScrollToTop from "./components/ScrollToTop";
 import LiveShop from "./pages/LiveShop";
+import ProtectedRoute from "./components/ProtectedRoute";
+
 
 const Landing = lazy(() => import("./pages/Landing"));
 const Signin = lazy(() => import("./pages/SignIn"));
@@ -177,7 +179,14 @@ export default function App() {
           <Route path="/data-deletion" element={<DataDeletion />} />
           <Route path="/waitlist" element={<WaitlistForm />} />
 
-          <Route path="/app" element={<AppLayout />}>
+         <Route
+  path="/app"
+  element={
+    <ProtectedRoute>
+      <AppLayout />
+    </ProtectedRoute>
+  }
+>
             <Route index element={<Dashboard />} />
 
             <Route path="twin" element={<TwinDashboard />} />
@@ -217,18 +226,27 @@ export default function App() {
             <Route path="settings" element={<Settings />} />
           </Route>
 
-          <Route path="/app/pro" element={<AppLayout />}>
+          <Route
+  path="/app/pro"
+  element={
+    <ProtectedRoute>
+      <AppLayout />
+    </ProtectedRoute>
+  }
+>
             <Route index element={<Dashboard />} />
           </Route>
 
-          <Route
-            path="/admin"
-            element={
-              <RequireAdmin>
-                <AdminLayout />
-              </RequireAdmin>
-            }
-          >
+         <Route
+  path="/admin"
+  element={
+    <ProtectedRoute>
+      <RequireAdmin>
+        <AdminLayout />
+      </RequireAdmin>
+    </ProtectedRoute>
+  }
+>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="twins" element={<AdminTwins />} />

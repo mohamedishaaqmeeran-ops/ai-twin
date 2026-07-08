@@ -99,21 +99,19 @@ export const googleLoginUser = createAsyncThunk(
 export const fetchMe = createAsyncThunk(
   "auth/fetchMe",
   async (_, { rejectWithValue }) => {
-    try {
-      const res = await fetch(`${API}/me`, {
-        credentials: "include",
-      });
+   try {
+  const res = await fetch(`${API}/auth/me`, {
+    credentials: "include",
+  });
 
-      const data = await res.json();
+  if (!res.ok) {
+    return rejectWithValue(null);
+  }
 
-      if (!res.ok) {
-        return rejectWithValue(data.message || "Unauthorized");
-      }
-
-      return data.user;
-    } catch (err) {
-      return rejectWithValue(err.message);
-    }
+  return await res.json();
+} catch {
+  return rejectWithValue(null);
+}
   }
 );
 

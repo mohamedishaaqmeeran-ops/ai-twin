@@ -283,18 +283,20 @@ const [showVideo, setShowVideo] = useState(false);
        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-[280px_260px] xl:grid-cols-[300px_270px] items-start justify-center">
          <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[40px] border-[8px] border-white bg-[#0d0d12] shadow-2xl dark:border-white/10 sm:max-w-[430px] lg:max-w-[450px] xl:max-w-[480px]">
 
-  <video
-    autoPlay
-
+ <video
+  autoPlay
+  muted
   loop
   playsInline
-  preload="metadata"
-  disablePictureInPicture
+  preload="auto"
   controls={false}
+  disablePictureInPicture
+  disableRemotePlayback
+  poster="/images/bbb.png"
   className="h-[560px] w-full object-cover"
-  >
-    <source src="/videos/live-demo.mp4" type="video/mp4" />
-  </video>
+>
+  <source src="/videos/live-demo.mp4" type="video/mp4" />
+</video>
 
   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />  
 </div>
