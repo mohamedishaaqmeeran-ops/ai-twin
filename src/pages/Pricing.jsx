@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import Nav from "../components/Nav";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://twinn-backend.onrender.com";
 
 const plans = [
   {
@@ -315,57 +316,66 @@ function PlanCard({ plan, billing }) {
   const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
-    if (plan.name === "Free") {
-      window.location.href = "/signup";
+  if (plan.name === "Free") {
+    window.location.href = "/signup";
+    return;
+  }
+
+  if (plan.name === "Agency") {
+    window.location.href = "/waitlist";
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const res = await fetch(`${API_URL}/api/payments/create-checkout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        plan: plan.name.toLowerCase(),
+        billing,
+      }),
+    });
+
+    const contentType = res.headers.get("content-type");
+
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error(
+        "Backend API URL is wrong or payment route is missing."
+      );
+    }
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "Unable to start payment");
+    }
+
+    // Stripe
+    if (data.gateway === "stripe") {
+      window.location.href = data.checkoutUrl;
       return;
     }
 
-    if (plan.name === "Agency") {
-      window.location.href = "/waitlist";
-      return;
+    // Razorpay
+    if (!window.Razorpay) {
+      throw new Error("Razorpay SDK not loaded");
     }
 
-    try {
-      setLoading(true);
+    const options = {
+      key: data.key,
+      amount: data.amount,
+      currency: data.currency,
+      order_id: data.orderId,
+      name: "Twinn",
+      description: `${plan.name} Plan`,
 
-      const res = await fetch(`${API_URL}/api/payments/create-checkout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          plan: plan.name.toLowerCase(),
-          billing,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        alert(data.message || "Unable to start payment");
-        return;
-      }
-
-      if (data.gateway === "stripe") {
-        window.location.href = data.checkoutUrl;
-        return;
-      }
-
-      if (!window.Razorpay) {
-        alert("Razorpay SDK not loaded");
-        return;
-      }
-
-      const options = {
-        key: data.key,
-        amount: data.amount,
-        currency: data.currency,
-        name: "Twinn",
-        description: `${plan.name} Plan`,
-        order_id: data.orderId,
-
-        handler: async function (response) {
+      handler: async function (response) {
+        try {
           const verifyRes = await fetch(
             `${API_URL}/api/payments/razorpay/verify`,
             {
@@ -383,36 +393,47 @@ function PlanCard({ plan, billing }) {
             }
           );
 
+          const verifyContentType =
+            verifyRes.headers.get("content-type");
+
+          if (
+            !verifyContentType ||
+            !verifyContentType.includes("application/json")
+          ) {
+            throw new Error("Payment verify API returned HTML.");
+          }
+
           const verifyData = await verifyRes.json();
 
           if (!verifyRes.ok || !verifyData.success) {
-            alert(verifyData.message || "Payment verification failed");
-            return;
+            throw new Error(
+              verifyData.message || "Payment verification failed."
+            );
           }
 
-          alert("Payment successful. Plan upgraded.");
+          alert("Payment successful.");
           window.location.href = "/app";
-        },
+        } catch (err) {
+          alert(err.message);
+        }
+      },
 
-        modal: {
-          ondismiss: function () {
-            setLoading(false);
-          },
-        },
+      modal: {
+        ondismiss: () => setLoading(false),
+      },
 
-        theme: {
-          color: "#ec4899",
-        },
-      };
+      theme: {
+        color: "#ec4899",
+      },
+    };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
-    } catch (error) {
-      alert(error.message || "Payment error");
-    } finally {
-      setLoading(false);
-    }
-  };
+    new window.Razorpay(options).open();
+  } catch (err) {
+    alert(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div
