@@ -2,12 +2,30 @@
 
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { fetchMe } from "../features/auth/authSlice";
 
 const API = "https://twinn-backend.onrender.com/api";
+
+const loadRazorpay = () =>
+  new Promise((resolve, reject) => {
+    if (window.Razorpay) return resolve(true);
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+
+    script.onload = () => resolve(true);
+    script.onerror = () => reject(new Error("Razorpay SDK failed to load"));
+
+    document.body.appendChild(script);
+  });
 
 export default function Checkout() {
   const { plan } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
   const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
@@ -17,9 +35,7 @@ export default function Checkout() {
       const res = await fetch(`${API}/payments/create-checkout`, {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan }),
       });
 
@@ -40,6 +56,8 @@ export default function Checkout() {
         return;
       }
 
+      await loadRazorpay();
+
       const options = {
         key: data.key,
         amount: data.amount,
@@ -54,9 +72,7 @@ export default function Checkout() {
           const verifyRes = await fetch(`${API}/payments/razorpay/verify`, {
             method: "POST",
             credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               plan,
               razorpay_order_id: response.razorpay_order_id,
@@ -67,13 +83,15 @@ export default function Checkout() {
 
           const verifyData = await verifyRes.json();
 
-          if (!verifyRes.ok) {
-            throw new Error(verifyData.message || "Payment verification failed");
+          if (!verifyRes.ok || !verifyData.success) {
+            throw new Error(
+              verifyData.message || "Payment verification failed"
+            );
           }
 
           alert("Payment successful. Plan upgraded.");
           dispatch(fetchMe());
-navigate("/app");
+          navigate("/app");
         },
 
         modal: {
@@ -86,14 +104,14 @@ navigate("/app");
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (error) {
-      alert(error.message);
+      alert(error.message || "Payment error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="grid min-h-screen place-items-center bg-background text-foreground">
+    <div className="grid min-h-screen place-items-center bg-background px-4 text-foreground">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-xl">
         <h1 className="text-3xl font-black">
           Upgrade to <span className="brand-text">{plan}</span>
