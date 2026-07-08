@@ -285,14 +285,14 @@ const [showVideo, setShowVideo] = useState(false);
 
  <video
   autoPlay
-  muted
+  
   loop
   playsInline
   preload="auto"
   controls={false}
   disablePictureInPicture
   disableRemotePlayback
-  poster="/images/bbb.png"
+  
   className="h-[560px] w-full object-cover"
 >
   <source src="/videos/live-demo.mp4" type="video/mp4" />
