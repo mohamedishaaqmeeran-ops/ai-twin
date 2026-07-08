@@ -4,18 +4,18 @@ import { useSelector } from "react-redux";
 export default function ProtectedRoute({ children }) {
   const location = useLocation();
 
-  const { user, loading } = useSelector((state) => state.auth);
+  const { user, loading, initialized } = useSelector(
+    (state) => state.auth
+  );
 
-  // Wait until fetchMe finishes
-  if (loading) {
+  if (loading || !initialized) {
     return (
       <div className="grid min-h-screen place-items-center">
-        <p className="font-semibold text-pink-500">Loading...</p>
+        Loading...
       </div>
     );
   }
 
-  // Not logged in
   if (!user) {
     return (
       <Navigate
