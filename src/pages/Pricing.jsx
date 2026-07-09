@@ -311,6 +311,22 @@ export default function Pricing() {
   );
 }
 
+
+const loadRazorpay = () =>
+  new Promise((resolve, reject) => {
+    if (window.Razorpay) return resolve(true);
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+
+    script.onload = () => resolve(true);
+    script.onerror = () => reject(new Error("Razorpay SDK failed to load"));
+
+    document.body.appendChild(script);
+  });
+
+
 function PlanCard({ plan, billing }) {
   const Icon = plan.icon;
   const [loading, setLoading] = useState(false);
@@ -362,9 +378,7 @@ function PlanCard({ plan, billing }) {
     }
 
     // Razorpay
-    if (!window.Razorpay) {
-      throw new Error("Razorpay SDK not loaded");
-    }
+    await loadRazorpay();
 
     const options = {
       key: data.key,
