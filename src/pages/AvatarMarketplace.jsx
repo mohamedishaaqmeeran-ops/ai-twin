@@ -426,7 +426,7 @@ export default function AvatarMarketplace() {
 
                     <p className="mt-1 flex items-center gap-2 text-xl font-black brand-text">
                       <Coins className="h-5 w-5" />
-                      {avatar.credits}
+                      {avatar.credits} Credits
                     </p>
                   </div>
 
