@@ -855,7 +855,7 @@ return (
   <button
     type="button"
     onClick={exportUsers}
-    disabled={currentFilteredData.length === 0}
+    disabled={activeResult.length === 0}
     className="brand-gradient flex items-center justify-center gap-2 rounded-[5px] px-5 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
   >
     <Download className="h-4 w-4" />
@@ -865,7 +865,7 @@ return (
       </div>
     </section>
 
-    {/* Part {/* Registered Users: Desktop Table */}
+    {/* Registered Users: Desktop Table */}
 {activeTab === "users" && (
   <section className="hidden overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:block">
     <div className="flex items-center justify-between gap-4 border-b border-border p-5 sm:p-6">
@@ -875,7 +875,7 @@ return (
         </h2>
 
         <p className="mt-1 text-sm font-medium text-muted-foreground">
-          Showing {paginatedUsers.length} of{" "}
+          Showing {paginatedRegisteredUsers.length} of{" "}
           {registeredUsersResult.length} users.
         </p>
       </div>
@@ -908,7 +908,7 @@ return (
         </thead>
 
         <tbody>
-          {paginatedUsers.map((user) => {
+          {paginatedRegisteredUsers.map((user) => {
             const userId = user._id || user.id;
 
             const displayName =
@@ -1146,7 +1146,7 @@ return (
 {/* Registered Users: Mobile Cards */}
 {activeTab === "users" && (
   <section className="grid gap-4 lg:hidden">
-    {paginatedUsers.map((user) => {
+    {paginatedRegisteredUsers.map((user) => {
       const userId = user._id || user.id;
 
       const displayName =
@@ -1360,7 +1360,7 @@ return (
         </h2>
 
         <p className="mt-1 text-sm font-medium text-muted-foreground">
-          Showing {paginatedWaitlist.length} of{" "}
+          Showing {paginatedWaitlistUsers.length} of{" "}
           {waitlistUsersResult.length} users.
         </p>
       </div>
@@ -1393,7 +1393,7 @@ return (
         </thead>
 
         <tbody>
-          {paginatedWaitlist.map(
+          {paginatedWaitlistUsers.map(
             (waitlistUser) => {
               const waitlistId =
                 waitlistUser._id ||
@@ -1544,7 +1544,7 @@ return (
 {/* Waitlist Users: Mobile Cards */}
 {activeTab === "waitlist" && (
   <section className="grid gap-4 lg:hidden">
-    {paginatedWaitlist.map((waitlistUser) => {
+    {paginatedWaitlistUsers.map((waitlistUser) => {
       const waitlistId = waitlistUser._id || waitlistUser.id;
 
       const displayName =
@@ -2092,23 +2092,67 @@ function Detail({ icon: Icon, label, value }) {
   );
 }
 
+function Pagination({
+  currentPage,
+  totalPages,
+  totalItems,
+  startIndex,
+  endIndex,
+  onPrevious,
+  onNext,
+}) {
+  const firstVisibleItem = totalItems === 0 ? 0 : startIndex + 1;
+  const lastVisibleItem = Math.min(endIndex, totalItems);
 
-{waitlistUsersResult.length > 0 && (
-  <Pagination
-    currentPage={currentPage}
-    totalPages={totalPages}
-    totalItems={waitlistUsersResult.length}
-    startIndex={startIndex}
-    endIndex={endIndex}
-    onPrevious={() =>
-      setCurrentPage((page) =>
-        Math.max(page - 1, 1)
-      )
-    }
-    onNext={() =>
-      setCurrentPage((page) =>
-        Math.min(page + 1, totalPages)
-      )
-    }
-  />
-)}
+  return (
+    <div className="flex flex-col gap-4 border-t border-border p-5 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm font-medium text-muted-foreground">
+        Showing{" "}
+        <span className="font-black text-foreground">{firstVisibleItem}</span>{" "}
+        to{" "}
+        <span className="font-black text-foreground">{lastVisibleItem}</span>{" "}
+        of{" "}
+        <span className="font-black text-foreground">{totalItems}</span>{" "}
+        users
+      </p>
+
+      <div className="flex items-center justify-between gap-3 sm:justify-end">
+        <button
+          type="button"
+          onClick={onPrevious}
+          disabled={currentPage === 1}
+          className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-2 text-sm font-bold text-foreground transition hover:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Previous
+        </button>
+
+        <span className="min-w-[90px] text-center text-sm font-black text-foreground">
+          {currentPage} / {totalPages}
+        </span>
+
+        <button
+          type="button"
+          onClick={onNext}
+          disabled={currentPage === totalPages}
+          className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-2 text-sm font-bold text-foreground transition hover:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Next
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EmptyUsers() {
+  return (
+    <div className="p-12 text-center">
+      <Users className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
+      <p className="mt-3 text-lg font-black">No registered users found</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Try changing the search, plan or status filter.
+      </p>
+    </div>
+  );
+}
