@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
@@ -347,16 +348,32 @@ function PlanCard({  plan,
 
 const handlePayment = async () => {
   if (plan.name === "Free") {
-  if (user) {
-    navigate("/app");
-  } else {
+  if (!user) {
     navigate("/signin", {
       state: {
         from: currentLocation.pathname,
       },
     });
+
+    return;
   }
 
+  // User already has a paid plan
+  if (
+    user.plan?.toLowerCase() === "pro" ||
+    user.plan?.toLowerCase() === "business"
+  ) {
+    toast.info(
+  `You are already subscribed to the ${user.plan} plan. Redirecting to your dashboard...`
+);
+
+    navigate("/app");
+
+    return;
+  }
+
+  // Free user
+  navigate("/app");
   return;
 }
 
