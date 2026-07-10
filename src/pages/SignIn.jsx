@@ -1,6 +1,6 @@
 // src/pages/SignIn.jsx
 
-import { useState } from "react";
+import { useState , useEffect , useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useDispatch, useSelector } from "react-redux";
@@ -28,6 +28,7 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [showMore, setShowMore] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+const googleButtonRef = useRef(null);
 
   const redirectByRoleAndPlan = (user) => {
     const role = user?.role || "user";
@@ -140,11 +141,15 @@ export default function SignIn() {
     shape="rectangular"
     text="signin_with"
     size="large"
-    width="Math.max(240, Math.min(400, currentWidth));"
+    width="100%"
   />
 </div>
 
-<button
+
+
+              {showMore && (
+                <>
+                <button
   type="button"
   disabled
   className="mt-3 flex h-12 w-full cursor-not-allowed items-center justify-center gap-3 rounded-[5px] bg-[#0d0d12] text-sm font-bold tracking-wide text-white "
@@ -152,9 +157,6 @@ export default function SignIn() {
   <Apple className="h-5 w-5" />
   Continue with Apple
 </button>
-
-              {showMore && (
-                <>
                   <button type="button" disabled className={`${socialButtonClass} cursor-not-allowed opacity-50`}>
                     <Github className="h-5 w-5" />
                     Continue with GitHub
@@ -225,7 +227,14 @@ export default function SignIn() {
                     )}
                   </button>
                 </div>
-
+<div className="flex justify-end">
+  <Link
+    to="/forgot-password"
+    className="text-sm font-bold text-[var(--brand-pink)] transition hover:underline"
+  >
+    Forgot password?
+  </Link>
+</div>
                 {error && (
                   <div className="rounded-[5px] bg-red-50 p-3 text-sm font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">
                     {error}

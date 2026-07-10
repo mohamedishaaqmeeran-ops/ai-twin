@@ -8,8 +8,16 @@ import { fetchMe } from "./features/auth/authSlice";
 import ScrollToTop from "./components/ScrollToTop";
 import LiveShop from "./pages/LiveShop";
 import ProtectedRoute from "./components/ProtectedRoute";
+const AvatarMarketplace = lazy(() =>
+  import("./pages/AvatarMarketplace")
+);
+const ForgotPassword = lazy(() =>
+  import("./pages/ForgotPassword")
+);
 
-
+const ResetPassword = lazy(() =>
+  import("./pages/ResetPassword")
+);
 const Landing = lazy(() => import("./pages/Landing"));
 const Signin = lazy(() => import("./pages/SignIn"));
 const SignUp = lazy(() => import("./pages/SignUp"));
@@ -146,7 +154,15 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signin" element={<Signin />} />
+<Route
+  path="/forgot-password"
+  element={<ForgotPassword />}
+/>
 
+<Route
+  path="/reset-password/:token"
+  element={<ResetPassword />}
+/>
           <Route path="/about" element={<AboutUs />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/careers" element={<Careers />} />
@@ -199,7 +215,10 @@ export default function App() {
             <Route path="products/add" element={<AddProduct />} />
             <Route path="products/:id" element={<ProductDetails />} />
             <Route path="products/edit/:id" element={<EditProduct />} />
-
+            <Route
+  path="avatar-marketplace"
+  element={<AvatarMarketplace />}
+/>
             <Route path="connect" element={<ConnectSocial />} />
             <Route path="schedule" element={<ScheduleLive />} />
             <Route path="schedule/create" element={<CreateSchedule />} />

@@ -15,6 +15,8 @@ import {
   BadgeCheck,
   Crown,
   Plus,
+  Store,
+  Coins,
 } from "lucide-react";
 import { useSelector } from "react-redux";
 
@@ -28,7 +30,20 @@ export default function TwinDashboard() {
 const plan = user?.plan || "free";
 const isPro = plan === "pro" || plan === "business";
 
-const twins = user?.twins || [];
+const createdTwins = user?.twins || [];
+const unlockedAvatars = user?.unlockedAvatars || [];
+
+const marketplaceTwins = unlockedAvatars.map((avatar) => ({
+  id: avatar._id,
+  _id: avatar._id,
+  name: avatar.name,
+  image: avatar.image,
+  voice: avatar.voice,
+  isMarketplaceAvatar: true,
+  status: "Unlocked",
+}));
+
+const twins = [...createdTwins, ...marketplaceTwins];
 const products = user?.products || [];
 
 const productsLoading = false;
@@ -158,6 +173,50 @@ const canCreateTwin = twins.length < maxTwins;
         </div>
       </section>
 
+
+
+
+
+<section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+  <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+    <div>
+      <span className="inline-flex items-center gap-2 rounded-full bg-pink-50 px-4 py-2 text-xs font-black text-[var(--brand-pink)] dark:bg-white/10">
+        <Store className="h-4 w-4" />
+        AVATAR MARKETPLACE
+      </span>
+
+      <h2 className="mt-4 text-2xl font-black tracking-tight">
+        Unlock premium{" "}
+        <span className="brand-text">AI Live Hosts</span>
+      </h2>
+
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+        Choose an original or licensed avatar, pay using credits,
+        and add it to your AI Twin collection.
+      </p>
+    </div>
+
+    <div className="flex flex-col gap-3 sm:items-end">
+      <div className="flex items-center gap-2 rounded-2xl border border-border bg-background px-5 py-3 text-sm font-black">
+        <Coins className="h-5 w-5 text-[var(--brand-pink)]" />
+        {(user?.credits || 0).toLocaleString()} Credits
+      </div>
+
+      <button
+        onClick={() => navigate("/app/avatar-marketplace")}
+        className="brand-gradient flex h-11 items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold text-white"
+      >
+        <Store className="h-4 w-4" />
+        Browse Avatars
+      </button>
+    </div>
+  </div>
+</section>
+
+
+
+
+
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -207,12 +266,21 @@ const canCreateTwin = twins.length < maxTwins;
               </p>
 
               <div className="mt-5 grid grid-cols-2 gap-3">
-                <Link
-                  to={`/app/twin/edit?twinId=${twin.id || twin._id}`}
-                  className="flex h-10 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)]"
-                >
-                  Edit
-                </Link>
+                {twin.isMarketplaceAvatar ? (
+  <Link
+    to={`/app/twin/train?twinId=${twin.id || twin._id}`}
+    className="flex h-10 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)]"
+  >
+    Train
+  </Link>
+) : (
+  <Link
+    to={`/app/twin/edit?twinId=${twin.id || twin._id}`}
+    className="flex h-10 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] text-sm font-bold text-[var(--brand-pink)]"
+  >
+    Edit
+  </Link>
+)}
 
                 <button
                   onClick={() =>

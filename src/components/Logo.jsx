@@ -2,34 +2,37 @@ import { Link } from "react-router-dom";
 
 export default function Logo({ size = "md", showText = true }) {
   const sizes = {
-    sm: { box: "h-8 w-8 text-base rounded-xl", text: "text-lg" },
-    md: { box: "h-11 w-11 text-xl rounded-[5px]", text: "text-2xl" },
-    lg: { box: "h-14 w-14 text-2xl rounded-[5px]", text: "text-3xl" },
+    sm: { box: "h-8 w-8 rounded-xl", text: "text-lg" },
+    md: { box: "h-11 w-11 rounded-[5px]", text: "text-2xl" },
+    lg: { box: "h-14 w-14 rounded-[5px]", text: "text-3xl" },
   };
 
   const s = sizes[size];
 
   return (
-    <Link to="/" className="flex items-center gap-3">
+    <Link
+      to="/"
+      className="flex cursor-pointer items-center gap-3"
+    >
       <div className={`${s.box} grid place-items-center`}>
         <img
           src="/images/logos.png"
-          alt="Logo"
-          className="h-12 w-12 object-contain rounded-[6px]"
+          alt="Twinn.live"
+          className="h-12 w-12 rounded-[6px] object-contain"
         />
       </div>
 
       {showText && (
-        <div className="flex flex-col">
-          <p
-            className={`${s.text} tracking-tight font-black text-2xl`}
+        <div className="pointer-events-auto flex flex-col">
+          <h1
+            className={`${s.text} text-2xl font-black tracking-tight`}
             style={{
               fontWeight: 600,
               fontFamily: "Poppins, sans-serif",
             }}
           >
             twinn<span className="brand-text">.</span>live
-          </p>
+          </h1>
 
           <span className="text-[10px] font-medium leading-none text-muted-foreground">
             Never sleep.{" "}

@@ -26,6 +26,8 @@ import {
   Bell,
   BadgeCheck,
   Crown,
+  Store,
+  Coins,
 } from "lucide-react";
 
 import { fetchMe, logoutUser } from "../features/auth/authSlice";
@@ -224,6 +226,14 @@ export default function AppLayout() {
             My AI Twin
           </NavLink>
 
+          <NavLink
+  to="/app/avatar-marketplace"
+  className={linkClass}
+>
+  <Store size={18} />
+  Avatar Marketplace
+</NavLink>
+
           <MenuTitle title="AI Management" />
 
           {hasTwin ? (
@@ -389,7 +399,10 @@ export default function AppLayout() {
                 </>
               )}
             </div>
-
+<div className="mt-3 flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black">
+  <Coins className="h-4 w-4 text-yellow-300" />
+  {(user?.credits || 0).toLocaleString()} Credits
+</div>
             <div className="mt-6 rounded-3xl border border-white/10 bg-white/10 p-4">
               {hasTwin ? (
                 <>
@@ -435,6 +448,14 @@ export default function AppLayout() {
                 <UserRound size={18} />
                 My AI Twin
               </NavLink>
+              <NavLink
+  to="/app/avatar-marketplace"
+  onClick={() => setMobileMenu(false)}
+  className={linkClass}
+>
+  <Store size={18} />
+  Avatar Marketplace
+</NavLink>
 
               {hasTwin ? (
                 <NavLink
