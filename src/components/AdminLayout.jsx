@@ -239,7 +239,7 @@ function AdminBrand({ compact = false }) {
   return (
     <div className="flex items-center gap-3">
       <div
-        className={`flex items-center justify-center overflow-hidden rounded-[5px] bg-white ${
+        className={`flex items-center justify-center overflow-hidden rounded-[5px]  ${
           compact ? "h-11 w-11" : "h-13 w-13"
         }`}
       >

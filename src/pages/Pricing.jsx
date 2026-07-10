@@ -347,9 +347,18 @@ function PlanCard({  plan,
 
 const handlePayment = async () => {
   if (plan.name === "Free") {
-    navigate("/signup");
-    return;
+  if (user) {
+    navigate("/app");
+  } else {
+    navigate("/signin", {
+      state: {
+        from: currentLocation.pathname,
+      },
+    });
   }
+
+  return;
+}
 
   if (plan.name === "Agency") {
     navigate("/waitlist");
