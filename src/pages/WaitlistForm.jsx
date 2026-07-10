@@ -1,3 +1,5 @@
+// src/pages/WaitlistForm.jsx
+
 import { useState } from "react";
 import {
   User,
@@ -9,7 +11,6 @@ import {
   Sparkles,
   Check,
   Instagram,
-  Music2,
   Linkedin,
   Youtube,
   Facebook,
@@ -17,7 +18,13 @@ import {
   Bell,
   Gift,
   AlertCircle,
+  Copy,
 } from "lucide-react";
+
+const WAITLIST_API =
+  import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api/waitlist`
+    : "https://twinn-backend.onrender.com/api/waitlist";
 
 const countries = [
   { flag: "🇮🇳", code: "+91" },
@@ -26,82 +33,140 @@ const countries = [
   { flag: "🇦🇪", code: "+971" },
 ];
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function WaitlistForm() {
   const [joined, setJoined] = useState(false);
   const [loading, setLoading] = useState(false);
   const [countryCode, setCountryCode] = useState("+91");
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [registeredUser, setRegisteredUser] = useState(null);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [brand, setBrand] = useState("");
   const [phone, setPhone] = useState("");
 
- const WAITLIST_API = "https://twinn-backend.onrender.com/api/waitlist";
+  const resetForm = () => {
+    setFullName("");
+    setEmail("");
+    setBrand("");
+    setPhone("");
+    setCountryCode("+91");
+  };
 
-const handleSubmit = async () => {
-  setError("");
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
 
-  if (!fullName.trim() || !email.trim() || !brand.trim() || !phone.trim()) {
-    setError("Please fill in all fields.");
-    return;
-  }
+    const normalizedName = fullName.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedBrand = brand.trim();
+    const normalizedPhone = phone.trim();
 
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (
+      !normalizedName ||
+      !normalizedEmail ||
+      !normalizedBrand ||
+      !normalizedPhone
+    ) {
+      setError("Please fill in all fields.");
+      return;
+    }
 
-  if (!emailRegex.test(email)) {
-    setError("Please enter a valid email address.");
-    return;
-  }
+    if (!emailRegex.test(normalizedEmail)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
 
-  if (phone.length < 8) {
-    setError("Please enter a valid phone number.");
-    return;
-  }
+    if (normalizedPhone.length < 8 || normalizedPhone.length > 15) {
+      setError("Please enter a valid phone number.");
+      return;
+    }
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const payload = {
-      fullName: fullName.trim(),
-      email: email.trim().toLowerCase(),
-      brand: brand.trim(),
-      phone: `${countryCode} ${phone}`,
-    };
+      const payload = {
+        fullName: normalizedName,
+        email: normalizedEmail,
+        brand: normalizedBrand,
+        mobile: `${countryCode} ${normalizedPhone}`,
+      };
 
-  const res = await fetch(WAITLIST_API, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify(payload),
-});
+      const response = await fetch(WAITLIST_API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-const data = await res.json().catch(() => ({}));
+      const data = await response.json().catch(() => ({}));
 
-if (!res.ok) {
-  console.log("Waitlist API error:", data);
-  throw new Error(data.message || data.error || "Failed to join waitlist.");
-}
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message ||
+            data.error ||
+            "Failed to join the waitlist. Please try again."
+        );
+      }
 
-    localStorage.setItem("waitlistUser", JSON.stringify(data));
+      const savedUser = data.data || payload;
 
-    setJoined(true);
-  } catch (err) {
-    setError(err.message || "Something went wrong. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
+      localStorage.setItem("waitlistUser", JSON.stringify(savedUser));
 
+      setRegisteredUser(savedUser);
+      setJoined(true);
+      resetForm();
+    } catch (requestError) {
+      console.error("WAITLIST SUBMISSION ERROR:", requestError);
 
-const handleInvite = async () => {
-  const referralLink = "https://twinn.live/waitlist";
+      setError(
+        requestError.message ||
+          "Something went wrong. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  await navigator.clipboard.writeText(referralLink);
+  const handleInvite = async () => {
+    const referralCode = registeredUser?.referralCode;
 
-  alert("Referral link copied!");
-};
+    const referralLink = referralCode
+      ? `https://twinn.live/waitlist?ref=${encodeURIComponent(referralCode)}`
+      : "https://twinn.live/waitlist";
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(referralLink);
+      } else {
+        const temporaryInput = document.createElement("textarea");
+        temporaryInput.value = referralLink;
+        temporaryInput.style.position = "fixed";
+        temporaryInput.style.opacity = "0";
+
+        document.body.appendChild(temporaryInput);
+        temporaryInput.focus();
+        temporaryInput.select();
+
+        document.execCommand("copy");
+        document.body.removeChild(temporaryInput);
+      }
+
+      setCopied(true);
+
+      window.setTimeout(() => {
+        setCopied(false);
+      }, 2500);
+    } catch (copyError) {
+      console.error("COPY REFERRAL ERROR:", copyError);
+      alert(`Share this link: ${referralLink}`);
+    }
+  };
+
   if (joined) {
     return (
       <div className="min-h-screen bg-background px-4 py-16 text-foreground transition-colors duration-300">
@@ -113,7 +178,7 @@ const handleInvite = async () => {
             <Sparkles className="absolute bottom-2 right-6 h-5 w-5 animate-pulse text-pink-500" />
 
             <div className="flex h-32 w-32 items-center justify-center rounded-full bg-pink-50 shadow-lg dark:bg-white/10">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card shadow transition-all duration-500 hover:scale-110">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-card shadow transition duration-500 hover:scale-110">
                 <Check
                   className="h-10 w-10 animate-pulse text-emerald-500"
                   strokeWidth={3}
@@ -123,12 +188,17 @@ const handleInvite = async () => {
           </div>
 
           <h1 className="mt-8 text-center text-4xl font-black tracking-tight brand-text sm:text-5xl">
-            You're on the Waitlist!
+            You&apos;re on the Waitlist!
           </h1>
 
           <p className="mt-5 text-center text-base font-medium leading-7 text-muted-foreground sm:text-lg">
-            Thank you! You're officially in line for the{" "}
-            <span className="brand-text font-bold">AI Twin</span> revolution.
+            Thank you
+            {registeredUser?.fullName
+              ? `, ${registeredUser.fullName}`
+              : ""}
+            ! You&apos;re officially in line for the{" "}
+            <span className="brand-text font-bold">AI Twin</span>{" "}
+            revolution.
           </p>
 
           <div className="mx-auto mt-12 max-w-2xl rounded-[5px] border border-border bg-card p-6 shadow-sm sm:p-8">
@@ -140,20 +210,20 @@ const handleInvite = async () => {
               <NextStep
                 icon={MailOpen}
                 title="Priority Early Access"
-                desc="Be the first to experience AI Twin when we launch."
+                desc="Be among the first to experience AI Twin when we launch."
               />
 
               <NextStep
                 icon={Bell}
                 title="Launch Updates"
-                desc="We'll keep you updated with exciting news and progress."
+                desc="We will keep you updated with product news and launch progress."
                 color="bg-orange-100 text-orange-500 dark:bg-orange-500/10"
               />
 
               <NextStep
                 icon={Gift}
                 title="Exclusive Benefits"
-                desc="Get special launch benefits and founder perks."
+                desc="Receive special launch benefits and early-member perks."
                 color="bg-violet-100 text-violet-500 dark:bg-violet-500/10"
               />
             </div>
@@ -178,26 +248,51 @@ const handleInvite = async () => {
                 </h3>
 
                 <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground sm:text-base">
-                  Invite your friends and earn faster access!
+                  Invite your friends and earn faster access.
                 </p>
 
-                <button className="mt-6 rounded-[5px] border-2 border-pink-500 px-6 py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-500 hover:text-white">
-                  Invite & Earn →
+                <button
+                  type="button"
+                  onClick={handleInvite}
+                  className="mt-6 inline-flex items-center justify-center gap-2 rounded-[5px] border-2 border-pink-500 px-6 py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-500 hover:text-white"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="h-4 w-4" />
+                      Link Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4" />
+                      Invite & Earn
+                    </>
+                  )}
                 </button>
+
+                {registeredUser?.referralCode && (
+                  <p className="mt-3 text-xs font-bold text-muted-foreground">
+                    Referral code:{" "}
+                    <span className="text-[var(--brand-pink)]">
+                      {registeredUser.referralCode}
+                    </span>
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col items-center">
                 <div className="flex -space-x-3">
-                  {["/images/1.jpeg", "/images/2.jpeg", "/images/3.jpeg"].map(
-                    (img) => (
-                      <img
-                        key={img}
-                        src={img}
-                        alt=""
-                        className="h-12 w-12 rounded-full border-4 border-white object-cover shadow-md"
-                      />
-                    )
-                  )}
+                  {[
+                    "/images/1.jpeg",
+                    "/images/2.jpeg",
+                    "/images/3.jpeg",
+                  ].map((image) => (
+                    <img
+                      key={image}
+                      src={image}
+                      alt="Waitlist member"
+                      className="h-12 w-12 rounded-full border-4 border-white object-cover shadow-md"
+                    />
+                  ))}
                 </div>
 
                 <div className="brand-gradient mt-4 flex h-8 w-8 items-center justify-center rounded-[5px] shadow-lg">
@@ -227,63 +322,86 @@ const handleInvite = async () => {
         </div>
 
         <h1 className="text-center text-4xl font-black tracking-tight brand-text md:text-5xl">
-          Join the Future <br />
+          Join the Future
+          <br />
           <span className="text-foreground">of Live Commerce</span>
         </h1>
 
         <p className="mx-auto mt-3 max-w-xl text-center text-sm font-medium leading-6 text-muted-foreground sm:text-base">
-          Be the first to know when AI Twin goes live. Join our waitlist and get
-          early access, exclusive updates and special launch benefits.
+          Be the first to know when AI Twin goes live. Join our
+          waitlist and get early access, exclusive updates and
+          special launch benefits.
         </p>
 
-        <div className="mx-auto mt-8 max-w-lg rounded-[5px] border border-border bg-card p-6 shadow-sm sm:p-8">
+        <form
+          onSubmit={handleSubmit}
+          className="mx-auto mt-8 max-w-lg rounded-[5px] border border-border bg-card p-6 shadow-sm sm:p-8"
+          noValidate
+        >
           <div className="mb-6 text-center">
             <h2 className="text-2xl font-black tracking-tight brand-text">
               Join the Waitlist
             </h2>
 
             <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-              Fill in your details and we'll keep you in the loop.
+              Fill in your details and we&apos;ll keep you in the
+              loop.
             </p>
           </div>
 
           <InputBox icon={User}>
             <input
               type="text"
+              name="fullName"
               placeholder="Full Name"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+              onChange={(event) => setFullName(event.target.value)}
+              autoComplete="name"
+              maxLength={100}
+              disabled={loading}
+              className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
             />
           </InputBox>
 
           <InputBox icon={Mail}>
             <input
               type="email"
+              name="email"
               placeholder="Email Address"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              maxLength={150}
+              disabled={loading}
+              className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
             />
           </InputBox>
 
           <InputBox icon={Briefcase}>
             <input
               type="text"
+              name="brand"
               placeholder="Your Brand / Business"
               value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-              className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+              onChange={(event) => setBrand(event.target.value)}
+              autoComplete="organization"
+              maxLength={150}
+              disabled={loading}
+              className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
             />
           </InputBox>
 
           <div className="mb-4 flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3 transition focus-within:border-[var(--brand-pink)] focus-within:ring-2 focus-within:ring-pink-200 dark:focus-within:ring-pink-500/20">
-            <Phone className="h-5 w-5 text-muted-foreground" />
+            <Phone className="h-5 w-5 shrink-0 text-muted-foreground" />
 
             <select
               value={countryCode}
-              onChange={(e) => setCountryCode(e.target.value)}
-              className="bg-transparent text-sm font-medium text-foreground outline-none"
+              onChange={(event) =>
+                setCountryCode(event.target.value)
+              }
+              disabled={loading}
+              aria-label="Country calling code"
+              className="bg-transparent text-sm font-medium text-foreground outline-none disabled:cursor-not-allowed disabled:opacity-60"
             >
               {countries.map((country) => (
                 <option key={country.code} value={country.code}>
@@ -292,26 +410,38 @@ const handleInvite = async () => {
               ))}
             </select>
 
+            <div className="h-6 w-px bg-border" />
+
             <input
               type="tel"
+              name="mobile"
               placeholder="Phone Number"
               value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+              onChange={(event) =>
+                setPhone(
+                  event.target.value.replace(/\D/g, "").slice(0, 15)
+                )
+              }
+              autoComplete="tel"
+              inputMode="numeric"
+              disabled={loading}
+              className="min-w-0 flex-1 bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
 
           {error && (
-            <div className="mt-3 flex items-center gap-2 rounded-[5px] bg-red-50 p-3 text-sm font-bold tracking-wide text-red-500 dark:bg-red-500/10">
-              <AlertCircle className="h-4 w-4" />
-              {error}
+            <div
+              role="alert"
+              className="mt-3 flex items-start gap-2 rounded-[5px] bg-red-50 p-3 text-sm font-bold tracking-wide text-red-500 dark:bg-red-500/10"
+            >
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
           <button
-            type="button"
+            type="submit"
             disabled={loading}
-            onClick={handleSubmit}
             className="brand-gradient mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Sparkles className="h-4 w-4" />
@@ -322,7 +452,7 @@ const handleInvite = async () => {
             <Lock className="h-3.5 w-3.5" />
             We respect your privacy. No spam, ever.
           </div>
-        </div>
+        </form>
 
         <div className="mx-auto mt-10 flex max-w-lg items-center gap-4 rounded-[5px] border border-border bg-pink-50 p-5 dark:bg-white/10">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-pink-500 bg-pink-100 text-[var(--brand-pink)] dark:bg-white/10">
@@ -335,8 +465,8 @@ const handleInvite = async () => {
             </p>
 
             <p className="text-sm font-medium leading-6 text-muted-foreground">
-              Early waitlist members will get exclusive perks and early access
-              when we launch.
+              Early waitlist members will get exclusive perks and
+              early access when we launch.
             </p>
           </div>
         </div>
@@ -348,7 +478,7 @@ const handleInvite = async () => {
 function InputBox({ icon: Icon, children }) {
   return (
     <div className="mb-4 flex items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3 transition focus-within:border-[var(--brand-pink)] focus-within:ring-2 focus-within:ring-pink-200 dark:focus-within:ring-pink-500/20">
-      <Icon className="h-5 w-5 text-muted-foreground" />
+      <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
       {children}
     </div>
   );
@@ -383,15 +513,26 @@ function NextStep({
 
 function FooterSocial() {
   const socials = [
-    { icon: Instagram, href: "https://www.instagram.com/twinnlive?igsh=ZTJoa2w1azB4Y3dt", label: "Instagram" },
-    
+    {
+      icon: Instagram,
+      href: "https://www.instagram.com/twinnlive?igsh=ZTJoa2w1azB4Y3dt",
+      label: "Instagram",
+    },
     {
       icon: Linkedin,
       href: "https://www.linkedin.com/company/twinlive/",
       label: "LinkedIn",
     },
-    { icon: Youtube, href: "https://www.youtube.com/@twinn-live?si=nHpcUbploHZBNPJf", label: "YouTube" },
-    { icon: Facebook, href: "https://www.facebook.com/share/16wPoHUvA2/", label: "Facebook" },
+    {
+      icon: Youtube,
+      href: "https://www.youtube.com/@twinn-live?si=nHpcUbploHZBNPJf",
+      label: "YouTube",
+    },
+    {
+      icon: Facebook,
+      href: "https://www.facebook.com/share/16wPoHUvA2/",
+      label: "Facebook",
+    },
   ];
 
   return (
@@ -408,13 +549,15 @@ function FooterSocial() {
 
       <div className="flex items-center justify-center gap-3 sm:justify-end">
         {socials.map(({ icon: Icon, href, label }) => (
-          <a key={label} href={href} target="_blank" rel="noopener noreferrer">
-            <button
-              aria-label={label}
-              className="cursor-pointer rounded-full bg-pink-50 p-2 text-[var(--brand-pink)] transition hover:scale-110 hover:bg-pink-100 dark:bg-white/10 dark:hover:bg-white/20"
-            >
-              <Icon className="h-5 w-5" />
-            </button>
+          <a
+            key={label}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            className="inline-flex cursor-pointer rounded-full bg-pink-50 p-2 text-[var(--brand-pink)] transition hover:scale-110 hover:bg-pink-100 dark:bg-white/10 dark:hover:bg-white/20"
+          >
+            <Icon className="h-5 w-5" />
           </a>
         ))}
       </div>

@@ -49,24 +49,40 @@ export default function AdminUsers() {
   // -------------------------------
 
   const loadUsers = async () => {
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await fetch(`${API}/admin/users`, {
-        credentials: "include",
-      });
+    const res = await fetch(`${API}/admin/users`, {
+      credentials: "include",
+    });
 
-      const data = await res.json();
+    const contentType = res.headers.get("content-type") || "";
 
-      if (data.success) {
-        setUsers(data.users);
-      }
-    } catch (err) {
-      console.log(err);
-    } finally {
-      setLoading(false);
+    if (!contentType.includes("application/json")) {
+      const text = await res.text();
+
+      console.error("ADMIN USERS NON-JSON RESPONSE:", text);
+
+      throw new Error(
+        `Admin users route returned ${res.status}. Check backend route mounting.`
+      );
     }
-  };
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "Unable to load users");
+    }
+
+    setUsers(data.users || []);
+  } catch (error) {
+    console.error("LOAD USERS ERROR:", error);
+    setUsers([]);
+    alert(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
 
 
