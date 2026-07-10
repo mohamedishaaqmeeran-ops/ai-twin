@@ -1,6 +1,4 @@
-// src/admin/AdminUsers.jsx
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Users,
   Crown,
@@ -12,225 +10,475 @@ import {
   Ban,
   Trash2,
   Pencil,
-  CheckCircle2,
   Bot,
-  Package,
-  Radio,
   IndianRupee,
   X,
   Mail,
   Phone,
   Building2,
   Clock,
+  Package,
+  Radio,
 } from "lucide-react";
 
-const usersData = [
-  {
-    id: 1,
-    avatar: "/images/1.jpeg",
-    name: "Ishaaq Meeran",
-    email: "ishaaq@gmail.com",
-    phone: "+91 98765 43210",
-    brand: "Twin Store",
-    plan: "Pro",
-    twin: "Created",
-    products: 18,
-    lives: 42,
-    revenue: "₹2,45,000",
-    joined: "15 Jun 2026",
-    lastLogin: "Today 10:20 AM",
-    status: "Active",
-  },
-  {
-    id: 2,
-    avatar: "/images/2.jpeg",
-    name: "Rahul Sharma",
-    email: "rahul@gmail.com",
-    phone: "+91 91234 56780",
-    brand: "Tech Deals",
-    plan: "Free",
-    twin: "Pending",
-    products: 5,
-    lives: 2,
-    revenue: "₹0",
-    joined: "10 Jun 2026",
-    lastLogin: "Yesterday",
-    status: "Active",
-  },
-  {
-    id: 3,
-    avatar: "/images/3.jpeg",
-    name: "Ananya",
-    email: "ananya@gmail.com",
-    phone: "+91 90000 11111",
-    brand: "Fashion Hub",
-    plan: "Enterprise",
-    twin: "Created",
-    products: 35,
-    lives: 102,
-    revenue: "₹4,20,000",
-    joined: "01 Jun 2026",
-    lastLogin: "Today 08:15 AM",
-    status: "Blocked",
-  },
-  {
-    id: 4,
-    avatar: "/images/4.jpeg",
-    name: "Meera Joseph",
-    email: "meera@gmail.com",
-    phone: "+91 98888 77777",
-    brand: "Beauty Glow",
-    plan: "Pro",
-    twin: "Created",
-    products: 22,
-    lives: 64,
-    revenue: "₹3,18,500",
-    joined: "28 May 2026",
-    lastLogin: "Today 12:00 PM",
-    status: "Active",
-  },
-];
+const API = "https://twinn-backend.onrender.com/api";
 
 export default function AdminUsers() {
-  const [users, setUsers] = useState(usersData);
+  const [users, setUsers] = useState([]);
+  const [waitlistUsers, setWaitlistUsers] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
   const [query, setQuery] = useState("");
+
   const [planFilter, setPlanFilter] = useState("All Plans");
+
   const [statusFilter, setStatusFilter] = useState("All Status");
+
   const [selectedUser, setSelectedUser] = useState(null);
+
+  const [activeTab, setActiveTab] = useState("users");
+
+  useEffect(() => {
+    loadUsers();
+    loadWaitlist();
+  }, []);
+
+  // -------------------------------
+  // LOAD REGISTERED USERS
+  // -------------------------------
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API}/admin/users`, {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setUsers(data.users);
+      }
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+
+  const filteredWaitlist = useMemo(() => {
+  return waitlistUsers.filter((user) => {
+    const search = `${user.name || ""}
+    ${user.fullName || ""}
+    ${user.email || ""}
+    ${user.phone || ""}
+    ${user.mobile || ""}
+    ${user.brand || ""}`.toLowerCase();
+
+    return search.includes(query.toLowerCase().trim());
+  });
+}, [waitlistUsers, query]);
+  // -------------------------------
+  // LOAD WAITLIST USERS
+  // -------------------------------
+
+ const loadWaitlist = async () => {
+  try {
+    const res = await fetch(`${API}/waitlist`, {
+      credentials: "include",
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.message || "Unable to load waitlist users");
+    }
+
+    setWaitlistUsers(data.data || []);
+  } catch (error) {
+    console.error("LOAD WAITLIST ERROR:", error);
+    setWaitlistUsers([]);
+  }
+};
+
+  // -------------------------------
+  // DELETE USER
+  // -------------------------------
+
+  const deleteUser = async (id) => {
+    if (!window.confirm("Delete this user?")) return;
+
+    try {
+      const res = await fetch(`${API}/admin/users/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        loadUsers();
+        setSelectedUser(null);
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  // -------------------------------
+  // BLOCK / UNBLOCK USER
+  // -------------------------------
+
+  const toggleBlock = async (id) => {
+    try {
+      const res = await fetch(`${API}/admin/users/${id}/status`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        loadUsers();
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  // -------------------------------
+  // UPGRADE PLAN
+  // -------------------------------
+
+  const upgradePlan = async (id) => {
+    try {
+      const res = await fetch(`${API}/admin/users/${id}/plan`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          plan: "pro",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        loadUsers();
+      } else {
+        alert(data.message);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  // -------------------------------
+  // DELETE WAITLIST USER
+  // -------------------------------
+
+  const deleteWaitlist = async (id) => {
+  if (!window.confirm("Delete this waitlist user?")) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API}/waitlist/${id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(
+        data.message || "Unable to delete waitlist user"
+      );
+    }
+
+    setWaitlistUsers((current) =>
+      current.filter(
+        (user) => (user._id || user.id) !== id
+      )
+    );
+
+    if (
+      selectedUser?.isWaitlist &&
+      selectedUser?.id === id
+    ) {
+      setSelectedUser(null);
+    }
+  } catch (error) {
+    console.error("DELETE WAITLIST ERROR:", error);
+    alert(error.message);
+  }
+};
+
+  // -------------------------------
+  // FILTER USERS
+  // -------------------------------
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
-      const searchText = `${user.name} ${user.email} ${user.phone} ${user.brand}`
-        .toLowerCase()
-        .trim();
+      const search = `${user.name || ""}
+      ${user.email || ""}
+      ${user.phone || ""}
+      ${user.brand || ""}`
+        .toLowerCase();
 
-      const matchesSearch = searchText.includes(query.toLowerCase().trim());
+      const matchesSearch = search.includes(query.toLowerCase());
 
       const matchesPlan =
-        planFilter === "All Plans" || user.plan === planFilter;
+        planFilter === "All Plans" ||
+        (user.plan || "").toLowerCase() === planFilter.toLowerCase();
 
       const matchesStatus =
-        statusFilter === "All Status" || user.status === statusFilter;
+        statusFilter === "All Status" ||
+        (user.status || "").toLowerCase() === statusFilter.toLowerCase();
 
-      return matchesSearch && matchesPlan && matchesStatus;
+      return (
+        matchesSearch &&
+        matchesPlan &&
+        matchesStatus
+      );
     });
   }, [users, query, planFilter, statusFilter]);
 
+  // -------------------------------
+  // DASHBOARD STATS
+  // -------------------------------
+
   const totalUsers = users.length;
-  const activeUsers = users.filter((u) => u.status === "Active").length;
-  const freeUsers = users.filter((u) => u.plan === "Free").length;
-  const proUsers = users.filter((u) => u.plan === "Pro").length;
-  const enterpriseUsers = users.filter((u) => u.plan === "Enterprise").length;
-  const blockedUsers = users.filter((u) => u.status === "Blocked").length;
 
-  const toggleBlock = (id) => {
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.id === id
-          ? {
-              ...user,
-              status: user.status === "Blocked" ? "Active" : "Blocked",
-            }
-          : user
-      )
+  const activeUsers = users.filter(
+    (u) => u.status === "Active"
+  ).length;
+
+  const blockedUsers = users.filter(
+    (u) => u.status === "Blocked"
+  ).length;
+
+  const freeUsers = users.filter(
+    (u) => (u.plan || "").toLowerCase() === "free"
+  ).length;
+
+  const proUsers = users.filter(
+    (u) => (u.plan || "").toLowerCase() === "pro"
+  ).length;
+
+  const businessUsers = users.filter(
+    (u) => (u.plan || "").toLowerCase() === "business"
+  ).length;
+
+  const twinsCreated = users.filter(
+    (u) => u.twinCreated
+  ).length;
+
+  const totalRevenue = users.reduce(
+    (sum, user) => sum + (user.totalRevenue || 0),
+    0
+  );
+
+  if (loading) {
+    return (
+      <div className="grid min-h-[500px] place-items-center">
+        <div className="text-lg font-bold">
+          Loading users...
+        </div>
+      </div>
     );
-  };
+  }
 
-  const deleteUser = (id) => {
-    setUsers((prev) => prev.filter((user) => user.id !== id));
-    if (selectedUser?.id === id) setSelectedUser(null);
-  };
+  // ==============================
+  // PART 2 STARTS HERE
+  // ==============================
 
-  const upgradePlan = (id) => {
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.id === id
-          ? {
-              ...user,
-              plan:
-                user.plan === "Free"
-                  ? "Pro"
-                  : user.plan === "Pro"
-                  ? "Enterprise"
-                  : "Enterprise",
+return (
+  <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
+    {/* Header */}
+    <section className="rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-6">
+      <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
+        <Users className="h-4 w-4 text-[var(--brand-pink)]" />
+        ADMIN USERS
+      </span>
+
+      <h1 className="mt-5 text-2xl font-black tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+        Users <span className="brand-text">Management</span>
+      </h1>
+
+      <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-muted-foreground">
+        Manage registered users, waitlist users, subscription plans, account
+        access, AI Twins and user activity.
+      </p>
+    </section>
+
+    {/* Stats row 1 */}
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        icon={Users}
+        title="Total Users"
+        value={totalUsers}
+      />
+
+      <StatCard
+        icon={UserCheck}
+        title="Active Users"
+        value={activeUsers}
+      />
+
+      <StatCard
+        icon={Crown}
+        title="Pro Users"
+        value={proUsers}
+      />
+
+      <StatCard
+        icon={ShieldCheck}
+        title="Business Users"
+        value={businessUsers}
+      />
+    </section>
+
+    {/* Stats row 2 */}
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <StatCard
+        icon={UserCheck}
+        title="Free Users"
+        value={freeUsers}
+      />
+
+      <StatCard
+        icon={Ban}
+        title="Blocked Users"
+        value={blockedUsers}
+      />
+
+      <StatCard
+        icon={Bot}
+        title="AI Twins Created"
+        value={twinsCreated}
+      />
+
+      <StatCard
+        icon={Users}
+        title="Waitlist Users"
+        value={waitlistUsers.length}
+      />
+    </section>
+
+    {/* Tabs */}
+    <section className="rounded-3xl border border-border bg-card p-2 shadow-sm">
+      <div className="grid grid-cols-2 gap-2 sm:flex">
+        <button
+          type="button"
+          onClick={() => setActiveTab("users")}
+          className={`flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black transition ${
+            activeTab === "users"
+              ? "brand-gradient text-white shadow-md"
+              : "text-muted-foreground hover:bg-background hover:text-foreground"
+          }`}
+        >
+          <Users className="h-4 w-4" />
+          Registered Users
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs ${
+              activeTab === "users"
+                ? "bg-white/20 text-white"
+                : "bg-background text-muted-foreground"
+            }`}
+          >
+            {users.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("waitlist")}
+          className={`flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black transition ${
+            activeTab === "waitlist"
+              ? "brand-gradient text-white shadow-md"
+              : "text-muted-foreground hover:bg-background hover:text-foreground"
+          }`}
+        >
+          <Clock className="h-4 w-4" />
+          Waitlist Users
+          <span
+            className={`rounded-full px-2 py-0.5 text-xs ${
+              activeTab === "waitlist"
+                ? "bg-white/20 text-white"
+                : "bg-background text-muted-foreground"
+            }`}
+          >
+            {waitlistUsers.length}
+          </span>
+        </button>
+      </div>
+    </section>
+
+    {/* Filters */}
+    <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex w-full items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3 xl:max-w-md">
+          <Search className="h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
+
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={
+              activeTab === "users"
+                ? "Search name, email, phone or brand..."
+                : "Search waitlist name, email, phone or brand..."
             }
-          : user
-      )
-    );
-  };
+            className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
+          />
 
-  return (
-    <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
-      {/* Header */}
-      <section className="rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-6">
-        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-          <Users className="h-4 w-4 text-[var(--brand-pink)]" />
-          ADMIN USERS
-        </span>
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-muted-foreground transition hover:bg-card hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
 
-        <h1 className="mt-5 text-2xl font-black tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-          Users <span className="brand-text">Management</span>
-        </h1>
-
-        <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-          Manage users by subscription plan, AI Twin status, live activity,
-          revenue and account access.
-        </p>
-      </section>
-
-      {/* Stats */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={Users} title="Total Users" value={totalUsers} />
-        <StatCard icon={UserCheck} title="Active Users" value={activeUsers} />
-        <StatCard icon={Crown} title="Pro Users" value={proUsers} />
-        <StatCard
-          icon={ShieldCheck}
-          title="Enterprise"
-          value={enterpriseUsers}
-        />
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={UserCheck} title="Free Users" value={freeUsers} />
-        <StatCard icon={Ban} title="Blocked Users" value={blockedUsers} />
-        <StatCard icon={Bot} title="AI Twins Created" value="3" />
-        <StatCard icon={IndianRupee} title="Revenue" value="₹9.83L" />
-      </section>
-
-      {/* Filters */}
-      <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex w-full items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3 xl:max-w-md">
-            <Search className="h-5 w-5 text-[var(--brand-pink)]" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, email, phone or brand..."
-              className="w-full bg-transparent text-sm font-medium text-foreground outline-none placeholder:text-muted-foreground"
-            />
-          </div>
-
+        {activeTab === "users" && (
           <div className="grid gap-3 sm:grid-cols-2 xl:flex">
             <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
               <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
+
               <select
                 value={planFilter}
                 onChange={(e) => setPlanFilter(e.target.value)}
-                className="bg-transparent text-sm font-bold text-foreground outline-none"
+                className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
               >
                 <option>All Plans</option>
                 <option>Free</option>
                 <option>Pro</option>
-                <option>Enterprise</option>
+                <option>Business</option>
               </select>
             </div>
 
             <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
               <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
+
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-transparent text-sm font-bold text-foreground outline-none"
+                className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
               >
                 <option>All Status</option>
                 <option>Active</option>
@@ -238,285 +486,995 @@ export default function AdminUsers() {
               </select>
             </div>
           </div>
-        </div>
-      </section>
+        )}
+      </div>
+    </section>
 
-      {/* Desktop Table */}
-      <section className="hidden overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:block">
-        <div className="border-b border-border p-5 sm:p-6">
-          <h2 className="text-xl font-black tracking-tight brand-text">
-            Registered Users
-          </h2>
-          <p className="mt-1 text-sm font-medium text-muted-foreground">
-            Full user list with plan, AI Twin, live sessions and revenue data.
-          </p>
-        </div>
+    {/* Part {/* Registered Users: Desktop Table */}
+{activeTab === "users" && (
+  <section className="hidden overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:block">
+    <div className="flex items-center justify-between gap-4 border-b border-border p-5 sm:p-6">
+      <div>
+        <h2 className="text-xl font-black tracking-tight brand-text">
+          Registered Users
+        </h2>
 
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1100px]">
-            <thead className="bg-background">
-              <tr className="border-b border-border text-left text-sm text-muted-foreground">
-                <th className="p-5 font-bold">User</th>
-                <th className="p-5 font-bold">Plan</th>
-                <th className="p-5 font-bold">AI Twin</th>
-                <th className="p-5 font-bold">Products</th>
-                <th className="p-5 font-bold">Lives</th>
-                <th className="p-5 font-bold">Revenue</th>
-                <th className="p-5 font-bold">Joined</th>
-                <th className="p-5 font-bold">Last Login</th>
-                <th className="p-5 font-bold">Status</th>
-                <th className="p-5 font-bold">Actions</th>
-              </tr>
-            </thead>
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
+          Manage account plans, status, AI Twin activity and user access.
+        </p>
+      </div>
 
-            <tbody>
-              {filteredUsers.map((user) => (
-                <tr
-                  key={user.id}
-                  className="border-b border-border transition hover:bg-background"
-                >
-                  <td className="p-5">
-                    <div className="flex items-center gap-4">
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="h-12 w-12 rounded-2xl object-cover"
-                      />
-
-                      <div>
-                        <p className="text-sm font-black tracking-tight text-foreground">
-                          {user.name}
-                        </p>
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {user.email}
-                        </p>
-                        <p className="text-xs font-medium text-muted-foreground">
-                          {user.brand}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="p-5">
-                    <PlanBadge plan={user.plan} />
-                  </td>
-
-                  <td className="p-5">
-                    <TwinBadge twin={user.twin} />
-                  </td>
-
-                  <td className="p-5 text-sm font-bold text-foreground">
-                    {user.products}
-                  </td>
-
-                  <td className="p-5 text-sm font-bold text-foreground">
-                    {user.lives}
-                  </td>
-
-                  <td className="p-5 text-sm font-black brand-text">
-                    {user.revenue}
-                  </td>
-
-                  <td className="p-5 text-sm font-medium text-muted-foreground">
-                    {user.joined}
-                  </td>
-
-                  <td className="p-5 text-sm font-medium text-muted-foreground">
-                    {user.lastLogin}
-                  </td>
-
-                  <td className="p-5">
-                    <StatusBadge status={user.status} />
-                  </td>
-
-                  <td className="p-5">
-                    <div className="flex gap-2">
-                      <ActionButton
-                        icon={Eye}
-                        color="blue"
-                        onClick={() => setSelectedUser(user)}
-                      />
-                      <ActionButton
-                        icon={Pencil}
-                        color="pink"
-                        onClick={() => upgradePlan(user.id)}
-                      />
-                      <ActionButton
-                        icon={Ban}
-                        color="yellow"
-                        onClick={() => toggleBlock(user.id)}
-                      />
-                      <ActionButton
-                        icon={Trash2}
-                        color="red"
-                        onClick={() => deleteUser(user.id)}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Mobile Cards */}
-      <section className="grid gap-4 lg:hidden">
-        {filteredUsers.map((user) => (
-          <div
-            key={user.id}
-            className="rounded-3xl border border-border bg-card p-5 shadow-sm"
-          >
-            <div className="flex items-start gap-4">
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="h-14 w-14 rounded-2xl object-cover"
-              />
-
-              <div className="min-w-0 flex-1">
-                <h3 className="text-base font-black tracking-tight text-foreground">
-                  {user.name}
-                </h3>
-                <p className="truncate text-sm font-medium text-muted-foreground">
-                  {user.email}
-                </p>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <PlanBadge plan={user.plan} />
-                  <StatusBadge status={user.status} />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <MobileInfo label="AI Twin" value={user.twin} />
-              <MobileInfo label="Products" value={user.products} />
-              <MobileInfo label="Lives" value={user.lives} />
-              <MobileInfo label="Revenue" value={user.revenue} />
-            </div>
-
-            <div className="mt-5 grid grid-cols-4 gap-2">
-              <MobileAction icon={Eye} onClick={() => setSelectedUser(user)} />
-              <MobileAction icon={Pencil} onClick={() => upgradePlan(user.id)} />
-              <MobileAction icon={Ban} onClick={() => toggleBlock(user.id)} />
-              <MobileAction icon={Trash2} onClick={() => deleteUser(user.id)} />
-            </div>
-          </div>
-        ))}
-      </section>
-
-      {/* Empty */}
-      {filteredUsers.length === 0 && (
-        <section className="rounded-3xl border border-border bg-card p-10 text-center">
-          <Users className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
-          <p className="mt-3 text-lg font-black">No users found</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Try another search or filter.
-          </p>
-        </section>
-      )}
-
-      {/* User Details Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <img
-                  src={selectedUser.avatar}
-                  alt={selectedUser.name}
-                  className="h-16 w-16 rounded-2xl object-cover"
-                />
-
-                <div>
-                  <h2 className="text-2xl font-black tracking-tight brand-text">
-                    {selectedUser.name}
-                  </h2>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    {selectedUser.brand}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="grid h-10 w-10 place-items-center rounded-xl border border-border bg-background"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <Detail icon={Mail} label="Email" value={selectedUser.email} />
-              <Detail icon={Phone} label="Phone" value={selectedUser.phone} />
-              <Detail
-                icon={Building2}
-                label="Brand"
-                value={selectedUser.brand}
-              />
-              <Detail icon={Crown} label="Plan" value={selectedUser.plan} />
-              <Detail icon={Bot} label="AI Twin" value={selectedUser.twin} />
-              <Detail
-                icon={Package}
-                label="Products"
-                value={selectedUser.products}
-              />
-              <Detail icon={Radio} label="Live Sessions" value={selectedUser.lives} />
-              <Detail
-                icon={IndianRupee}
-                label="Revenue"
-                value={selectedUser.revenue}
-              />
-              <Detail icon={Clock} label="Joined" value={selectedUser.joined} />
-              <Detail
-                icon={UserCheck}
-                label="Last Login"
-                value={selectedUser.lastLogin}
-              />
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <button
-                onClick={() => upgradePlan(selectedUser.id)}
-                className="brand-gradient rounded-[5px] py-3 text-sm font-bold text-white"
-              >
-                Upgrade Plan
-              </button>
-
-              <button
-                onClick={() => toggleBlock(selectedUser.id)}
-                className="rounded-[5px] border-2 border-orange-500 py-3 text-sm font-bold text-orange-500 hover:bg-orange-50"
-              >
-                {selectedUser.status === "Blocked" ? "Unblock" : "Block"} User
-              </button>
-
-              <button
-                onClick={() => deleteUser(selectedUser.id)}
-                className="rounded-[5px] bg-red-600 py-3 text-sm font-bold text-white hover:bg-red-700"
-              >
-                Delete User
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={loadUsers}
+        className="rounded-[5px] border-2 border-[var(--brand-pink)] px-4 py-2 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+      >
+        Refresh
+      </button>
     </div>
-  );
+
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[1240px]">
+        <thead className="bg-background">
+          <tr className="border-b border-border text-left text-sm text-muted-foreground">
+            <th className="p-5 font-bold">User</th>
+            <th className="p-5 font-bold">Plan</th>
+            <th className="p-5 font-bold">AI Twin</th>
+            <th className="p-5 font-bold">Products</th>
+            <th className="p-5 font-bold">Lives</th>
+            <th className="p-5 font-bold">Revenue</th>
+            <th className="p-5 font-bold">Joined</th>
+            <th className="p-5 font-bold">Last Login</th>
+            <th className="p-5 font-bold">Status</th>
+            <th className="p-5 font-bold">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {filteredUsers.map((user) => {
+            const userId = user._id || user.id;
+
+            const displayName =
+              user.name ||
+              user.fullName ||
+              user.username ||
+              user.email?.split("@")[0] ||
+              "Unnamed User";
+
+            const avatar =
+              user.avatarUrl ||
+              user.avatar ||
+              user.profilePicture ||
+              "/images/default-user.png";
+
+            const normalizedPlan =
+              typeof user.plan === "string"
+                ? user.plan.charAt(0).toUpperCase() +
+                  user.plan.slice(1).toLowerCase()
+                : "Free";
+
+            const normalizedStatus =
+              user.status ||
+              (user.isBlocked ? "Blocked" : "Active");
+
+            const twinStatus =
+              user.twin ||
+              (user.twinCreated ||
+              user.hasTwin ||
+              (Array.isArray(user.twins) && user.twins.length > 0)
+                ? "Created"
+                : "Pending");
+
+            const productCount =
+              user.productsCount ??
+              user.productCount ??
+              (Array.isArray(user.products)
+                ? user.products.length
+                : 0);
+
+            const liveCount =
+              user.livesCount ??
+              user.liveCount ??
+              user.totalLives ??
+              (Array.isArray(user.lives)
+                ? user.lives.length
+                : 0);
+
+            const revenueValue =
+              user.totalRevenue ??
+              user.revenue ??
+              user.salesRevenue ??
+              0;
+
+            const formattedRevenue =
+              typeof revenueValue === "number"
+                ? `₹${revenueValue.toLocaleString("en-IN")}`
+                : revenueValue || "₹0";
+
+            const joinedDate = user.createdAt
+              ? new Date(user.createdAt).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : user.joined || "—";
+
+            const lastLogin = user.lastLogin
+              ? new Date(user.lastLogin).toLocaleString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "Never";
+
+            return (
+              <tr
+                key={userId}
+                className="border-b border-border transition hover:bg-background"
+              >
+                <td className="p-5">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={avatar}
+                      alt={displayName}
+                      className="h-12 w-12 rounded-2xl object-cover"
+                      onError={(event) => {
+                        event.currentTarget.src =
+                          "/images/default-user.png";
+                      }}
+                    />
+
+                    <div className="min-w-0">
+                      <p className="max-w-[220px] truncate text-sm font-black tracking-tight text-foreground">
+                        {displayName}
+                      </p>
+
+                      <p className="max-w-[220px] truncate text-xs font-medium text-muted-foreground">
+                        {user.email || "No email"}
+                      </p>
+
+                      <p className="max-w-[220px] truncate text-xs font-medium text-muted-foreground">
+                        {user.brand ||
+                          user.company ||
+                          "No brand"}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+
+                <td className="p-5">
+                  <PlanBadge plan={normalizedPlan} />
+                </td>
+
+                <td className="p-5">
+                  <TwinBadge twin={twinStatus} />
+                </td>
+
+                <td className="p-5 text-sm font-bold text-foreground">
+                  {productCount}
+                </td>
+
+                <td className="p-5 text-sm font-bold text-foreground">
+                  {liveCount}
+                </td>
+
+                <td className="p-5 text-sm font-black brand-text">
+                  {formattedRevenue}
+                </td>
+
+                <td className="p-5 text-sm font-medium text-muted-foreground">
+                  {joinedDate}
+                </td>
+
+                <td className="p-5 text-sm font-medium text-muted-foreground">
+                  {lastLogin}
+                </td>
+
+                <td className="p-5">
+                  <StatusBadge status={normalizedStatus} />
+                </td>
+
+                <td className="p-5">
+                  <div className="flex gap-2">
+                    <ActionButton
+                      icon={Eye}
+                      color="blue"
+                      title="View user"
+                      onClick={() =>
+                        setSelectedUser({
+                          ...user,
+                          id: userId,
+                          name: displayName,
+                          avatar,
+                          plan: normalizedPlan,
+                          status: normalizedStatus,
+                          twin: twinStatus,
+                          products: productCount,
+                          lives: liveCount,
+                          revenue: formattedRevenue,
+                          joined: joinedDate,
+                          lastLogin,
+                        })
+                      }
+                    />
+
+                    <ActionButton
+                      icon={Pencil}
+                      color="pink"
+                      title="Upgrade plan"
+                      onClick={() => upgradePlan(userId)}
+                    />
+
+                    <ActionButton
+                      icon={Ban}
+                      color="yellow"
+                      title={
+                        normalizedStatus === "Blocked"
+                          ? "Unblock user"
+                          : "Block user"
+                      }
+                      onClick={() => toggleBlock(userId)}
+                    />
+
+                    <ActionButton
+                      icon={Trash2}
+                      color="red"
+                      title="Delete user"
+                      onClick={() => deleteUser(userId)}
+                    />
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+
+    {filteredUsers.length === 0 && (
+      <div className="p-12 text-center">
+        <Users className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
+
+        <p className="mt-3 text-lg font-black">
+          No registered users found
+        </p>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Try changing the search, plan or status filter.
+        </p>
+      </div>
+    )}
+  </section>
+)}
+{/* Registered Users: Mobile Cards */}
+{activeTab === "users" && (
+  <section className="grid gap-4 lg:hidden">
+    {filteredUsers.map((user) => {
+      const userId = user._id || user.id;
+
+      const displayName =
+        user.name ||
+        user.fullName ||
+        user.username ||
+        user.email?.split("@")[0] ||
+        "Unnamed User";
+
+      const avatar =
+        user.avatarUrl ||
+        user.avatar ||
+        user.profilePicture ||
+        "/images/default-user.png";
+
+      const normalizedPlan =
+        typeof user.plan === "string"
+          ? user.plan.charAt(0).toUpperCase() +
+            user.plan.slice(1).toLowerCase()
+          : "Free";
+
+      const normalizedStatus =
+        user.status || (user.isBlocked ? "Blocked" : "Active");
+
+      const twinStatus =
+        user.twin ||
+        (user.twinCreated ||
+        user.hasTwin ||
+        (Array.isArray(user.twins) && user.twins.length > 0)
+          ? "Created"
+          : "Pending");
+
+      const productCount =
+        user.productsCount ??
+        user.productCount ??
+        (Array.isArray(user.products) ? user.products.length : 0);
+
+      const liveCount =
+        user.livesCount ??
+        user.liveCount ??
+        user.totalLives ??
+        (Array.isArray(user.lives) ? user.lives.length : 0);
+
+      const revenueValue =
+        user.totalRevenue ??
+        user.revenue ??
+        user.salesRevenue ??
+        0;
+
+      const formattedRevenue =
+        typeof revenueValue === "number"
+          ? `₹${revenueValue.toLocaleString("en-IN")}`
+          : revenueValue || "₹0";
+
+      const joinedDate = user.createdAt
+        ? new Date(user.createdAt).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : user.joined || "—";
+
+      const lastLogin = user.lastLogin
+        ? new Date(user.lastLogin).toLocaleString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "Never";
+
+      const normalizedUser = {
+        ...user,
+        id: userId,
+        name: displayName,
+        avatar,
+        plan: normalizedPlan,
+        status: normalizedStatus,
+        twin: twinStatus,
+        products: productCount,
+        lives: liveCount,
+        revenue: formattedRevenue,
+        joined: joinedDate,
+        lastLogin,
+      };
+
+      return (
+        <article
+          key={userId}
+          className="rounded-3xl border border-border bg-card p-5 shadow-sm"
+        >
+          <div className="flex items-start gap-4">
+            <img
+              src={avatar}
+              alt={displayName}
+              className="h-14 w-14 shrink-0 rounded-2xl object-cover"
+              onError={(event) => {
+                event.currentTarget.src = "/images/default-user.png";
+              }}
+            />
+
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-base font-black tracking-tight text-foreground">
+                {displayName}
+              </h3>
+
+              <p className="truncate text-sm font-medium text-muted-foreground">
+                {user.email || "No email"}
+              </p>
+
+              <p className="mt-1 truncate text-xs font-medium text-muted-foreground">
+                {user.brand || user.company || "No brand"}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <PlanBadge plan={normalizedPlan} />
+                <StatusBadge status={normalizedStatus} />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <MobileInfo label="AI Twin" value={twinStatus} />
+            <MobileInfo label="Products" value={productCount} />
+            <MobileInfo label="Lives" value={liveCount} />
+            <MobileInfo label="Revenue" value={formattedRevenue} />
+            <MobileInfo label="Joined" value={joinedDate} />
+            <MobileInfo label="Last Login" value={lastLogin} />
+          </div>
+
+          <div className="mt-5 grid grid-cols-4 gap-2">
+            <MobileAction
+              icon={Eye}
+              title="View user"
+              onClick={() => setSelectedUser(normalizedUser)}
+            />
+
+            <MobileAction
+              icon={Pencil}
+              title="Upgrade plan"
+              onClick={() => upgradePlan(userId)}
+            />
+
+            <MobileAction
+              icon={Ban}
+              title={
+                normalizedStatus === "Blocked"
+                  ? "Unblock user"
+                  : "Block user"
+              }
+              onClick={() => toggleBlock(userId)}
+            />
+
+            <MobileAction
+              icon={Trash2}
+              title="Delete user"
+              danger
+              onClick={() => deleteUser(userId)}
+            />
+          </div>
+        </article>
+      );
+    })}
+
+    {filteredUsers.length === 0 && (
+      <div className="rounded-3xl border border-border bg-card p-10 text-center shadow-sm">
+        <Users className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
+
+        <p className="mt-3 text-lg font-black text-foreground">
+          No registered users found
+        </p>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Try another search, plan or status filter.
+        </p>
+      </div>
+    )}
+  </section>
+)}
+
+{/* Waitlist Users: Desktop Table */}
+{activeTab === "waitlist" && (
+  <section className="hidden overflow-hidden rounded-3xl border border-border bg-card shadow-sm lg:block">
+    <div className="flex items-center justify-between gap-4 border-b border-border p-5 sm:p-6">
+      <div>
+        <h2 className="text-xl font-black tracking-tight brand-text">
+          Waitlist Users
+        </h2>
+
+        <p className="mt-1 text-sm font-medium text-muted-foreground">
+          View and manage people who joined the Twinn.live waitlist.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={loadWaitlist}
+        className="rounded-[5px] border-2 border-[var(--brand-pink)] px-4 py-2 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+      >
+        Refresh
+      </button>
+    </div>
+
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[1000px]">
+        <thead className="bg-background">
+          <tr className="border-b border-border text-left text-sm text-muted-foreground">
+            <th className="p-5 font-bold">Name</th>
+            <th className="p-5 font-bold">Email</th>
+            <th className="p-5 font-bold">Phone</th>
+            <th className="p-5 font-bold">Brand</th>
+            <th className="p-5 font-bold">Company</th>
+            <th className="p-5 font-bold">Joined</th>
+            <th className="p-5 font-bold">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {filteredWaitlist.map((waitlistUser) => {
+            const waitlistId =
+              waitlistUser._id || waitlistUser.id;
+
+            const displayName =
+              waitlistUser.name ||
+              waitlistUser.fullName ||
+              waitlistUser.username ||
+              "Unnamed User";
+
+            const phone =
+              waitlistUser.phone ||
+              waitlistUser.mobile ||
+              waitlistUser.phoneNumber ||
+              "—";
+
+            const brand =
+              waitlistUser.brand ||
+              waitlistUser.brandName ||
+              "—";
+
+            const company =
+              waitlistUser.company ||
+              waitlistUser.businessName ||
+              waitlistUser.organization ||
+              "—";
+
+            const joinedDate = waitlistUser.createdAt
+              ? new Date(
+                  waitlistUser.createdAt
+                ).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : waitlistUser.joined || "—";
+
+            return (
+              <tr
+                key={waitlistId}
+                className="border-b border-border transition hover:bg-background"
+              >
+                <td className="p-5">
+                  <p className="max-w-[220px] truncate text-sm font-black tracking-tight text-foreground">
+                    {displayName}
+                  </p>
+                </td>
+
+                <td className="p-5">
+                  <p className="max-w-[240px] truncate text-sm font-medium text-muted-foreground">
+                    {waitlistUser.email || "No email"}
+                  </p>
+                </td>
+
+                <td className="p-5 text-sm font-medium text-muted-foreground">
+                  {phone}
+                </td>
+
+                <td className="p-5 text-sm font-medium text-muted-foreground">
+                  {brand}
+                </td>
+
+                <td className="p-5 text-sm font-medium text-muted-foreground">
+                  {company}
+                </td>
+
+                <td className="p-5 text-sm font-medium text-muted-foreground">
+                  {joinedDate}
+                </td>
+
+                <td className="p-5">
+                  <div className="flex gap-2">
+                    <ActionButton
+                      icon={Eye}
+                      color="blue"
+                      title="View waitlist user"
+                      onClick={() =>
+                        setSelectedUser({
+                          ...waitlistUser,
+                          id: waitlistId,
+                          name: displayName,
+                          phone,
+                          brand,
+                          company,
+                          joined: joinedDate,
+                          isWaitlist: true,
+                        })
+                      }
+                    />
+
+                    <ActionButton
+                      icon={Trash2}
+                      color="red"
+                      title="Delete waitlist user"
+                      onClick={() =>
+                        deleteWaitlist(waitlistId)
+                      }
+                    />
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+
+    {filteredWaitlist.length === 0 && (
+      <div className="p-12 text-center">
+        <Clock className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
+
+        <p className="mt-3 text-lg font-black">
+          No waitlist users found
+        </p>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Try changing the search term.
+        </p>
+      </div>
+    )}
+  </section>
+)}
+
+
+{/* Waitlist Users: Mobile Cards */}
+{activeTab === "waitlist" && (
+  <section className="grid gap-4 lg:hidden">
+    {filteredWaitlist.map((waitlistUser) => {
+      const waitlistId = waitlistUser._id || waitlistUser.id;
+
+      const displayName =
+        waitlistUser.name ||
+        waitlistUser.fullName ||
+        waitlistUser.username ||
+        waitlistUser.email?.split("@")[0] ||
+        "Unnamed User";
+
+      const email = waitlistUser.email || "No email";
+
+      const phone =
+        waitlistUser.phone ||
+        waitlistUser.mobile ||
+        waitlistUser.phoneNumber ||
+        "—";
+
+      const brand =
+        waitlistUser.brand ||
+        waitlistUser.brandName ||
+        "—";
+
+      const company =
+        waitlistUser.company ||
+        waitlistUser.businessName ||
+        waitlistUser.organization ||
+        "—";
+
+      const joinedDate = waitlistUser.createdAt
+        ? new Date(waitlistUser.createdAt).toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : waitlistUser.joined || "—";
+
+      const normalizedWaitlistUser = {
+        ...waitlistUser,
+        id: waitlistId,
+        name: displayName,
+        email,
+        phone,
+        brand,
+        company,
+        joined: joinedDate,
+        isWaitlist: true,
+      };
+
+      return (
+        <article
+          key={waitlistId}
+          className="rounded-3xl border border-border bg-card p-5 shadow-sm"
+        >
+          <div className="flex items-start gap-4">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+              <UserCheck className="h-6 w-6" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h3 className="truncate text-base font-black tracking-tight text-foreground">
+                {displayName}
+              </h3>
+
+              <p className="truncate text-sm font-medium text-muted-foreground">
+                {email}
+              </p>
+
+              <div className="mt-3">
+                <span className="inline-flex rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-600 dark:bg-orange-500/10 dark:text-orange-400">
+                  Waitlist
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <MobileInfo label="Phone" value={phone} />
+            <MobileInfo label="Brand" value={brand} />
+            <MobileInfo label="Company" value={company} />
+            <MobileInfo label="Joined" value={joinedDate} />
+          </div>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedUser(normalizedWaitlistUser)}
+              className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-border bg-background text-sm font-bold text-[var(--brand-pink)] transition hover:border-[var(--brand-pink)]"
+            >
+              <Eye className="h-4 w-4" />
+              View
+            </button>
+
+            <button
+              type="button"
+              onClick={() => deleteWaitlist(waitlistId)}
+              className="flex h-11 items-center justify-center gap-2 rounded-[5px] border border-red-200 bg-red-50 text-sm font-bold text-red-600 transition hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          </div>
+        </article>
+      );
+    })}
+
+    {filteredWaitlist.length === 0 && (
+      <div className="rounded-3xl border border-border bg-card p-10 text-center shadow-sm">
+        <Clock className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
+
+        <p className="mt-3 text-lg font-black text-foreground">
+          No waitlist users found
+        </p>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          Try another search term.
+        </p>
+      </div>
+    )}
+  </section>
+)}
+
+
+{/* User / Waitlist Details Modal */}
+{selectedUser && (
+  <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+    <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          {selectedUser.isWaitlist ? (
+            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+              <UserCheck className="h-7 w-7" />
+            </div>
+          ) : (
+            <img
+              src={
+                selectedUser.avatar ||
+                selectedUser.avatarUrl ||
+                selectedUser.profilePicture ||
+                "/images/default-user.png"
+              }
+              alt={selectedUser.name || "User"}
+              className="h-16 w-16 shrink-0 rounded-2xl object-cover"
+              onError={(event) => {
+                event.currentTarget.src = "/images/default-user.png";
+              }}
+            />
+          )}
+
+          <div className="min-w-0">
+            <h2 className="truncate text-2xl font-black tracking-tight brand-text">
+              {selectedUser.name || "Unnamed User"}
+            </h2>
+
+            <p className="truncate text-sm font-medium text-muted-foreground">
+              {selectedUser.isWaitlist
+                ? "Waitlist User"
+                : selectedUser.brand ||
+                  selectedUser.company ||
+                  "Registered User"}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setSelectedUser(null)}
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-background transition hover:border-[var(--brand-pink)]"
+          aria-label="Close modal"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {selectedUser.isWaitlist ? (
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Detail
+            icon={Mail}
+            label="Email"
+            value={selectedUser.email || "No email"}
+          />
+
+          <Detail
+            icon={Phone}
+            label="Phone"
+            value={selectedUser.phone || "—"}
+          />
+
+          <Detail
+            icon={Building2}
+            label="Brand"
+            value={selectedUser.brand || "—"}
+          />
+
+          <Detail
+            icon={Building2}
+            label="Company"
+            value={selectedUser.company || "—"}
+          />
+
+          <Detail
+            icon={Clock}
+            label="Joined Waitlist"
+            value={selectedUser.joined || "—"}
+          />
+
+          <Detail
+            icon={UserCheck}
+            label="Status"
+            value="Waitlist"
+          />
+        </div>
+      ) : (
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <Detail
+            icon={Mail}
+            label="Email"
+            value={selectedUser.email || "No email"}
+          />
+
+          <Detail
+            icon={Phone}
+            label="Phone"
+            value={selectedUser.phone || "—"}
+          />
+
+          <Detail
+            icon={Building2}
+            label="Brand"
+            value={
+              selectedUser.brand ||
+              selectedUser.company ||
+              "—"
+            }
+          />
+
+          <Detail
+            icon={Crown}
+            label="Plan"
+            value={selectedUser.plan || "Free"}
+          />
+
+          <Detail
+            icon={Bot}
+            label="AI Twin"
+            value={selectedUser.twin || "Pending"}
+          />
+
+          <Detail
+            icon={Package}
+            label="Products"
+            value={selectedUser.products ?? 0}
+          />
+
+          <Detail
+            icon={Radio}
+            label="Live Sessions"
+            value={selectedUser.lives ?? 0}
+          />
+
+          <Detail
+            icon={IndianRupee}
+            label="Revenue"
+            value={selectedUser.revenue || "₹0"}
+          />
+
+          <Detail
+            icon={Clock}
+            label="Joined"
+            value={selectedUser.joined || "—"}
+          />
+
+          <Detail
+            icon={UserCheck}
+            label="Last Login"
+            value={selectedUser.lastLogin || "Never"}
+          />
+
+          <Detail
+            icon={ShieldCheck}
+            label="Account Status"
+            value={selectedUser.status || "Active"}
+          />
+
+          <Detail
+            icon={Mail}
+            label="Email Verified"
+            value={
+              selectedUser.isVerified === true
+                ? "Verified"
+                : selectedUser.isVerified === false
+                ? "Not verified"
+                : "—"
+            }
+          />
+        </div>
+      )}
+
+      <div
+        className={`mt-6 grid gap-3 ${
+          selectedUser.isWaitlist
+            ? "sm:grid-cols-2"
+            : "sm:grid-cols-3"
+        }`}
+      >
+        {selectedUser.isWaitlist ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setSelectedUser(null)}
+              className="rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+            >
+              Close
+            </button>
+
+            <button
+              type="button"
+              onClick={() => deleteWaitlist(selectedUser.id)}
+              className="rounded-[5px] bg-red-600 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+            >
+              Delete Waitlist User
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => upgradePlan(selectedUser.id)}
+              className="brand-gradient rounded-[5px] py-3 text-sm font-bold text-white"
+            >
+              Upgrade Plan
+            </button>
+
+            <button
+              type="button"
+              onClick={() => toggleBlock(selectedUser.id)}
+              className="rounded-[5px] border-2 border-orange-500 py-3 text-sm font-bold text-orange-500 transition hover:bg-orange-50 dark:hover:bg-orange-500/10"
+            >
+              {selectedUser.status === "Blocked"
+                ? "Unblock User"
+                : "Block User"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => deleteUser(selectedUser.id)}
+              className="rounded-[5px] bg-red-600 py-3 text-sm font-bold text-white transition hover:bg-red-700"
+            >
+              Delete User
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+  </div>
+);
 }
+
+
 
 function StatCard({ icon: Icon, title, value }) {
   return (
     <div className="rounded-3xl border border-border bg-card p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{title}</p>
-          <h2 className="mt-2 text-3xl font-black tracking-tight brand-text">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-muted-foreground">
+            {title}
+          </p>
+
+          <h2 className="mt-2 truncate text-3xl font-black tracking-tight brand-text">
             {value}
           </h2>
         </div>
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
           <Icon className="h-6 w-6" />
         </div>
       </div>
@@ -524,64 +1482,102 @@ function StatCard({ icon: Icon, title, value }) {
   );
 }
 
-function PlanBadge({ plan }) {
+function PlanBadge({ plan = "Free" }) {
+  const normalizedPlan =
+    plan.charAt(0).toUpperCase() +
+    plan.slice(1).toLowerCase();
+
   const styles = {
-    Free: "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300",
-    Pro: "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10",
+    Free:
+      "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300",
+
+    Pro:
+      "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10",
+
+    Business:
+      "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400",
+
     Enterprise:
       "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400",
   };
 
   return (
-    <span className={`rounded-full px-3 py-1 text-xs font-bold ${styles[plan]}`}>
-      {plan}
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+        styles[normalizedPlan] || styles.Free
+      }`}
+    >
+      {normalizedPlan}
     </span>
   );
 }
 
-function TwinBadge({ twin }) {
-  const created = twin === "Created";
+function TwinBadge({ twin = "Pending" }) {
+  const created =
+    twin === "Created" ||
+    twin === true;
 
   return (
     <span
-      className={`rounded-full px-3 py-1 text-xs font-bold ${
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
         created
           ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
           : "bg-orange-50 text-orange-500 dark:bg-orange-500/10 dark:text-orange-400"
       }`}
     >
-      {twin}
+      {created ? "Created" : "Pending"}
     </span>
   );
 }
 
-function StatusBadge({ status }) {
-  const active = status === "Active";
+function StatusBadge({ status = "Active" }) {
+  const active =
+    status === "Active" ||
+    status === "active";
 
   return (
     <span
-      className={`rounded-full px-3 py-1 text-xs font-bold ${
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${
         active
           ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
           : "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
       }`}
     >
-      {status}
+      {active ? "Active" : "Blocked"}
     </span>
   );
 }
 
-function ActionButton({ icon: Icon, color, onClick }) {
+function ActionButton({
+  icon: Icon,
+  color,
+  onClick,
+  title,
+}) {
   const styles = {
-    blue: "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10",
-    pink: "bg-pink-50 text-[var(--brand-pink)] hover:bg-pink-100 dark:bg-white/10",
+    blue:
+      "bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10",
+
+    pink:
+      "bg-pink-50 text-[var(--brand-pink)] hover:bg-pink-100 dark:bg-white/10",
+
     yellow:
       "bg-orange-50 text-orange-600 hover:bg-orange-100 dark:bg-orange-500/10",
-    red: "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10",
+
+    red:
+      "bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-500/10",
   };
 
   return (
-    <button onClick={onClick} className={`rounded-xl p-3 ${styles[color]}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className={`rounded-xl p-3 transition ${
+        styles[color] || styles.blue
+      }`}
+    >
       <Icon className="h-4 w-4" />
     </button>
   );
@@ -589,18 +1585,35 @@ function ActionButton({ icon: Icon, color, onClick }) {
 
 function MobileInfo({ label, value }) {
   return (
-    <div className="rounded-2xl border border-border bg-background p-3">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm font-black text-foreground">{value}</p>
+    <div className="min-w-0 rounded-2xl border border-border bg-background p-3">
+      <p className="text-xs font-medium text-muted-foreground">
+        {label}
+      </p>
+
+      <p className="mt-1 truncate text-sm font-black text-foreground">
+        {value ?? "—"}
+      </p>
     </div>
   );
 }
 
-function MobileAction({ icon: Icon, onClick }) {
+function MobileAction({
+  icon: Icon,
+  onClick,
+  title,
+  danger = false,
+}) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="grid h-11 place-items-center rounded-[5px] border border-border bg-background text-[var(--brand-pink)]"
+      title={title}
+      aria-label={title}
+      className={`grid h-11 place-items-center rounded-[5px] border transition ${
+        danger
+          ? "border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-500/20 dark:bg-red-500/10"
+          : "border-border bg-background text-[var(--brand-pink)] hover:border-[var(--brand-pink)]"
+      }`}
     >
       <Icon className="h-4 w-4" />
     </button>
@@ -615,8 +1628,8 @@ function Detail({ icon: Icon, label, value }) {
         {label}
       </div>
 
-      <p className="mt-2 text-sm font-black tracking-tight text-foreground">
-        {value}
+      <p className="mt-2 break-words text-sm font-black tracking-tight text-foreground">
+        {value ?? "—"}
       </p>
     </div>
   );
