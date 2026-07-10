@@ -300,11 +300,12 @@ const deleteWaitlist = async (id) => {
 // FILTER REGISTERED USERS
 // Must be declared before pagination
 // ---------------------------------
+// ---------------------------------
+// FILTER REGISTERED USERS
+// ---------------------------------
 
-const filteredUsers = useMemo(() => {
-  const normalizedQuery = query
-    .toLowerCase()
-    .trim();
+const registeredUsersResult = useMemo(() => {
+  const searchText = query.toLowerCase().trim();
 
   return users.filter((user) => {
     const searchableText = `
@@ -319,27 +320,25 @@ const filteredUsers = useMemo(() => {
       ${user.brandName || ""}
     `.toLowerCase();
 
-    const normalizedPlan = (
+    const userPlan = String(
       user.plan || "free"
     ).toLowerCase();
 
-    const normalizedStatus = (
+    const userStatus = String(
       user.status ||
-      (user.isBlocked ? "Blocked" : "Active")
+        (user.isBlocked ? "Blocked" : "Active")
     ).toLowerCase();
 
     const matchesSearch =
-      searchableText.includes(normalizedQuery);
+      searchableText.includes(searchText);
 
     const matchesPlan =
       planFilter === "All Plans" ||
-      normalizedPlan ===
-        planFilter.toLowerCase();
+      userPlan === planFilter.toLowerCase();
 
     const matchesStatus =
       statusFilter === "All Status" ||
-      normalizedStatus ===
-        statusFilter.toLowerCase();
+      userStatus === statusFilter.toLowerCase();
 
     return (
       matchesSearch &&
@@ -347,22 +346,14 @@ const filteredUsers = useMemo(() => {
       matchesStatus
     );
   });
-}, [
-  users,
-  query,
-  planFilter,
-  statusFilter,
-]);
+}, [users, query, planFilter, statusFilter]);
 
 // ---------------------------------
 // FILTER WAITLIST USERS
-// Must be declared before pagination
 // ---------------------------------
 
-const filteredWaitlist = useMemo(() => {
-  const normalizedQuery = query
-    .toLowerCase()
-    .trim();
+const waitlistUsersResult = useMemo(() => {
+  const searchText = query.toLowerCase().trim();
 
   return waitlistUsers.filter((user) => {
     const searchableText = `
@@ -377,28 +368,22 @@ const filteredWaitlist = useMemo(() => {
       ${user.brandName || ""}
     `.toLowerCase();
 
-    return searchableText.includes(
-      normalizedQuery
-    );
+    return searchableText.includes(searchText);
   });
 }, [waitlistUsers, query]);
 
 // ---------------------------------
 // PAGINATION
-// Must come after filteredUsers and
-// filteredWaitlist
 // ---------------------------------
 
-const currentFilteredData =
+const activeResult =
   activeTab === "users"
-    ? filteredUsers
-    : filteredWaitlist;
+    ? registeredUsersResult
+    : waitlistUsersResult;
 
 const totalPages = Math.max(
   1,
-  Math.ceil(
-    currentFilteredData.length / usersPerPage
-  )
+  Math.ceil(activeResult.length / usersPerPage)
 );
 
 const startIndex =
@@ -406,18 +391,18 @@ const startIndex =
 
 const endIndex = startIndex + usersPerPage;
 
-const paginatedUsers = filteredUsers.slice(
-  startIndex,
-  endIndex
-);
-
-const paginatedWaitlist =
-  filteredWaitlist.slice(
+const paginatedRegisteredUsers =
+  registeredUsersResult.slice(
     startIndex,
     endIndex
   );
 
-// Correct page after deleting the last record
+const paginatedWaitlistUsers =
+  waitlistUsersResult.slice(
+    startIndex,
+    endIndex
+  );
+
 useEffect(() => {
   if (currentPage > totalPages) {
     setCurrentPage(totalPages);
@@ -445,7 +430,7 @@ const exportUsers = () => {
     activeTab === "users";
 
   const rows = isRegisteredUsers
-    ? filteredUsers.map((user) => {
+    ? registeredUsersResult.map((user) => {
         const hasTwin =
           user.twinCreated ||
           user.hasTwin ||
@@ -519,7 +504,7 @@ const exportUsers = () => {
             : "Never",
         };
       })
-    : filteredWaitlist.map((user) => ({
+    : waitlistUsersResult.map((user) => ({
         Name:
           user.name ||
           user.fullName ||
@@ -891,7 +876,7 @@ return (
 
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Showing {paginatedUsers.length} of{" "}
-          {filteredUsers.length} users.
+          {registeredUsersResult.length} users.
         </p>
       </div>
 
@@ -1135,13 +1120,13 @@ return (
       </table>
     </div>
 
-    {filteredUsers.length === 0 ? (
+    {registeredUsersResult.length === 0 ? (
       <EmptyUsers />
     ) : (
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
-        totalItems={filteredUsers.length}
+        totalItems={registeredUsersResult.length}
         startIndex={startIndex}
         endIndex={endIndex}
         onPrevious={() =>
@@ -1329,11 +1314,11 @@ return (
 
 
 
-    {filteredUsers.length > 0 && (
+    {registeredUsersResult.length > 0 && (
   <Pagination
     currentPage={currentPage}
     totalPages={totalPages}
-    totalItems={filteredUsers.length}
+    totalItems={registeredUsersResult.length}
     startIndex={startIndex}
     endIndex={endIndex}
     onPrevious={() =>
@@ -1349,7 +1334,7 @@ return (
   />
 )}
 
-    {filteredUsers.length === 0 && (
+    {registeredUsersResult.length === 0 && (
       <div className="rounded-3xl border border-border bg-card p-10 text-center shadow-sm">
         <Users className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
 
@@ -1376,7 +1361,7 @@ return (
 
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           Showing {paginatedWaitlist.length} of{" "}
-          {filteredWaitlist.length} users.
+          {waitlistUsersResult.length} users.
         </p>
       </div>
 
@@ -1525,7 +1510,7 @@ return (
       </table>
     </div>
 
-    {filteredWaitlist.length === 0 ? (
+    {waitlistUsersResult.length === 0 ? (
       <div className="p-12 text-center">
         <Clock className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
 
@@ -1537,7 +1522,7 @@ return (
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
-        totalItems={filteredWaitlist.length}
+        totalItems={waitlistUsersResult.length}
         startIndex={startIndex}
         endIndex={endIndex}
         onPrevious={() =>
@@ -1661,11 +1646,11 @@ return (
       );
     })}
 
-    {filteredWaitlist.length > 0 && (
+    {waitlistUsersResult.length > 0 && (
   <Pagination
     currentPage={currentPage}
     totalPages={totalPages}
-    totalItems={filteredWaitlist.length}
+    totalItems={waitlistUsersResult.length}
     startIndex={startIndex}
     endIndex={endIndex}
     onPrevious={() =>
@@ -1681,7 +1666,7 @@ return (
   />
 )}
 
-    {filteredWaitlist.length === 0 && (
+    {waitlistUsersResult.length === 0 && (
       <div className="rounded-3xl border border-border bg-card p-10 text-center shadow-sm">
         <Clock className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
 
@@ -2108,11 +2093,11 @@ function Detail({ icon: Icon, label, value }) {
 }
 
 
-{filteredWaitlist.length > 0 && (
+{waitlistUsersResult.length > 0 && (
   <Pagination
     currentPage={currentPage}
     totalPages={totalPages}
-    totalItems={filteredWaitlist.length}
+    totalItems={waitlistUsersResult.length}
     startIndex={startIndex}
     endIndex={endIndex}
     onPrevious={() =>
