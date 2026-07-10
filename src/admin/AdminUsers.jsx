@@ -12,6 +12,9 @@ import {
   Pencil,
   Bot,
   IndianRupee,
+  Download,
+  ChevronLeft,
+  ChevronRight,
   X,
   Mail,
   Phone,
@@ -26,7 +29,8 @@ const API = "https://twinn-backend.onrender.com/api";
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [waitlistUsers, setWaitlistUsers] = useState([]);
-
+const [currentPage, setCurrentPage] = useState(1);
+const usersPerPage = 10;
   const [loading, setLoading] = useState(true);
 
   const [query, setQuery] = useState("");
@@ -44,6 +48,10 @@ export default function AdminUsers() {
     loadWaitlist();
   }, []);
 
+
+  useEffect(() => {
+  setCurrentPage(1);
+}, [activeTab, query, planFilter, statusFilter]);
   // -------------------------------
   // LOAD REGISTERED USERS
   // -------------------------------
@@ -122,9 +130,183 @@ export default function AdminUsers() {
   }
 };
 
+
+const currentFilteredData =
+  activeTab === "users" ? filteredUsers : filteredWaitlist;
+
+const totalPages = Math.max(
+  1,
+  Math.ceil(currentFilteredData.length / usersPerPage)
+);
+
+const startIndex = (currentPage - 1) * usersPerPage;
+const endIndex = startIndex + usersPerPage;
+
+const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+const paginatedWaitlist = filteredWaitlist.slice(
+  startIndex,
+  endIndex
+);
+
+useEffect(() => {
+  if (currentPage > totalPages) {
+    setCurrentPage(totalPages);
+  }
+}, [currentPage, totalPages]);
   // -------------------------------
   // DELETE USER
   // -------------------------------
+
+const escapeCSVValue = (value) => {
+  const normalizedValue =
+    value === null || value === undefined ? "" : String(value);
+
+  return `"${normalizedValue.replace(/"/g, '""')}"`;
+};
+
+const exportUsers = () => {
+  const isRegisteredUsers = activeTab === "users";
+
+  const rows = isRegisteredUsers
+    ? filteredUsers.map((user) => ({
+        Name:
+          user.name ||
+          user.fullName ||
+          user.username ||
+          user.email?.split("@")[0] ||
+          "Unnamed User",
+
+        Email: user.email || "",
+
+        Phone:
+          user.phone ||
+          user.mobile ||
+          user.phoneNumber ||
+          "",
+
+        Brand:
+          user.brand ||
+          user.brandName ||
+          "",
+
+        Plan: user.plan || "Free",
+
+        Status:
+          user.status ||
+          (user.isBlocked ? "Blocked" : "Active"),
+
+        "AI Twin":
+          user.twinCreated ||
+          user.hasTwin ||
+          (Array.isArray(user.twins) &&
+            user.twins.length > 0)
+            ? "Created"
+            : "Pending",
+
+        Products:
+          user.productsCount ??
+          user.productCount ??
+          (Array.isArray(user.products)
+            ? user.products.length
+            : 0),
+
+        Lives:
+          user.livesCount ??
+          user.liveCount ??
+          user.totalLives ??
+          (Array.isArray(user.lives)
+            ? user.lives.length
+            : 0),
+
+        Revenue:
+          user.totalRevenue ??
+          user.revenue ??
+          user.salesRevenue ??
+          0,
+
+        Joined: user.createdAt
+          ? new Date(user.createdAt).toLocaleDateString(
+              "en-IN"
+            )
+          : "",
+
+        "Last Login": user.lastLogin
+          ? new Date(user.lastLogin).toLocaleString(
+              "en-IN"
+            )
+          : "Never",
+      }))
+    : filteredWaitlist.map((user) => ({
+        Name:
+          user.name ||
+          user.fullName ||
+          user.username ||
+          "Unnamed User",
+
+        Email: user.email || "",
+
+        Phone:
+          user.phone ||
+          user.mobile ||
+          user.phoneNumber ||
+          "",
+
+        Brand:
+          user.brand ||
+          user.brandName ||
+          "",
+
+        Joined: user.createdAt
+          ? new Date(user.createdAt).toLocaleDateString(
+              "en-IN"
+            )
+          : "",
+      }));
+
+  if (rows.length === 0) {
+    alert("No users available to export.");
+    return;
+  }
+
+  const headers = Object.keys(rows[0]);
+
+  const csvContent = [
+    headers.map(escapeCSVValue).join(","),
+    ...rows.map((row) =>
+      headers
+        .map((header) => escapeCSVValue(row[header]))
+        .join(",")
+    ),
+  ].join("\n");
+
+  const blob = new Blob(
+    [`\uFEFF${csvContent}`],
+    {
+      type: "text/csv;charset=utf-8;",
+    }
+  );
+
+  const downloadUrl = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.download = isRegisteredUsers
+    ? `registered-users-${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`
+    : `waitlist-users-${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(downloadUrl);
+};
+
+
 
   const deleteUser = async (id) => {
     if (!window.confirm("Delete this user?")) return;
@@ -471,38 +653,54 @@ return (
           )}
         </div>
 
-        {activeTab === "users" && (
-          <div className="grid gap-3 sm:grid-cols-2 xl:flex">
-            <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
-              <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
+        <div className="flex flex-col gap-3 sm:flex-row">
+  {activeTab === "users" && (
+    <>
+      <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
+        <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
 
-              <select
-                value={planFilter}
-                onChange={(e) => setPlanFilter(e.target.value)}
-                className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
-              >
-                <option>All Plans</option>
-                <option>Free</option>
-                <option>Pro</option>
-                <option>Business</option>
-              </select>
-            </div>
+        <select
+          value={planFilter}
+          onChange={(e) =>
+            setPlanFilter(e.target.value)
+          }
+          className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
+        >
+          <option>All Plans</option>
+          <option>Free</option>
+          <option>Pro</option>
+          <option>Business</option>
+        </select>
+      </div>
 
-            <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
-              <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
+      <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
+        <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
-              >
-                <option>All Status</option>
-                <option>Active</option>
-                <option>Blocked</option>
-              </select>
-            </div>
-          </div>
-        )}
+        <select
+          value={statusFilter}
+          onChange={(e) =>
+            setStatusFilter(e.target.value)
+          }
+          className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
+        >
+          <option>All Status</option>
+          <option>Active</option>
+          <option>Blocked</option>
+        </select>
+      </div>
+    </>
+  )}
+
+  <button
+    type="button"
+    onClick={exportUsers}
+    disabled={currentFilteredData.length === 0}
+    className="brand-gradient flex items-center justify-center gap-2 rounded-[5px] px-5 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    <Download className="h-4 w-4" />
+    Export CSV
+  </button>
+</div>
       </div>
     </section>
 
@@ -516,7 +714,8 @@ return (
         </h2>
 
         <p className="mt-1 text-sm font-medium text-muted-foreground">
-          Manage account plans, status, AI Twin activity and user access.
+          Showing {paginatedUsers.length} of{" "}
+          {filteredUsers.length} users.
         </p>
       </div>
 
@@ -530,24 +729,25 @@ return (
     </div>
 
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1240px]">
+      <table className="w-full">
         <thead className="bg-background">
           <tr className="border-b border-border text-left text-sm text-muted-foreground">
-            <th className="p-5 font-bold">User</th>
-            <th className="p-5 font-bold">Plan</th>
-            <th className="p-5 font-bold">AI Twin</th>
-            <th className="p-5 font-bold">Products</th>
-            <th className="p-5 font-bold">Lives</th>
-            <th className="p-5 font-bold">Revenue</th>
-            <th className="p-5 font-bold">Joined</th>
-            <th className="p-5 font-bold">Last Login</th>
-            <th className="p-5 font-bold">Status</th>
-            <th className="p-5 font-bold">Actions</th>
+            <th className="p-5 font-bold">
+              User Details
+            </th>
+
+            <th className="p-5 font-bold">
+              Account
+            </th>
+
+            <th className="p-5 text-right font-bold">
+              Actions
+            </th>
           </tr>
         </thead>
 
         <tbody>
-          {filteredUsers.map((user) => {
+          {paginatedUsers.map((user) => {
             const userId = user._id || user.id;
 
             const displayName =
@@ -571,13 +771,16 @@ return (
 
             const normalizedStatus =
               user.status ||
-              (user.isBlocked ? "Blocked" : "Active");
+              (user.isBlocked
+                ? "Blocked"
+                : "Active");
 
             const twinStatus =
               user.twin ||
               (user.twinCreated ||
               user.hasTwin ||
-              (Array.isArray(user.twins) && user.twins.length > 0)
+              (Array.isArray(user.twins) &&
+                user.twins.length > 0)
                 ? "Created"
                 : "Pending");
 
@@ -604,11 +807,15 @@ return (
 
             const formattedRevenue =
               typeof revenueValue === "number"
-                ? `₹${revenueValue.toLocaleString("en-IN")}`
+                ? `₹${revenueValue.toLocaleString(
+                    "en-IN"
+                  )}`
                 : revenueValue || "₹0";
 
             const joinedDate = user.createdAt
-              ? new Date(user.createdAt).toLocaleDateString("en-IN", {
+              ? new Date(
+                  user.createdAt
+                ).toLocaleDateString("en-IN", {
                   day: "2-digit",
                   month: "short",
                   year: "numeric",
@@ -616,7 +823,9 @@ return (
               : user.joined || "—";
 
             const lastLogin = user.lastLogin
-              ? new Date(user.lastLogin).toLocaleString("en-IN", {
+              ? new Date(
+                  user.lastLogin
+                ).toLocaleString("en-IN", {
                   day: "2-digit",
                   month: "short",
                   year: "numeric",
@@ -625,11 +834,27 @@ return (
                 })
               : "Never";
 
+            const normalizedUser = {
+              ...user,
+              id: userId,
+              name: displayName,
+              avatar,
+              plan: normalizedPlan,
+              status: normalizedStatus,
+              twin: twinStatus,
+              products: productCount,
+              lives: liveCount,
+              revenue: formattedRevenue,
+              joined: joinedDate,
+              lastLogin,
+            };
+
             return (
               <tr
                 key={userId}
                 className="border-b border-border transition hover:bg-background"
               >
+                {/* Column 1 */}
                 <td className="p-5">
                   <div className="flex items-center gap-4">
                     <img
@@ -643,76 +868,54 @@ return (
                     />
 
                     <div className="min-w-0">
-                      <p className="max-w-[220px] truncate text-sm font-black tracking-tight text-foreground">
+                      <p className="max-w-[300px] truncate text-sm font-black text-foreground">
                         {displayName}
                       </p>
 
-                      <p className="max-w-[220px] truncate text-xs font-medium text-muted-foreground">
+                      <p className="max-w-[300px] truncate text-xs font-medium text-muted-foreground">
                         {user.email || "No email"}
                       </p>
 
-                      <p className="max-w-[220px] truncate text-xs font-medium text-muted-foreground">
-                        {user.brand ||
-                          user.company ||
-                          "No brand"}
+                      <p className="mt-1 max-w-[300px] truncate text-xs font-medium text-muted-foreground">
+                        {user.phone ||
+                          user.mobile ||
+                          user.brand ||
+                          "No phone or brand"}
                       </p>
                     </div>
                   </div>
                 </td>
 
+                {/* Column 2 */}
                 <td className="p-5">
-                  <PlanBadge plan={normalizedPlan} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PlanBadge
+                      plan={normalizedPlan}
+                    />
+
+                    <StatusBadge
+                      status={normalizedStatus}
+                    />
+
+                    <TwinBadge twin={twinStatus} />
+                  </div>
+
+                  <p className="mt-2 text-xs font-medium text-muted-foreground">
+                    Joined: {joinedDate}
+                  </p>
                 </td>
 
+                {/* Column 3 */}
                 <td className="p-5">
-                  <TwinBadge twin={twinStatus} />
-                </td>
-
-                <td className="p-5 text-sm font-bold text-foreground">
-                  {productCount}
-                </td>
-
-                <td className="p-5 text-sm font-bold text-foreground">
-                  {liveCount}
-                </td>
-
-                <td className="p-5 text-sm font-black brand-text">
-                  {formattedRevenue}
-                </td>
-
-                <td className="p-5 text-sm font-medium text-muted-foreground">
-                  {joinedDate}
-                </td>
-
-                <td className="p-5 text-sm font-medium text-muted-foreground">
-                  {lastLogin}
-                </td>
-
-                <td className="p-5">
-                  <StatusBadge status={normalizedStatus} />
-                </td>
-
-                <td className="p-5">
-                  <div className="flex gap-2">
+                  <div className="flex justify-end gap-2">
                     <ActionButton
                       icon={Eye}
                       color="blue"
                       title="View user"
                       onClick={() =>
-                        setSelectedUser({
-                          ...user,
-                          id: userId,
-                          name: displayName,
-                          avatar,
-                          plan: normalizedPlan,
-                          status: normalizedStatus,
-                          twin: twinStatus,
-                          products: productCount,
-                          lives: liveCount,
-                          revenue: formattedRevenue,
-                          joined: joinedDate,
-                          lastLogin,
-                        })
+                        setSelectedUser(
+                          normalizedUser
+                        )
                       }
                     />
 
@@ -720,25 +923,32 @@ return (
                       icon={Pencil}
                       color="pink"
                       title="Upgrade plan"
-                      onClick={() => upgradePlan(userId)}
+                      onClick={() =>
+                        upgradePlan(userId)
+                      }
                     />
 
                     <ActionButton
                       icon={Ban}
                       color="yellow"
                       title={
-                        normalizedStatus === "Blocked"
+                        normalizedStatus ===
+                        "Blocked"
                           ? "Unblock user"
                           : "Block user"
                       }
-                      onClick={() => toggleBlock(userId)}
+                      onClick={() =>
+                        toggleBlock(userId)
+                      }
                     />
 
                     <ActionButton
                       icon={Trash2}
                       color="red"
                       title="Delete user"
-                      onClick={() => deleteUser(userId)}
+                      onClick={() =>
+                        deleteUser(userId)
+                      }
                     />
                   </div>
                 </td>
@@ -749,25 +959,33 @@ return (
       </table>
     </div>
 
-    {filteredUsers.length === 0 && (
-      <div className="p-12 text-center">
-        <Users className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
-
-        <p className="mt-3 text-lg font-black">
-          No registered users found
-        </p>
-
-        <p className="mt-1 text-sm text-muted-foreground">
-          Try changing the search, plan or status filter.
-        </p>
-      </div>
+    {filteredUsers.length === 0 ? (
+      <EmptyUsers />
+    ) : (
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filteredUsers.length}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        onPrevious={() =>
+          setCurrentPage((page) =>
+            Math.max(page - 1, 1)
+          )
+        }
+        onNext={() =>
+          setCurrentPage((page) =>
+            Math.min(page + 1, totalPages)
+          )
+        }
+      />
     )}
   </section>
 )}
 {/* Registered Users: Mobile Cards */}
 {activeTab === "users" && (
   <section className="grid gap-4 lg:hidden">
-    {filteredUsers.map((user) => {
+    {paginatedUsers.map((user) => {
       const userId = user._id || user.id;
 
       const displayName =
@@ -880,7 +1098,7 @@ return (
               </p>
 
               <p className="mt-1 truncate text-xs font-medium text-muted-foreground">
-                {user.brand || user.company || "No brand"}
+                {user.brand ||  "No brand"}
               </p>
 
               <div className="mt-3 flex flex-wrap gap-2">
@@ -933,6 +1151,28 @@ return (
       );
     })}
 
+
+
+    {filteredUsers.length > 0 && (
+  <Pagination
+    currentPage={currentPage}
+    totalPages={totalPages}
+    totalItems={filteredUsers.length}
+    startIndex={startIndex}
+    endIndex={endIndex}
+    onPrevious={() =>
+      setCurrentPage((page) =>
+        Math.max(page - 1, 1)
+      )
+    }
+    onNext={() =>
+      setCurrentPage((page) =>
+        Math.min(page + 1, totalPages)
+      )
+    }
+  />
+)}
+
     {filteredUsers.length === 0 && (
       <div className="rounded-3xl border border-border bg-card p-10 text-center shadow-sm">
         <Users className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
@@ -959,7 +1199,8 @@ return (
         </h2>
 
         <p className="mt-1 text-sm font-medium text-muted-foreground">
-          View and manage people who joined the Twinn.live waitlist.
+          Showing {paginatedWaitlist.length} of{" "}
+          {filteredWaitlist.length} users.
         </p>
       </div>
 
@@ -973,139 +1214,167 @@ return (
     </div>
 
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1000px]">
+      <table className="w-full">
         <thead className="bg-background">
           <tr className="border-b border-border text-left text-sm text-muted-foreground">
-            <th className="p-5 font-bold">Name</th>
-            <th className="p-5 font-bold">Email</th>
-            <th className="p-5 font-bold">Phone</th>
-            <th className="p-5 font-bold">Brand</th>
-            <th className="p-5 font-bold">Company</th>
-            <th className="p-5 font-bold">Joined</th>
-            <th className="p-5 font-bold">Actions</th>
+            <th className="p-5 font-bold">
+              User
+            </th>
+
+            <th className="p-5 font-bold">
+              Contact Details
+            </th>
+
+            <th className="p-5 text-right font-bold">
+              Actions
+            </th>
           </tr>
         </thead>
 
         <tbody>
-          {filteredWaitlist.map((waitlistUser) => {
-            const waitlistId =
-              waitlistUser._id || waitlistUser.id;
+          {paginatedWaitlist.map(
+            (waitlistUser) => {
+              const waitlistId =
+                waitlistUser._id ||
+                waitlistUser.id;
 
-            const displayName =
-              waitlistUser.name ||
-              waitlistUser.fullName ||
-              waitlistUser.username ||
-              "Unnamed User";
+              const displayName =
+                waitlistUser.name ||
+                waitlistUser.fullName ||
+                waitlistUser.username ||
+                "Unnamed User";
 
-            const phone =
-              waitlistUser.phone ||
-              waitlistUser.mobile ||
-              waitlistUser.phoneNumber ||
-              "—";
+              const email =
+                waitlistUser.email ||
+                "No email";
 
-            const brand =
-              waitlistUser.brand ||
-              waitlistUser.brandName ||
-              "—";
+              const phone =
+                waitlistUser.phone ||
+                waitlistUser.mobile ||
+                waitlistUser.phoneNumber ||
+                "—";
 
-            const company =
-              waitlistUser.company ||
-              waitlistUser.businessName ||
-              waitlistUser.organization ||
-              "—";
+              const brand =
+                waitlistUser.brand ||
+                waitlistUser.brandName ||
+                "—";
 
-            const joinedDate = waitlistUser.createdAt
-              ? new Date(
-                  waitlistUser.createdAt
-                ).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })
-              : waitlistUser.joined || "—";
-
-            return (
-              <tr
-                key={waitlistId}
-                className="border-b border-border transition hover:bg-background"
-              >
-                <td className="p-5">
-                  <p className="max-w-[220px] truncate text-sm font-black tracking-tight text-foreground">
-                    {displayName}
-                  </p>
-                </td>
-
-                <td className="p-5">
-                  <p className="max-w-[240px] truncate text-sm font-medium text-muted-foreground">
-                    {waitlistUser.email || "No email"}
-                  </p>
-                </td>
-
-                <td className="p-5 text-sm font-medium text-muted-foreground">
-                  {phone}
-                </td>
-
-                <td className="p-5 text-sm font-medium text-muted-foreground">
-                  {brand}
-                </td>
-
-                <td className="p-5 text-sm font-medium text-muted-foreground">
-                  {company}
-                </td>
-
-                <td className="p-5 text-sm font-medium text-muted-foreground">
-                  {joinedDate}
-                </td>
-
-                <td className="p-5">
-                  <div className="flex gap-2">
-                    <ActionButton
-                      icon={Eye}
-                      color="blue"
-                      title="View waitlist user"
-                      onClick={() =>
-                        setSelectedUser({
-                          ...waitlistUser,
-                          id: waitlistId,
-                          name: displayName,
-                          phone,
-                          brand,
-                          company,
-                          joined: joinedDate,
-                          isWaitlist: true,
-                        })
+              const joinedDate =
+                waitlistUser.createdAt
+                  ? new Date(
+                      waitlistUser.createdAt
+                    ).toLocaleDateString(
+                      "en-IN",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
                       }
-                    />
+                    )
+                  : waitlistUser.joined || "—";
 
-                    <ActionButton
-                      icon={Trash2}
-                      color="red"
-                      title="Delete waitlist user"
-                      onClick={() =>
-                        deleteWaitlist(waitlistId)
-                      }
-                    />
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
+              const normalizedWaitlistUser = {
+                ...waitlistUser,
+                id: waitlistId,
+                name: displayName,
+                email,
+                phone,
+                brand,
+                joined: joinedDate,
+                isWaitlist: true,
+              };
+
+              return (
+                <tr
+                  key={waitlistId}
+                  className="border-b border-border transition hover:bg-background"
+                >
+                  {/* Column 1 */}
+                  <td className="p-5">
+                    <p className="text-sm font-black text-foreground">
+                      {displayName}
+                    </p>
+
+                    <p className="mt-1 text-xs font-medium text-muted-foreground">
+                      {brand}
+                    </p>
+                  </td>
+
+                  {/* Column 2 */}
+                  <td className="p-5">
+                    <p className="text-sm font-medium text-foreground">
+                      {email}
+                    </p>
+
+                    <p className="mt-1 text-xs font-medium text-muted-foreground">
+                      {phone}
+                    </p>
+
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Joined: {joinedDate}
+                    </p>
+                  </td>
+
+                  {/* Column 3 */}
+                  <td className="p-5">
+                    <div className="flex justify-end gap-2">
+                      <ActionButton
+                        icon={Eye}
+                        color="blue"
+                        title="View waitlist user"
+                        onClick={() =>
+                          setSelectedUser(
+                            normalizedWaitlistUser
+                          )
+                        }
+                      />
+
+                      <ActionButton
+                        icon={Trash2}
+                        color="red"
+                        title="Delete waitlist user"
+                        onClick={() =>
+                          deleteWaitlist(
+                            waitlistId
+                          )
+                        }
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            }
+          )}
         </tbody>
       </table>
     </div>
 
-    {filteredWaitlist.length === 0 && (
+    {filteredWaitlist.length === 0 ? (
       <div className="p-12 text-center">
         <Clock className="mx-auto h-10 w-10 text-[var(--brand-pink)]" />
 
         <p className="mt-3 text-lg font-black">
           No waitlist users found
         </p>
-
-        <p className="mt-1 text-sm text-muted-foreground">
-          Try changing the search term.
-        </p>
       </div>
+    ) : (
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={filteredWaitlist.length}
+        startIndex={startIndex}
+        endIndex={endIndex}
+        onPrevious={() =>
+          setCurrentPage((page) =>
+            Math.max(page - 1, 1)
+          )
+        }
+        onNext={() =>
+          setCurrentPage((page) =>
+            Math.min(page + 1, totalPages)
+          )
+        }
+      />
     )}
   </section>
 )}
@@ -1114,7 +1383,7 @@ return (
 {/* Waitlist Users: Mobile Cards */}
 {activeTab === "waitlist" && (
   <section className="grid gap-4 lg:hidden">
-    {filteredWaitlist.map((waitlistUser) => {
+    {paginatedWaitlist.map((waitlistUser) => {
       const waitlistId = waitlistUser._id || waitlistUser.id;
 
       const displayName =
@@ -1137,11 +1406,7 @@ return (
         waitlistUser.brandName ||
         "—";
 
-      const company =
-        waitlistUser.company ||
-        waitlistUser.businessName ||
-        waitlistUser.organization ||
-        "—";
+      
 
       const joinedDate = waitlistUser.createdAt
         ? new Date(waitlistUser.createdAt).toLocaleDateString("en-IN", {
@@ -1158,7 +1423,7 @@ return (
         email,
         phone,
         brand,
-        company,
+     
         joined: joinedDate,
         isWaitlist: true,
       };
@@ -1193,7 +1458,7 @@ return (
           <div className="mt-5 grid grid-cols-2 gap-3">
             <MobileInfo label="Phone" value={phone} />
             <MobileInfo label="Brand" value={brand} />
-            <MobileInfo label="Company" value={company} />
+
             <MobileInfo label="Joined" value={joinedDate} />
           </div>
 
@@ -1219,6 +1484,26 @@ return (
         </article>
       );
     })}
+
+    {filteredWaitlist.length > 0 && (
+  <Pagination
+    currentPage={currentPage}
+    totalPages={totalPages}
+    totalItems={filteredWaitlist.length}
+    startIndex={startIndex}
+    endIndex={endIndex}
+    onPrevious={() =>
+      setCurrentPage((page) =>
+        Math.max(page - 1, 1)
+      )
+    }
+    onNext={() =>
+      setCurrentPage((page) =>
+        Math.min(page + 1, totalPages)
+      )
+    }
+  />
+)}
 
     {filteredWaitlist.length === 0 && (
       <div className="rounded-3xl border border-border bg-card p-10 text-center shadow-sm">
@@ -1272,7 +1557,7 @@ return (
               {selectedUser.isWaitlist
                 ? "Waitlist User"
                 : selectedUser.brand ||
-                  selectedUser.company ||
+                  
                   "Registered User"}
             </p>
           </div>
@@ -1308,11 +1593,7 @@ return (
             value={selectedUser.brand || "—"}
           />
 
-          <Detail
-            icon={Building2}
-            label="Company"
-            value={selectedUser.company || "—"}
-          />
+         
 
           <Detail
             icon={Clock}
@@ -1344,8 +1625,7 @@ return (
             icon={Building2}
             label="Brand"
             value={
-              selectedUser.brand ||
-              selectedUser.company ||
+              selectedUser.brand ||   
               "—"
             }
           />
@@ -1650,3 +1930,24 @@ function Detail({ icon: Icon, label, value }) {
     </div>
   );
 }
+
+
+{filteredWaitlist.length > 0 && (
+  <Pagination
+    currentPage={currentPage}
+    totalPages={totalPages}
+    totalItems={filteredWaitlist.length}
+    startIndex={startIndex}
+    endIndex={endIndex}
+    onPrevious={() =>
+      setCurrentPage((page) =>
+        Math.max(page - 1, 1)
+      )
+    }
+    onNext={() =>
+      setCurrentPage((page) =>
+        Math.min(page + 1, totalPages)
+      )
+    }
+  />
+)}
