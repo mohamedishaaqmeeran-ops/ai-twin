@@ -27,36 +27,37 @@ import {
 const API = "https://twinn-backend.onrender.com/api";
 
 export default function AdminUsers() {
-  const [users, setUsers] = useState([]);
-  const [waitlistUsers, setWaitlistUsers] = useState([]);
+ const [users, setUsers] = useState([]);
+const [waitlistUsers, setWaitlistUsers] = useState([]);
 const [currentPage, setCurrentPage] = useState(1);
+const [loading, setLoading] = useState(true);
+const [query, setQuery] = useState("");
+const [planFilter, setPlanFilter] = useState("All Plans");
+const [statusFilter, setStatusFilter] = useState("All Status");
+const [selectedUser, setSelectedUser] = useState(null);
+const [activeTab, setActiveTab] = useState("users");
+
 const usersPerPage = 10;
-  const [loading, setLoading] = useState(true);
 
-  const [query, setQuery] = useState("");
+// ---------------------------------
+// INITIAL DATA LOADING
+// ---------------------------------
 
-  const [planFilter, setPlanFilter] = useState("All Plans");
+useEffect(() => {
+  loadUsers();
+  loadWaitlist();
+}, []);
 
-  const [statusFilter, setStatusFilter] = useState("All Status");
-
-  const [selectedUser, setSelectedUser] = useState(null);
-
-  const [activeTab, setActiveTab] = useState("users");
-
-  useEffect(() => {
-    loadUsers();
-    loadWaitlist();
-  }, []);
-
-
-  useEffect(() => {
+// Reset pagination when filters or tabs change
+useEffect(() => {
   setCurrentPage(1);
 }, [activeTab, query, planFilter, statusFilter]);
-  // -------------------------------
-  // LOAD REGISTERED USERS
-  // -------------------------------
 
-  const loadUsers = async () => {
+// ---------------------------------
+// LOAD REGISTERED USERS
+// ---------------------------------
+
+const loadUsers = async () => {
   try {
     setLoading(true);
 
@@ -64,12 +65,16 @@ const usersPerPage = 10;
       credentials: "include",
     });
 
-    const contentType = res.headers.get("content-type") || "";
+    const contentType =
+      res.headers.get("content-type") || "";
 
     if (!contentType.includes("application/json")) {
       const text = await res.text();
 
-      console.error("ADMIN USERS NON-JSON RESPONSE:", text);
+      console.error(
+        "ADMIN USERS NON-JSON RESPONSE:",
+        text
+      );
 
       throw new Error(
         `Admin users route returned ${res.status}. Check backend route mounting.`
@@ -79,7 +84,9 @@ const usersPerPage = 10;
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      throw new Error(data.message || "Unable to load users");
+      throw new Error(
+        data.message || "Unable to load users"
+      );
     }
 
     setUsers(data.users || []);
@@ -92,26 +99,11 @@ const usersPerPage = 10;
   }
 };
 
+// ---------------------------------
+// LOAD WAITLIST USERS
+// ---------------------------------
 
-
-
-  const filteredWaitlist = useMemo(() => {
-  return waitlistUsers.filter((user) => {
-    const search = `${user.name || ""}
-    ${user.fullName || ""}
-    ${user.email || ""}
-    ${user.phone || ""}
-    ${user.mobile || ""}
-    ${user.brand || ""}`.toLowerCase();
-
-    return search.includes(query.toLowerCase().trim());
-  });
-}, [waitlistUsers, query]);
-  // -------------------------------
-  // LOAD WAITLIST USERS
-  // -------------------------------
-
- const loadWaitlist = async () => {
+const loadWaitlist = async () => {
   try {
     const res = await fetch(`${API}/waitlist`, {
       credentials: "include",
@@ -120,7 +112,10 @@ const usersPerPage = 10;
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      throw new Error(data.message || "Unable to load waitlist users");
+      throw new Error(
+        data.message ||
+          "Unable to load waitlist users"
+      );
     }
 
     setWaitlistUsers(data.data || []);
@@ -130,113 +125,400 @@ const usersPerPage = 10;
   }
 };
 
+// ---------------------------------
+// DELETE REGISTERED USER
+// ---------------------------------
+
+const deleteUser = async (id) => {
+  if (!window.confirm("Delete this user?")) {
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${API}/admin/users/${id}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
+    );
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      throw new Error(
+        data.message || "Unable to delete user"
+      );
+    }
+
+    setUsers((currentUsers) =>
+      currentUsers.filter(
+        (user) => (user._id || user.id) !== id
+      )
+    );
+
+    if (
+      selectedUser &&
+      !selectedUser.isWaitlist &&
+      selectedUser.id === id
+    ) {
+      setSelectedUser(null);
+    }
+  } catch (error) {
+    console.error("DELETE USER ERROR:", error);
+    alert(error.message);
+  }
+};
+
+// ---------------------------------
+// BLOCK / UNBLOCK USER
+// ---------------------------------
+
+const toggleBlock = async (id) => {
+  try {
+    const res = await fetch(
+      `${API}/admin/users/${id}/status`,
+      {
+        method: "PATCH",
+        credentials: "include",
+      }
+    );
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      throw new Error(
+        data.message ||
+          "Unable to update user status"
+      );
+    }
+
+    await loadUsers();
+
+    setSelectedUser(null);
+  } catch (error) {
+    console.error(
+      "UPDATE USER STATUS ERROR:",
+      error
+    );
+    alert(error.message);
+  }
+};
+
+// ---------------------------------
+// UPGRADE USER PLAN
+// ---------------------------------
+
+const upgradePlan = async (id) => {
+  try {
+    const res = await fetch(
+      `${API}/admin/users/${id}/plan`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          plan: "pro",
+        }),
+      }
+    );
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      throw new Error(
+        data.message ||
+          "Unable to update user plan"
+      );
+    }
+
+    await loadUsers();
+
+    setSelectedUser(null);
+  } catch (error) {
+    console.error(
+      "UPDATE USER PLAN ERROR:",
+      error
+    );
+    alert(error.message);
+  }
+};
+
+// ---------------------------------
+// DELETE WAITLIST USER
+// ---------------------------------
+
+const deleteWaitlist = async (id) => {
+  if (
+    !window.confirm("Delete this waitlist user?")
+  ) {
+    return;
+  }
+
+  try {
+    const res = await fetch(
+      `${API}/waitlist/${id}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
+    );
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(
+        data.message ||
+          "Unable to delete waitlist user"
+      );
+    }
+
+    setWaitlistUsers((currentUsers) =>
+      currentUsers.filter(
+        (user) => (user._id || user.id) !== id
+      )
+    );
+
+    if (
+      selectedUser?.isWaitlist &&
+      selectedUser?.id === id
+    ) {
+      setSelectedUser(null);
+    }
+  } catch (error) {
+    console.error(
+      "DELETE WAITLIST ERROR:",
+      error
+    );
+    alert(error.message);
+  }
+};
+
+// ---------------------------------
+// FILTER REGISTERED USERS
+// Must be declared before pagination
+// ---------------------------------
+
+const filteredUsers = useMemo(() => {
+  const normalizedQuery = query
+    .toLowerCase()
+    .trim();
+
+  return users.filter((user) => {
+    const searchableText = `
+      ${user.name || ""}
+      ${user.fullName || ""}
+      ${user.username || ""}
+      ${user.email || ""}
+      ${user.phone || ""}
+      ${user.mobile || ""}
+      ${user.phoneNumber || ""}
+      ${user.brand || ""}
+      ${user.brandName || ""}
+    `.toLowerCase();
+
+    const normalizedPlan = (
+      user.plan || "free"
+    ).toLowerCase();
+
+    const normalizedStatus = (
+      user.status ||
+      (user.isBlocked ? "Blocked" : "Active")
+    ).toLowerCase();
+
+    const matchesSearch =
+      searchableText.includes(normalizedQuery);
+
+    const matchesPlan =
+      planFilter === "All Plans" ||
+      normalizedPlan ===
+        planFilter.toLowerCase();
+
+    const matchesStatus =
+      statusFilter === "All Status" ||
+      normalizedStatus ===
+        statusFilter.toLowerCase();
+
+    return (
+      matchesSearch &&
+      matchesPlan &&
+      matchesStatus
+    );
+  });
+}, [
+  users,
+  query,
+  planFilter,
+  statusFilter,
+]);
+
+// ---------------------------------
+// FILTER WAITLIST USERS
+// Must be declared before pagination
+// ---------------------------------
+
+const filteredWaitlist = useMemo(() => {
+  const normalizedQuery = query
+    .toLowerCase()
+    .trim();
+
+  return waitlistUsers.filter((user) => {
+    const searchableText = `
+      ${user.name || ""}
+      ${user.fullName || ""}
+      ${user.username || ""}
+      ${user.email || ""}
+      ${user.phone || ""}
+      ${user.mobile || ""}
+      ${user.phoneNumber || ""}
+      ${user.brand || ""}
+      ${user.brandName || ""}
+    `.toLowerCase();
+
+    return searchableText.includes(
+      normalizedQuery
+    );
+  });
+}, [waitlistUsers, query]);
+
+// ---------------------------------
+// PAGINATION
+// Must come after filteredUsers and
+// filteredWaitlist
+// ---------------------------------
 
 const currentFilteredData =
-  activeTab === "users" ? filteredUsers : filteredWaitlist;
+  activeTab === "users"
+    ? filteredUsers
+    : filteredWaitlist;
 
 const totalPages = Math.max(
   1,
-  Math.ceil(currentFilteredData.length / usersPerPage)
+  Math.ceil(
+    currentFilteredData.length / usersPerPage
+  )
 );
 
-const startIndex = (currentPage - 1) * usersPerPage;
+const startIndex =
+  (currentPage - 1) * usersPerPage;
+
 const endIndex = startIndex + usersPerPage;
 
-const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
-const paginatedWaitlist = filteredWaitlist.slice(
+const paginatedUsers = filteredUsers.slice(
   startIndex,
   endIndex
 );
 
+const paginatedWaitlist =
+  filteredWaitlist.slice(
+    startIndex,
+    endIndex
+  );
+
+// Correct page after deleting the last record
 useEffect(() => {
   if (currentPage > totalPages) {
     setCurrentPage(totalPages);
   }
 }, [currentPage, totalPages]);
-  // -------------------------------
-  // DELETE USER
-  // -------------------------------
+
+// ---------------------------------
+// CSV EXPORT
+// ---------------------------------
 
 const escapeCSVValue = (value) => {
   const normalizedValue =
-    value === null || value === undefined ? "" : String(value);
+    value === null || value === undefined
+      ? ""
+      : String(value);
 
-  return `"${normalizedValue.replace(/"/g, '""')}"`;
+  return `"${normalizedValue.replace(
+    /"/g,
+    '""'
+  )}"`;
 };
 
 const exportUsers = () => {
-  const isRegisteredUsers = activeTab === "users";
+  const isRegisteredUsers =
+    activeTab === "users";
 
   const rows = isRegisteredUsers
-    ? filteredUsers.map((user) => ({
-        Name:
-          user.name ||
-          user.fullName ||
-          user.username ||
-          user.email?.split("@")[0] ||
-          "Unnamed User",
-
-        Email: user.email || "",
-
-        Phone:
-          user.phone ||
-          user.mobile ||
-          user.phoneNumber ||
-          "",
-
-        Brand:
-          user.brand ||
-          user.brandName ||
-          "",
-
-        Plan: user.plan || "Free",
-
-        Status:
-          user.status ||
-          (user.isBlocked ? "Blocked" : "Active"),
-
-        "AI Twin":
+    ? filteredUsers.map((user) => {
+        const hasTwin =
           user.twinCreated ||
           user.hasTwin ||
           (Array.isArray(user.twins) &&
-            user.twins.length > 0)
+            user.twins.length > 0);
+
+        return {
+          Name:
+            user.name ||
+            user.fullName ||
+            user.username ||
+            user.email?.split("@")[0] ||
+            "Unnamed User",
+
+          Email: user.email || "",
+
+          Phone:
+            user.phone ||
+            user.mobile ||
+            user.phoneNumber ||
+            "",
+
+          Brand:
+            user.brand ||
+            user.brandName ||
+            "",
+
+          Plan: user.plan || "Free",
+
+          Status:
+            user.status ||
+            (user.isBlocked
+              ? "Blocked"
+              : "Active"),
+
+          "AI Twin": hasTwin
             ? "Created"
             : "Pending",
 
-        Products:
-          user.productsCount ??
-          user.productCount ??
-          (Array.isArray(user.products)
-            ? user.products.length
-            : 0),
+          Products:
+            user.productsCount ??
+            user.productCount ??
+            (Array.isArray(user.products)
+              ? user.products.length
+              : 0),
 
-        Lives:
-          user.livesCount ??
-          user.liveCount ??
-          user.totalLives ??
-          (Array.isArray(user.lives)
-            ? user.lives.length
-            : 0),
+          Lives:
+            user.livesCount ??
+            user.liveCount ??
+            user.totalLives ??
+            (Array.isArray(user.lives)
+              ? user.lives.length
+              : 0),
 
-        Revenue:
-          user.totalRevenue ??
-          user.revenue ??
-          user.salesRevenue ??
-          0,
+          Revenue:
+            user.totalRevenue ??
+            user.revenue ??
+            user.salesRevenue ??
+            0,
 
-        Joined: user.createdAt
-          ? new Date(user.createdAt).toLocaleDateString(
-              "en-IN"
-            )
-          : "",
+          Joined: user.createdAt
+            ? new Date(
+                user.createdAt
+              ).toLocaleDateString("en-IN")
+            : "",
 
-        "Last Login": user.lastLogin
-          ? new Date(user.lastLogin).toLocaleString(
-              "en-IN"
-            )
-          : "Never",
-      }))
+          "Last Login": user.lastLogin
+            ? new Date(
+                user.lastLogin
+              ).toLocaleString("en-IN")
+            : "Never",
+        };
+      })
     : filteredWaitlist.map((user) => ({
         Name:
           user.name ||
@@ -258,9 +540,9 @@ const exportUsers = () => {
           "",
 
         Joined: user.createdAt
-          ? new Date(user.createdAt).toLocaleDateString(
-              "en-IN"
-            )
+          ? new Date(
+              user.createdAt
+            ).toLocaleDateString("en-IN")
           : "",
       }));
 
@@ -273,230 +555,124 @@ const exportUsers = () => {
 
   const csvContent = [
     headers.map(escapeCSVValue).join(","),
+
     ...rows.map((row) =>
       headers
-        .map((header) => escapeCSVValue(row[header]))
+        .map((header) =>
+          escapeCSVValue(row[header])
+        )
         .join(",")
     ),
   ].join("\n");
 
-  const blob = new Blob(
+  const csvBlob = new Blob(
     [`\uFEFF${csvContent}`],
     {
       type: "text/csv;charset=utf-8;",
     }
   );
 
-  const downloadUrl = URL.createObjectURL(blob);
+  const downloadUrl =
+    URL.createObjectURL(csvBlob);
 
-  const link = document.createElement("a");
-  link.href = downloadUrl;
-  link.download = isRegisteredUsers
-    ? `registered-users-${new Date()
-        .toISOString()
-        .slice(0, 10)}.csv`
-    : `waitlist-users-${new Date()
-        .toISOString()
-        .slice(0, 10)}.csv`;
+  const downloadLink =
+    document.createElement("a");
 
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  downloadLink.href = downloadUrl;
+
+  downloadLink.download =
+    isRegisteredUsers
+      ? `registered-users-${new Date()
+          .toISOString()
+          .slice(0, 10)}.csv`
+      : `waitlist-users-${new Date()
+          .toISOString()
+          .slice(0, 10)}.csv`;
+
+  document.body.appendChild(downloadLink);
+
+  downloadLink.click();
+
+  document.body.removeChild(downloadLink);
 
   URL.revokeObjectURL(downloadUrl);
 };
 
+// ---------------------------------
+// DASHBOARD STATS
+// ---------------------------------
 
+const totalUsers = users.length;
 
-  const deleteUser = async (id) => {
-    if (!window.confirm("Delete this user?")) return;
+const activeUsers = users.filter((user) => {
+  const status =
+    user.status ||
+    (user.isBlocked ? "Blocked" : "Active");
 
-    try {
-      const res = await fetch(`${API}/admin/users/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+  return status.toLowerCase() === "active";
+}).length;
 
-      const data = await res.json();
+const blockedUsers = users.filter((user) => {
+  const status =
+    user.status ||
+    (user.isBlocked ? "Blocked" : "Active");
 
-      if (data.success) {
-        loadUsers();
-        setSelectedUser(null);
-      } else {
-        alert(data.message);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
+  return status.toLowerCase() === "blocked";
+}).length;
 
-  // -------------------------------
-  // BLOCK / UNBLOCK USER
-  // -------------------------------
+const freeUsers = users.filter(
+  (user) =>
+    (user.plan || "free").toLowerCase() ===
+    "free"
+).length;
 
-  const toggleBlock = async (id) => {
-    try {
-      const res = await fetch(`${API}/admin/users/${id}/status`, {
-        method: "PATCH",
-        credentials: "include",
-      });
+const proUsers = users.filter(
+  (user) =>
+    (user.plan || "").toLowerCase() ===
+    "pro"
+).length;
 
-      const data = await res.json();
+const businessUsers = users.filter(
+  (user) =>
+    (user.plan || "").toLowerCase() ===
+    "business"
+).length;
 
-      if (data.success) {
-        loadUsers();
-      } else {
-        alert(data.message);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
+const twinsCreated = users.filter(
+  (user) =>
+    user.twinCreated ||
+    user.hasTwin ||
+    (Array.isArray(user.twins) &&
+      user.twins.length > 0)
+).length;
 
-  // -------------------------------
-  // UPGRADE PLAN
-  // -------------------------------
-
-  const upgradePlan = async (id) => {
-    try {
-      const res = await fetch(`${API}/admin/users/${id}/plan`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          plan: "pro",
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        loadUsers();
-      } else {
-        alert(data.message);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  // -------------------------------
-  // DELETE WAITLIST USER
-  // -------------------------------
-
-  const deleteWaitlist = async (id) => {
-  if (!window.confirm("Delete this waitlist user?")) {
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API}/waitlist/${id}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(
-        data.message || "Unable to delete waitlist user"
-      );
-    }
-
-    setWaitlistUsers((current) =>
-      current.filter(
-        (user) => (user._id || user.id) !== id
-      )
+const totalRevenue = users.reduce(
+  (sum, user) => {
+    const revenue = Number(
+      user.totalRevenue ??
+        user.revenue ??
+        user.salesRevenue ??
+        0
     );
 
-    if (
-      selectedUser?.isWaitlist &&
-      selectedUser?.id === id
-    ) {
-      setSelectedUser(null);
-    }
-  } catch (error) {
-    console.error("DELETE WAITLIST ERROR:", error);
-    alert(error.message);
-  }
-};
+    return sum + (Number.isNaN(revenue) ? 0 : revenue);
+  },
+  0
+);
 
-  // -------------------------------
-  // FILTER USERS
-  // -------------------------------
+// ---------------------------------
+// LOADING UI
+// ---------------------------------
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const search = `${user.name || ""}
-      ${user.email || ""}
-      ${user.phone || ""}
-      ${user.brand || ""}`
-        .toLowerCase();
-
-      const matchesSearch = search.includes(query.toLowerCase());
-
-      const matchesPlan =
-        planFilter === "All Plans" ||
-        (user.plan || "").toLowerCase() === planFilter.toLowerCase();
-
-      const matchesStatus =
-        statusFilter === "All Status" ||
-        (user.status || "").toLowerCase() === statusFilter.toLowerCase();
-
-      return (
-        matchesSearch &&
-        matchesPlan &&
-        matchesStatus
-      );
-    });
-  }, [users, query, planFilter, statusFilter]);
-
-  // -------------------------------
-  // DASHBOARD STATS
-  // -------------------------------
-
-  const totalUsers = users.length;
-
-  const activeUsers = users.filter(
-    (u) => u.status === "Active"
-  ).length;
-
-  const blockedUsers = users.filter(
-    (u) => u.status === "Blocked"
-  ).length;
-
-  const freeUsers = users.filter(
-    (u) => (u.plan || "").toLowerCase() === "free"
-  ).length;
-
-  const proUsers = users.filter(
-    (u) => (u.plan || "").toLowerCase() === "pro"
-  ).length;
-
-  const businessUsers = users.filter(
-    (u) => (u.plan || "").toLowerCase() === "business"
-  ).length;
-
-  const twinsCreated = users.filter(
-    (u) => u.twinCreated
-  ).length;
-
-  const totalRevenue = users.reduce(
-    (sum, user) => sum + (user.totalRevenue || 0),
-    0
-  );
-
-  if (loading) {
-    return (
-      <div className="grid min-h-[500px] place-items-center">
-        <div className="text-lg font-bold">
-          Loading users...
-        </div>
+if (loading) {
+  return (
+    <div className="grid min-h-[500px] place-items-center">
+      <div className="text-lg font-bold">
+        Loading users...
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // ==============================
   // PART 2 STARTS HERE
