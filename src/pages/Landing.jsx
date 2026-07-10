@@ -505,6 +505,8 @@ function HowItWorks() {
                 <Facebook className="h-5 w-5 text-blue-600" />
                 <Youtube className="h-5 w-5 text-red-500" />
                 <Music2 className="h-5 w-5 text-foreground" />
+                <Linkedin className="h-5 w-5 text-blue-700" />
+                <X className="h-5 w-5 text-foreground" />
               </div>
 
               <div className="mt-5 space-y-3 text-sm font-medium leading-6 text-muted-foreground">

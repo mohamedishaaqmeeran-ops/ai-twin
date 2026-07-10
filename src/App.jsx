@@ -181,7 +181,7 @@ export default function App() {
           <Route path="/shortclips" element={<ShortClips />} />
           <Route path="/multistreaming" element={<MultiStreaming />} />
           <Route path="/uploadandstream" element={<UploadAndStream />} />
-          <Route path="/live-shop" element={<LiveShop />} />
+          <Route path="/live-shop" element={<ProtectedRoute><LiveShop /></ProtectedRoute>} />
 
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/checkout/:plan" element={<Checkout />} />

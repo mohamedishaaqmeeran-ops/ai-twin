@@ -1,7 +1,11 @@
 // src/pages/Checkout.jsx
 
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { fetchMe } from "../features/auth/authSlice";
 
@@ -23,7 +27,11 @@ const loadRazorpay = () =>
 
 export default function Checkout() {
   const { plan } = useParams();
-  const navigate = useNavigate();
+
+const navigate = useNavigate();
+const location = useLocation();
+
+const billing = location.state?.billing || "monthly";
   const dispatch = useDispatch();
 
   const [loading, setLoading] = useState(false);
@@ -36,7 +44,10 @@ export default function Checkout() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({
+  plan,
+  billing,
+}),
       });
 
       const data = await res.json();
@@ -73,12 +84,13 @@ export default function Checkout() {
             method: "POST",
             credentials: "include",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              plan,
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            }),
+           body: JSON.stringify({
+  plan,
+  billing,
+  razorpay_order_id: response.razorpay_order_id,
+  razorpay_payment_id: response.razorpay_payment_id,
+  razorpay_signature: response.razorpay_signature,
+}),
           });
 
           const verifyData = await verifyRes.json();
@@ -90,8 +102,18 @@ export default function Checkout() {
           }
 
           alert("Payment successful. Plan upgraded.");
-          dispatch(fetchMe());
-          navigate("/app");
+         await dispatch(fetchMe());
+
+const updatedUser = (await dispatch(fetchMe())).payload;
+
+if (
+  updatedUser?.plan === "pro" ||
+  updatedUser?.plan === "business"
+) {
+  navigate("/app/pro", { replace: true });
+} else {
+  navigate("/app", { replace: true });
+}
         },
 
         modal: {
@@ -114,12 +136,15 @@ export default function Checkout() {
     <div className="grid min-h-screen place-items-center bg-background px-4 text-foreground">
       <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-xl">
         <h1 className="text-3xl font-black">
-          Upgrade to <span className="brand-text">{plan}</span>
-        </h1>
+  Upgrade to{" "}
+  <span className="brand-text capitalize">{plan}</span>
+</h1>
 
-        <p className="mt-3 text-sm text-muted-foreground">
-          Your country will be detected automatically.
-        </p>
+<p className="mt-3 text-sm text-muted-foreground">
+  {billing === "yearly"
+    ? "Annual Billing • Save 20%"
+    : "Monthly Billing"}
+</p>
 
         <button
           onClick={handlePayment}

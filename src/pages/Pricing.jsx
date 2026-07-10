@@ -1,7 +1,6 @@
-// src/pages/Pricing.jsx
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   Check,
   Crown,
@@ -155,6 +154,10 @@ const faqs = [
 
 export default function Pricing() {
   const [billing, setBilling] = useState("monthly");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const { user } = useSelector((state) => state.auth || {});
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
@@ -203,9 +206,16 @@ export default function Pricing() {
         </section>
 
         <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-16 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
-          {plans.map((plan) => (
-            <PlanCard key={plan.name} plan={plan} billing={billing} />
-          ))}
+         {plans.map((plan) => (
+  <PlanCard
+    key={plan.name}
+    plan={plan}
+    billing={billing}
+    user={user}
+    navigate={navigate}
+    currentLocation={location}
+  />
+))}
         </section>
 
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
@@ -327,18 +337,36 @@ const loadRazorpay = () =>
   });
 
 
-function PlanCard({ plan, billing }) {
+function PlanCard({  plan,
+  billing,
+  user,
+  navigate,
+  currentLocation, }) {
   const Icon = plan.icon;
   const [loading, setLoading] = useState(false);
 
-  const handlePayment = async () => {
+const handlePayment = async () => {
   if (plan.name === "Free") {
-    window.location.href = "/signup";
+    navigate("/signup");
     return;
   }
 
   if (plan.name === "Agency") {
-    window.location.href = "/waitlist";
+    navigate("/waitlist");
+    return;
+  }
+
+  if (!user) {
+    navigate("/signin", {
+      state: {
+        from: currentLocation.pathname,
+        paymentIntent: {
+          plan: plan.name.toLowerCase(),
+          billing,
+        },
+      },
+    });
+
     return;
   }
 

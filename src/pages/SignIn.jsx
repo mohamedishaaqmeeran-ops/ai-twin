@@ -1,7 +1,11 @@
 // src/pages/SignIn.jsx
 
 import { useState , useEffect , useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -20,7 +24,8 @@ import { loginUser, googleLoginUser } from "../features/auth/authSlice";
 
 export default function SignIn() {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+const location = useLocation();
+const dispatch = useDispatch();
 
   const { loading, error } = useSelector((state) => state.auth || {});
 
@@ -30,22 +35,45 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
 const googleButtonRef = useRef(null);
 
-  const redirectByRoleAndPlan = (user) => {
-    const role = user?.role || "user";
-    const plan = (user?.plan || "free").toLowerCase();
+ const redirectAfterLogin = (loggedInUser) => {
+  const role = loggedInUser?.role || "user";
+  const plan = (loggedInUser?.plan || "free").toLowerCase();
 
-    if (role === "admin") {
-      navigate("/admin", { replace: true });
-      return;
-    }
+  const requestedPath = location.state?.from;
+  const paymentIntent = location.state?.paymentIntent;
 
-    if (plan === "pro" || plan === "business") {
-      navigate("/app/pro", { replace: true });
-      return;
-    }
+  // Admin always goes to admin dashboard
+  if (role === "admin") {
+    navigate("/admin", { replace: true });
+    return;
+  }
 
-    navigate("/app", { replace: true });
-  };
+  // User came from pricing page to purchase a plan
+  if (paymentIntent?.plan) {
+    navigate(`/checkout/${paymentIntent.plan}`, {
+      replace: true,
+      state: {
+        billing: paymentIntent.billing || "monthly",
+        from: requestedPath || "/pricing",
+      },
+    });
+    return;
+  }
+
+  // User came from another protected page
+  if (requestedPath) {
+    navigate(requestedPath, { replace: true });
+    return;
+  }
+
+  // Normal login redirect
+  if (plan === "pro" || plan === "business") {
+    navigate("/app/pro", { replace: true });
+    return;
+  }
+
+  navigate("/app", { replace: true });
+};
 
   const handleEmailLogin = async (e) => {
     e.preventDefault();
@@ -57,9 +85,9 @@ const googleButtonRef = useRef(null);
       })
     );
 
-    if (loginUser.fulfilled.match(result)) {
-      redirectByRoleAndPlan(result.payload?.user || result.payload);
-    }
+   if (loginUser.fulfilled.match(result)) {
+  redirectAfterLogin(result.payload?.user || result.payload);
+}
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -73,8 +101,8 @@ const googleButtonRef = useRef(null);
     const result = await dispatch(googleLoginUser(credential));
 
     if (googleLoginUser.fulfilled.match(result)) {
-      redirectByRoleAndPlan(result.payload?.user || result.payload);
-    }
+  redirectAfterLogin(result.payload?.user || result.payload);
+}
   };
 
   const handleGoogleError = () => {
@@ -229,11 +257,15 @@ const googleButtonRef = useRef(null);
                 </div>
 <div className="flex justify-end">
   <Link
-    to="/forgot-password"
-    className="text-sm font-bold text-[var(--brand-pink)] transition hover:underline"
-  >
-    Forgot password?
-  </Link>
+  to="/forgot-password"
+  state={{
+    from: location.state?.from,
+    paymentIntent: location.state?.paymentIntent,
+  }}
+  className="text-sm font-bold text-[var(--brand-pink)] transition hover:underline"
+>
+  Forgot password?
+</Link>
 </div>
                 {error && (
                   <div className="rounded-[5px] bg-red-50 p-3 text-sm font-bold text-red-600 dark:bg-red-500/10 dark:text-red-400">
