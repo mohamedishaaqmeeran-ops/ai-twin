@@ -1,3 +1,4 @@
+
 import {
   useEffect,
   useMemo,
@@ -82,12 +83,6 @@ const platforms = [
   },
 ];
 
-const defaultProducts = [
-  "Vitamin C Glow Serum",
-  "Wireless Headphone",
-  "Smart Watch",
-];
-
 const normalizePlatform = (
   platform = ""
 ) =>
@@ -115,34 +110,6 @@ const sortPlatformsByPriority = (
   );
 };
 
-const parseStoredProduct = (
-  storedValue
-) => {
-  if (!storedValue) {
-    return "";
-  }
-
-  try {
-    const parsed =
-      JSON.parse(storedValue);
-
-    if (
-      parsed &&
-      typeof parsed === "object"
-    ) {
-      return (
-        parsed.name ||
-        parsed.productName ||
-        ""
-      );
-    }
-
-    return String(parsed || "");
-  } catch {
-    return storedValue;
-  }
-};
-
 const getConnection = (
   connections,
   platform
@@ -161,16 +128,14 @@ export default function CreateSchedule() {
   const dispatch = useDispatch();
 
   const { user } = useSelector(
-    (state) =>
-      state.auth || {}
+    (state) => state.auth || {}
   );
 
   const {
     connections = [],
     loading: socialLoading,
   } = useSelector(
-    (state) =>
-      state.social || {}
+    (state) => state.social || {}
   );
 
   const plan = String(
@@ -198,22 +163,26 @@ export default function CreateSchedule() {
     setLoadingCount,
   ] = useState(false);
 
-  const [twin, setTwin] =
-    useState({
-      id: 1,
-      name: "My AI Twin",
-      image: "/images/bb.png",
-      voice: "Warm Female",
-      status: "Active",
-    });
-
-  const [product, setProduct] =
-    useState(
-      "Vitamin C Glow Serum"
-    );
+  const [twin, setTwin] = useState({
+    id: 1,
+    name: "My AI Twin",
+    image: "/images/bb.png",
+    voice: "Warm Female",
+    status: "Active",
+  });
 
   const [products, setProducts] =
-    useState(defaultProducts);
+    useState([]);
+
+  const [
+    selectedProductId,
+    setSelectedProductId,
+  ] = useState("");
+
+  const [
+    loadingProducts,
+    setLoadingProducts,
+  ] = useState(false);
 
   const [title, setTitle] =
     useState("");
@@ -252,6 +221,20 @@ export default function CreateSchedule() {
 
   const [error, setError] =
     useState("");
+
+  const selectedProduct =
+    useMemo(() => {
+      return products.find(
+        (item) =>
+          String(
+            item._id || item.id
+          ) ===
+          String(selectedProductId)
+      );
+    }, [
+      products,
+      selectedProductId,
+    ]);
 
   const connectedPlatforms =
     useMemo(() => {
@@ -368,6 +351,127 @@ export default function CreateSchedule() {
       }
     };
 
+  const loadProducts =
+    async () => {
+      try {
+        setLoadingProducts(true);
+        setError("");
+
+        const res = await fetch(
+          `${API}/products`,
+          {
+            method: "GET",
+            credentials:
+              "include",
+          }
+        );
+
+        const data = await res
+          .json()
+          .catch(() => ({}));
+
+        if (
+          !res.ok ||
+          data.success === false
+        ) {
+          throw new Error(
+            data.message ||
+              "Unable to load products"
+          );
+        }
+
+        const productList =
+          Array.isArray(data)
+            ? data
+            : data.products ||
+              data.data ||
+              [];
+
+        const normalizedProducts =
+          Array.isArray(
+            productList
+          )
+            ? productList
+            : [];
+
+        setProducts(
+          normalizedProducts
+        );
+
+        const savedProduct =
+          localStorage.getItem(
+            "selectedProduct"
+          );
+
+        let savedProductId = "";
+
+        if (savedProduct) {
+          try {
+            const parsed =
+              JSON.parse(
+                savedProduct
+              );
+
+            savedProductId =
+              parsed?._id ||
+              parsed?.id ||
+              "";
+          } catch {
+            savedProductId = "";
+          }
+        }
+
+        const savedProductExists =
+          normalizedProducts.some(
+            (item) =>
+              String(
+                item._id ||
+                  item.id
+              ) ===
+              String(
+                savedProductId
+              )
+          );
+
+        if (savedProductExists) {
+          setSelectedProductId(
+            savedProductId
+          );
+        } else if (
+          normalizedProducts.length >
+          0
+        ) {
+          setSelectedProductId(
+            normalizedProducts[0]
+              ._id ||
+              normalizedProducts[0]
+                .id
+          );
+        } else {
+          setSelectedProductId(
+            ""
+          );
+        }
+      } catch (loadError) {
+        console.error(
+          "LOAD PRODUCTS ERROR:",
+          loadError
+        );
+
+        setProducts([]);
+        setSelectedProductId(
+          ""
+        );
+
+        setError(
+          loadError.message ||
+            "Unable to load products"
+        );
+      } finally {
+        setLoadingProducts(false);
+      }
+    };
+
   useEffect(() => {
     if (!user) {
       dispatch(fetchMe());
@@ -378,6 +482,7 @@ export default function CreateSchedule() {
     );
 
     loadScheduleCount();
+    loadProducts();
 
     const savedTwin =
       JSON.parse(
@@ -424,73 +529,6 @@ export default function CreateSchedule() {
         savedTwin.status ||
         "Active",
     });
-
-    const storedProducts =
-      JSON.parse(
-        localStorage.getItem(
-          "products"
-        ) || "[]"
-      );
-
-    if (
-      Array.isArray(
-        storedProducts
-      ) &&
-      storedProducts.length
-    ) {
-      const productNames =
-        storedProducts
-          .map(
-            (item) =>
-              item?.name ||
-              item?.productName
-          )
-          .filter(Boolean);
-
-      setProducts([
-        ...new Set([
-          ...defaultProducts,
-          ...productNames,
-        ]),
-      ]);
-
-      const storedSelectedProduct =
-        parseStoredProduct(
-          localStorage.getItem(
-            "selectedProduct"
-          )
-        );
-
-      setProduct(
-        storedSelectedProduct ||
-          productNames[0] ||
-          defaultProducts[0]
-      );
-    } else {
-      const storedSelectedProduct =
-        parseStoredProduct(
-          localStorage.getItem(
-            "selectedProduct"
-          )
-        );
-
-      if (
-        storedSelectedProduct
-      ) {
-        setProduct(
-          storedSelectedProduct
-        );
-
-        setProducts(
-          (currentProducts) => [
-            ...new Set([
-              ...currentProducts,
-              storedSelectedProduct,
-            ]),
-          ]
-        );
-      }
-    }
 
     const storedVideoPath =
       localStorage.getItem(
@@ -617,7 +655,10 @@ export default function CreateSchedule() {
         : "Free schedule limit reached. Upgrade to Pro to create more schedules.";
     }
 
-    if (!product) {
+    if (
+      !selectedProductId ||
+      !selectedProduct
+    ) {
       return "Please select a product.";
     }
 
@@ -728,6 +769,12 @@ export default function CreateSchedule() {
                 )
           );
 
+        const productName =
+          selectedProduct.name ||
+          selectedProduct
+            .productName ||
+          "Unnamed Product";
+
         const payload = {
           twinId:
             twin._id ||
@@ -742,14 +789,18 @@ export default function CreateSchedule() {
           twinVoice:
             twin.voice,
 
-          product,
+          productId:
+            selectedProduct._id ||
+            selectedProduct.id,
 
-          productName:
-            product,
+          product:
+            productName,
+
+          productName,
 
           title:
             title.trim() ||
-            `${product} Live Sale`,
+            `${productName} Live Sale`,
 
           description:
             description.trim(),
@@ -812,7 +863,9 @@ export default function CreateSchedule() {
 
         localStorage.setItem(
           "selectedProduct",
-          product
+          JSON.stringify(
+            selectedProduct
+          )
         );
 
         localStorage.setItem(
@@ -1102,27 +1155,102 @@ export default function CreateSchedule() {
           <div className="grid gap-5 md:grid-cols-2">
             <Field label="Select Product">
               <select
-                value={product}
+                value={
+                  selectedProductId
+                }
                 onChange={(event) =>
-                  setProduct(
+                  setSelectedProductId(
                     event.target.value
                   )
+                }
+                disabled={
+                  loadingProducts ||
+                  products.length === 0
                 }
                 className={
                   inputClass
                 }
               >
-                {products.map(
-                  (item) => (
+                {loadingProducts ? (
+                  <option value="">
+                    Loading products...
+                  </option>
+                ) : products.length ===
+                  0 ? (
+                  <option value="">
+                    No products found
+                  </option>
+                ) : (
+                  <>
                     <option
-                      key={item}
-                      value={item}
+                      value=""
+                      disabled
                     >
-                      {item}
+                      Select a product
                     </option>
-                  )
+
+                    {products.map(
+                      (item) => {
+                        const productId =
+                          item._id ||
+                          item.id;
+
+                        const productName =
+                          item.name ||
+                          item.productName ||
+                          "Unnamed Product";
+
+                        const productPrice =
+                          Number(
+                            item.price
+                          );
+
+                        return (
+                          <option
+                            key={
+                              productId
+                            }
+                            value={
+                              productId
+                            }
+                          >
+                            {
+                              productName
+                            }
+                            {!Number.isNaN(
+                              productPrice
+                            )
+                              ? ` - ₹${productPrice.toLocaleString(
+                                  "en-IN"
+                                )}`
+                              : ""}
+                          </option>
+                        );
+                      }
+                    )}
+                  </>
                 )}
               </select>
+
+              {!loadingProducts &&
+                products.length ===
+                  0 && (
+                  <div className="mt-3 rounded-xl border border-orange-200 bg-orange-50 p-3 text-sm font-medium text-orange-600 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-400">
+                    You have not added any products yet.
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/app/products/add"
+                        )
+                      }
+                      className="ml-2 font-black underline"
+                    >
+                      Add Product
+                    </button>
+                  </div>
+                )}
             </Field>
 
             <Field label="Live Title">
@@ -1341,6 +1469,9 @@ export default function CreateSchedule() {
             }
             disabled={
               saving ||
+              loadingProducts ||
+              !selectedProductId ||
+              !selectedProduct ||
               !date ||
               !time ||
               !videoPath.trim() ||
@@ -1398,7 +1529,13 @@ export default function CreateSchedule() {
               <Info
                 icon={Package}
                 label="Product"
-                value={product}
+                value={
+                  selectedProduct
+                    ?.name ||
+                  selectedProduct
+                    ?.productName ||
+                  "Not selected"
+                }
               />
 
               <Info
@@ -1520,3 +1657,4 @@ function Info({
     </div>
   );
 }
+
