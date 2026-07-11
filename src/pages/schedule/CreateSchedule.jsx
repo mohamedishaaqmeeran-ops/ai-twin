@@ -221,14 +221,23 @@ const [videoUploadProgress, setVideoUploadProgress] =
     setDurationMinutes,
   ] = useState(30);
 
-  const [saved, setSaved] =
-    useState(false);
+  const [saved, setSaved] = useState(false);
 
-  const [saving, setSaving] =
-    useState(false);
+const [saving, setSaving] = useState(false);
 
-  const [error, setError] =
-    useState("");
+const [error, setError] = useState("");
+
+const [instagramRtmpUrl, setInstagramRtmpUrl] = useState(
+  "rtmps://live-upload.instagram.com:443/rtmp"
+);
+
+const [instagramStreamKey, setInstagramStreamKey] = useState("");
+
+const [savingInstagramRtmp, setSavingInstagramRtmp] =
+  useState(false);
+
+const [instagramRtmpSaved, setInstagramRtmpSaved] =
+  useState(false);
 
     const uploadLiveVideo = async () => {
   try {
