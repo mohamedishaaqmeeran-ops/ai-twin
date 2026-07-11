@@ -285,7 +285,7 @@ const [showVideo, setShowVideo] = useState(false);
 
  <video
   autoPlay
-  
+  muted
   loop
   playsInline
   preload="auto"
