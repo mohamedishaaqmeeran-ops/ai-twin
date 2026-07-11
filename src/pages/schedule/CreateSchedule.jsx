@@ -1,6 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  useDispatch,
+  useSelector,
+} from "react-redux";
+
 import {
   Youtube,
   Facebook,
@@ -18,18 +30,56 @@ import {
   Crown,
   Lock,
   AlertCircle,
+  Video,
+  Timer,
+  Link2,
 } from "lucide-react";
 
-import { fetchMe } from "../../features/auth/authSlice";
-import { fetchConnections } from "../../features/social/socialSlice";
+import {
+  fetchMe,
+} from "../../features/auth/authSlice";
 
-const API = "https://twinn-backend.onrender.com/api";
+import {
+  fetchConnections,
+} from "../../features/social/socialSlice";
+
+const API =
+  import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api`
+    : "https://twinn-backend.onrender.com/api";
+
+const PLATFORM_PRIORITY = [
+  "instagram",
+  "facebook",
+  "youtube",
+  "tiktok",
+];
 
 const platforms = [
-  { id: "instagram", name: "Instagram", icon: Instagram, pro: false },
-  { id: "youtube", name: "YouTube", icon: Youtube, pro: true },
-  { id: "facebook", name: "Facebook", icon: Facebook, pro: true },
-  { id: "tiktok", name: "TikTok", icon: Music2, pro: true },
+  {
+    id: "instagram",
+    name: "Instagram",
+    icon: Instagram,
+    pro: false,
+  },
+  {
+    id: "facebook",
+    name: "Facebook",
+    icon: Facebook,
+    pro: true,
+  },
+  {
+    id: "youtube",
+    name: "YouTube",
+    icon: Youtube,
+    pro: true,
+  },
+  {
+    id: "tiktok",
+    name: "TikTok",
+    icon: Music2,
+    pro: true,
+  },
 ];
 
 const defaultProducts = [
@@ -38,54 +88,217 @@ const defaultProducts = [
   "Smart Watch",
 ];
 
-const normalizePlatform = (platform = "") =>
-  platform.toString().trim().toLowerCase();
+const normalizePlatform = (
+  platform = ""
+) =>
+  String(platform)
+    .trim()
+    .toLowerCase();
+
+const sortPlatformsByPriority = (
+  selectedPlatforms = []
+) => {
+  return [...selectedPlatforms].sort(
+    (first, second) => {
+      const firstPriority =
+        PLATFORM_PRIORITY.indexOf(
+          normalizePlatform(first)
+        );
+
+      const secondPriority =
+        PLATFORM_PRIORITY.indexOf(
+          normalizePlatform(second)
+        );
+
+      return firstPriority - secondPriority;
+    }
+  );
+};
+
+const parseStoredProduct = (
+  storedValue
+) => {
+  if (!storedValue) {
+    return "";
+  }
+
+  try {
+    const parsed =
+      JSON.parse(storedValue);
+
+    if (
+      parsed &&
+      typeof parsed === "object"
+    ) {
+      return (
+        parsed.name ||
+        parsed.productName ||
+        ""
+      );
+    }
+
+    return String(parsed || "");
+  } catch {
+    return storedValue;
+  }
+};
+
+const getConnection = (
+  connections,
+  platform
+) => {
+  return connections.find(
+    (connection) =>
+      normalizePlatform(
+        connection?.platform
+      ) === platform &&
+      connection?.connected !== false
+  );
+};
 
 export default function CreateSchedule() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { user } = useSelector((state) => state.auth || {});
-  const { connections = [], loading: socialLoading } = useSelector(
-    (state) => state.social || {}
+  const { user } = useSelector(
+    (state) =>
+      state.auth || {}
   );
 
-  const plan = user?.plan || "free";
-  const isPro = plan === "pro" || plan === "business";
+  const {
+    connections = [],
+    loading: socialLoading,
+  } = useSelector(
+    (state) =>
+      state.social || {}
+  );
 
-  const maxSchedules = isPro ? 50 : 1;
-  const maxPlatforms = isPro ? 4 : 1;
+  const plan = String(
+    user?.plan || "free"
+  ).toLowerCase();
 
-  const [existingCount, setExistingCount] = useState(0);
-  const [loadingCount, setLoadingCount] = useState(false);
+  const isPro =
+    plan === "pro" ||
+    plan === "business" ||
+    plan === "agency";
 
-  const [twin, setTwin] = useState({
-    id: 1,
-    name: "My AI Twin",
-    image: "/images/bb.png",
-    voice: "Warm Female",
-    status: "Active",
-  });
+  const maxSchedules =
+    isPro ? 50 : 1;
 
-  const [product, setProduct] = useState("Vitamin C Glow Serum");
-  const [products, setProducts] = useState(defaultProducts);
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [selectedPlatforms, setSelectedPlatforms] = useState([]);
-  const [description, setDescription] = useState("");
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const maxPlatforms =
+    isPro ? 4 : 1;
 
-  const reachedLimit = existingCount >= maxSchedules;
+  const [
+    existingCount,
+    setExistingCount,
+  ] = useState(0);
 
-  const connectedPlatforms = useMemo(() => {
-    return connections
-      .filter((item) => item?.connected !== false)
-      .map((item) => normalizePlatform(item.platform))
-      .filter(Boolean);
-  }, [connections]);
+  const [
+    loadingCount,
+    setLoadingCount,
+  ] = useState(false);
+
+  const [twin, setTwin] =
+    useState({
+      id: 1,
+      name: "My AI Twin",
+      image: "/images/bb.png",
+      voice: "Warm Female",
+      status: "Active",
+    });
+
+  const [product, setProduct] =
+    useState(
+      "Vitamin C Glow Serum"
+    );
+
+  const [products, setProducts] =
+    useState(defaultProducts);
+
+  const [title, setTitle] =
+    useState("");
+
+  const [date, setDate] =
+    useState("");
+
+  const [time, setTime] =
+    useState("");
+
+  const [
+    selectedPlatforms,
+    setSelectedPlatforms,
+  ] = useState([]);
+
+  const [
+    description,
+    setDescription,
+  ] = useState("");
+
+  const [
+    videoPath,
+    setVideoPath,
+  ] = useState("");
+
+  const [
+    durationMinutes,
+    setDurationMinutes,
+  ] = useState(30);
+
+  const [saved, setSaved] =
+    useState(false);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const connectedPlatforms =
+    useMemo(() => {
+      return connections
+        .filter(
+          (connection) =>
+            connection?.connected !==
+            false
+        )
+        .map((connection) =>
+          normalizePlatform(
+            connection.platform
+          )
+        )
+        .filter(Boolean);
+    }, [connections]);
+
+  const activeScheduleCount =
+    existingCount;
+
+  const reachedLimit =
+    activeScheduleCount >=
+    maxSchedules;
+
+  const instagramConnection =
+    useMemo(
+      () =>
+        getConnection(
+          connections,
+          "instagram"
+        ),
+      [connections]
+    );
+
+  const instagramRtmpConfigured =
+    Boolean(
+      instagramConnection
+        ?.instagramRtmpConfigured ||
+        instagramConnection
+          ?.rtmpConfigured ||
+        instagramConnection
+          ?.instagramRtmpUrl
+    );
+
+  const minimumDate = new Date()
+    .toISOString()
+    .split("T")[0];
 
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
@@ -94,179 +307,574 @@ export default function CreateSchedule() {
     navigate("/pricing");
   };
 
-  const loadScheduleCount = async () => {
-    try {
-      setLoadingCount(true);
+  const loadScheduleCount =
+    async () => {
+      try {
+        setLoadingCount(true);
 
-      const res = await fetch(`${API}/schedules`, {
-        credentials: "include",
-      });
+        const res = await fetch(
+          `${API}/schedules`,
+          {
+            credentials:
+              "include",
+          }
+        );
 
-      const data = await res.json().catch(() => ({}));
+        const data = await res
+          .json()
+          .catch(() => ({}));
 
-      if (!res.ok) return;
+        if (
+          !res.ok ||
+          data.success === false
+        ) {
+          return;
+        }
 
-      const list = Array.isArray(data)
-        ? data
-        : data.schedules || data.data || [];
+        const list =
+          Array.isArray(data)
+            ? data
+            : data.schedules ||
+              data.data ||
+              [];
 
-      setExistingCount(Array.isArray(list) ? list.length : 0);
-    } finally {
-      setLoadingCount(false);
-    }
-  };
+        const activeSchedules =
+          Array.isArray(list)
+            ? list.filter(
+                (schedule) =>
+                  [
+                    "upcoming",
+                    "starting",
+                    "live",
+                  ].includes(
+                    String(
+                      schedule.status ||
+                        "Upcoming"
+                    ).toLowerCase()
+                  )
+              )
+            : [];
+
+        setExistingCount(
+          activeSchedules.length
+        );
+      } catch (loadError) {
+        console.error(
+          "LOAD SCHEDULE COUNT ERROR:",
+          loadError
+        );
+      } finally {
+        setLoadingCount(false);
+      }
+    };
 
   useEffect(() => {
     if (!user) {
       dispatch(fetchMe());
     }
 
-    dispatch(fetchConnections());
+    dispatch(
+      fetchConnections()
+    );
+
     loadScheduleCount();
 
-    const savedTwin = JSON.parse(localStorage.getItem("aiTwin") || "{}");
-    const twinName = localStorage.getItem("twinName") || "My AI Twin";
-    const twinImage = localStorage.getItem("twinImage") || "/images/bb.png";
-    const voiceStyle = localStorage.getItem("voiceStyle") || "Warm Female";
+    const savedTwin =
+      JSON.parse(
+        localStorage.getItem(
+          "aiTwin"
+        ) || "{}"
+      );
+
+    const twinName =
+      localStorage.getItem(
+        "twinName"
+      ) || "My AI Twin";
+
+    const twinImage =
+      localStorage.getItem(
+        "twinImage"
+      ) || "/images/bb.png";
+
+    const voiceStyle =
+      localStorage.getItem(
+        "voiceStyle"
+      ) || "Warm Female";
 
     setTwin({
-      id: savedTwin.id || 1,
-      name: savedTwin.name || twinName,
-      image: savedTwin.image || twinImage,
-      voice: savedTwin.voice || voiceStyle,
-      status: savedTwin.status || "Active",
+      id:
+        savedTwin._id ||
+        savedTwin.id ||
+        1,
+
+      name:
+        savedTwin.name ||
+        twinName,
+
+      image:
+        savedTwin.image ||
+        savedTwin.imageUrl ||
+        twinImage,
+
+      voice:
+        savedTwin.voice ||
+        voiceStyle,
+
+      status:
+        savedTwin.status ||
+        "Active",
     });
 
-    const savedProducts = JSON.parse(localStorage.getItem("products") || "[]");
+    const storedProducts =
+      JSON.parse(
+        localStorage.getItem(
+          "products"
+        ) || "[]"
+      );
 
-    if (savedProducts.length) {
-      const productNames = savedProducts.map((item) => item.name).filter(Boolean);
-      setProducts([...new Set([...defaultProducts, ...productNames])]);
+    if (
+      Array.isArray(
+        storedProducts
+      ) &&
+      storedProducts.length
+    ) {
+      const productNames =
+        storedProducts
+          .map(
+            (item) =>
+              item?.name ||
+              item?.productName
+          )
+          .filter(Boolean);
 
-      const selectedProduct = localStorage.getItem("selectedProduct");
-      setProduct(selectedProduct || productNames[0] || defaultProducts[0]);
+      setProducts([
+        ...new Set([
+          ...defaultProducts,
+          ...productNames,
+        ]),
+      ]);
+
+      const storedSelectedProduct =
+        parseStoredProduct(
+          localStorage.getItem(
+            "selectedProduct"
+          )
+        );
+
+      setProduct(
+        storedSelectedProduct ||
+          productNames[0] ||
+          defaultProducts[0]
+      );
     } else {
-      const selectedProduct = localStorage.getItem("selectedProduct");
-      if (selectedProduct) setProduct(selectedProduct);
+      const storedSelectedProduct =
+        parseStoredProduct(
+          localStorage.getItem(
+            "selectedProduct"
+          )
+        );
+
+      if (
+        storedSelectedProduct
+      ) {
+        setProduct(
+          storedSelectedProduct
+        );
+
+        setProducts(
+          (currentProducts) => [
+            ...new Set([
+              ...currentProducts,
+              storedSelectedProduct,
+            ]),
+          ]
+        );
+      }
+    }
+
+    const storedVideoPath =
+      localStorage.getItem(
+        "selectedVideoUrl"
+      ) ||
+      localStorage.getItem(
+        "videoPath"
+      ) ||
+      "";
+
+    if (storedVideoPath) {
+      setVideoPath(
+        storedVideoPath
+      );
     }
   }, [dispatch]);
 
   useEffect(() => {
-    if (!connectedPlatforms.length) {
-      setSelectedPlatforms([]);
+    if (
+      !connectedPlatforms.length
+    ) {
+      setSelectedPlatforms(
+        []
+      );
+
       return;
     }
 
-    setSelectedPlatforms(isPro ? connectedPlatforms : connectedPlatforms.slice(0, 1));
-  }, [connectedPlatforms, isPro]);
+    const sorted =
+      sortPlatformsByPriority(
+        connectedPlatforms
+      );
 
-  const togglePlatform = (platformId) => {
-    const item = platforms.find((p) => p.id === platformId);
-    const active = selectedPlatforms.includes(platformId);
-    const isConnected = connectedPlatforms.includes(platformId);
+    setSelectedPlatforms(
+      isPro
+        ? sorted
+        : sorted.slice(0, 1)
+    );
+  }, [
+    connectedPlatforms,
+    isPro,
+  ]);
+
+  const togglePlatform = (
+    platformId
+  ) => {
+    setError("");
+
+    const platformItem =
+      platforms.find(
+        (item) =>
+          item.id === platformId
+      );
+
+    const isSelected =
+      selectedPlatforms.includes(
+        platformId
+      );
+
+    const isConnected =
+      connectedPlatforms.includes(
+        platformId
+      );
 
     if (!isConnected) {
-      alert("Please connect this platform first.");
+      alert(
+        "Please connect this platform first."
+      );
+
       navigate("/app/connect");
+
       return;
     }
 
-    if (item?.pro && !isPro && !active) {
+    if (
+      platformItem?.pro &&
+      !isPro &&
+      !isSelected
+    ) {
       upgradeToPro();
       return;
     }
 
-    if (active) {
-      setSelectedPlatforms((prev) => prev.filter((item) => item !== platformId));
+    if (isSelected) {
+      setSelectedPlatforms(
+        (current) =>
+          current.filter(
+            (item) =>
+              item !== platformId
+          )
+      );
+
       return;
     }
 
-    if (!isPro && selectedPlatforms.length >= maxPlatforms) {
-      upgradeToPro();
-      return;
-    }
-
-    setSelectedPlatforms((prev) => [...prev, platformId]);
-  };
-
-  const saveSchedule = async () => {
-    try {
-      setError("");
-
-      if (reachedLimit) {
+    if (
+      selectedPlatforms.length >=
+      maxPlatforms
+    ) {
+      if (!isPro) {
         upgradeToPro();
-        return;
+      } else {
+        setError(
+          `You can select up to ${maxPlatforms} platforms.`
+        );
       }
 
-      if (!date || !time || !product || !selectedPlatforms.length) {
-        setError("Please select product, date, time and platform.");
-        return;
-      }
-
-      setSaving(true);
-
-      const payload = {
-        twinId: twin.id,
-        twinName: twin.name,
-        twinImage: twin.image,
-        twinVoice: twin.voice,
-        product,
-        title: title || `${product} Live Sale`,
-        date,
-        time,
-        platforms: isPro ? selectedPlatforms : selectedPlatforms.slice(0, 1),
-        description,
-        plan: isPro ? "pro" : "free",
-        status: "Upcoming",
-      };
-
-      const res = await fetch(`${API}/schedules`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        throw new Error(data.message || "Unable to save schedule");
-      }
-
-      localStorage.setItem("selectedProduct", product);
-      localStorage.setItem(
-        "selectedPlatforms",
-        JSON.stringify(payload.platforms)
-      );
-      localStorage.setItem(
-        "selectedTwin",
-        JSON.stringify({
-          id: twin.id,
-          name: twin.name,
-          image: twin.image,
-          voice: twin.voice,
-        })
-      );
-
-      setSaved(true);
-
-      setTimeout(() => {
-        navigate("/app/schedule");
-      }, 1000);
-    } catch (err) {
-      setError(err.message || "Unable to save schedule");
-    } finally {
-      setSaving(false);
+      return;
     }
+
+    setSelectedPlatforms(
+      (current) =>
+        sortPlatformsByPriority([
+          ...current,
+          platformId,
+        ])
+    );
   };
+
+  const validateSchedule = () => {
+    if (reachedLimit) {
+      return isPro
+        ? `You have reached the limit of ${maxSchedules} active schedules.`
+        : "Free schedule limit reached. Upgrade to Pro to create more schedules.";
+    }
+
+    if (!product) {
+      return "Please select a product.";
+    }
+
+    if (!date || !time) {
+      return "Please select a date and time.";
+    }
+
+    if (
+      !selectedPlatforms.length
+    ) {
+      return "Please select at least one connected platform.";
+    }
+
+    if (!videoPath.trim()) {
+      return "Please enter the uploaded video URL required for the scheduled live.";
+    }
+
+    const scheduledDate =
+      new Date(
+        `${date}T${time}:00`
+      );
+
+    if (
+      Number.isNaN(
+        scheduledDate.getTime()
+      )
+    ) {
+      return "Please select a valid date and time.";
+    }
+
+    if (
+      scheduledDate.getTime() <=
+      Date.now()
+    ) {
+      return "Scheduled date and time must be in the future.";
+    }
+
+    if (
+      selectedPlatforms.includes(
+        "instagram"
+      ) &&
+      !instagramRtmpConfigured
+    ) {
+      return "Configure the Instagram RTMP URL and stream key before scheduling Instagram Live.";
+    }
+
+    const invalidConnection =
+      selectedPlatforms.find(
+        (platformId) =>
+          !connectedPlatforms.includes(
+            platformId
+          )
+      );
+
+    if (invalidConnection) {
+      return `Connect ${invalidConnection} before creating this schedule.`;
+    }
+
+    const duration =
+      Number(durationMinutes);
+
+    if (
+      Number.isNaN(duration) ||
+      duration < 1 ||
+      duration > 480
+    ) {
+      return "Duration must be between 1 and 480 minutes.";
+    }
+
+    return "";
+  };
+
+  const saveSchedule =
+    async () => {
+      try {
+        setError("");
+        setSaved(false);
+
+        const validationError =
+          validateSchedule();
+
+        if (validationError) {
+          setError(
+            validationError
+          );
+
+          if (reachedLimit) {
+            upgradeToPro();
+          }
+
+          return;
+        }
+
+        setSaving(true);
+
+        const localDateTime =
+          new Date(
+            `${date}T${time}:00`
+          );
+
+        const orderedPlatforms =
+          sortPlatformsByPriority(
+            isPro
+              ? selectedPlatforms
+              : selectedPlatforms.slice(
+                  0,
+                  1
+                )
+          );
+
+        const payload = {
+          twinId:
+            twin._id ||
+            twin.id,
+
+          twinName:
+            twin.name,
+
+          twinImage:
+            twin.image,
+
+          twinVoice:
+            twin.voice,
+
+          product,
+
+          productName:
+            product,
+
+          title:
+            title.trim() ||
+            `${product} Live Sale`,
+
+          description:
+            description.trim(),
+
+          videoPath:
+            videoPath.trim(),
+
+          platforms:
+            orderedPlatforms,
+
+          scheduledAt:
+            localDateTime.toISOString(),
+
+          timezone:
+            Intl.DateTimeFormat()
+              .resolvedOptions()
+              .timeZone ||
+            "Asia/Kolkata",
+
+          durationMinutes:
+            Number(
+              durationMinutes
+            ),
+
+          plan,
+        };
+
+        const res = await fetch(
+          `${API}/schedules`,
+          {
+            method: "POST",
+
+            credentials:
+              "include",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body: JSON.stringify(
+              payload
+            ),
+          }
+        );
+
+        const data = await res
+          .json()
+          .catch(() => ({}));
+
+        if (
+          !res.ok ||
+          data.success === false
+        ) {
+          throw new Error(
+            data.message ||
+              "Unable to save schedule"
+          );
+        }
+
+        localStorage.setItem(
+          "selectedProduct",
+          product
+        );
+
+        localStorage.setItem(
+          "selectedPlatforms",
+          JSON.stringify(
+            orderedPlatforms
+          )
+        );
+
+        localStorage.setItem(
+          "selectedTwin",
+          JSON.stringify({
+            id:
+              twin._id ||
+              twin.id,
+
+            name:
+              twin.name,
+
+            image:
+              twin.image,
+
+            voice:
+              twin.voice,
+          })
+        );
+
+        localStorage.setItem(
+          "selectedVideoUrl",
+          videoPath.trim()
+        );
+
+        setSaved(true);
+
+        window.setTimeout(
+          () => {
+            navigate(
+              "/app/schedule"
+            );
+          },
+          1000
+        );
+      } catch (saveError) {
+        setError(
+          saveError.message ||
+            "Unable to save schedule"
+        );
+      } finally {
+        setSaving(false);
+      }
+    };
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 bg-background text-foreground transition-colors duration-300">
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <button
-          onClick={() => navigate("/app/schedule")}
+          type="button"
+          onClick={() =>
+            navigate(
+              "/app/schedule"
+            )
+          }
           className="mb-5 flex items-center gap-2 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -280,7 +888,10 @@ export default function CreateSchedule() {
             ) : (
               <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
             )}
-            {isPro ? "CREATE PRO LIVE SCHEDULE" : "CREATE LIVE SCHEDULE"}
+
+            {isPro
+              ? "CREATE PRO LIVE SCHEDULE"
+              : "CREATE LIVE SCHEDULE"}
           </span>
 
           <span
@@ -290,62 +901,119 @@ export default function CreateSchedule() {
                 : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
             }`}
           >
-            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isPro ? (
+              <Crown className="h-4 w-4" />
+            ) : (
+              <Lock className="h-4 w-4" />
+            )}
+
             {isPro
-              ? "PRO PLAN ACTIVE"
-              : `FREE ${loadingCount ? "..." : existingCount}/${maxSchedules}`}
+              ? `${plan.toUpperCase()} PLAN ACTIVE`
+              : `FREE ${
+                  loadingCount
+                    ? "..."
+                    : activeScheduleCount
+                }/${maxSchedules}`}
           </span>
         </div>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
           <span className="brand-text">
-            {isPro ? "Schedule Pro" : "Schedule"}
+            {isPro
+              ? "Schedule Pro"
+              : "Schedule"}
           </span>{" "}
           Your AI Twin Live
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
           {isPro
-            ? "Choose AI Twin, product, multiple connected platforms and timing for Pro live selling."
-            : "Free plan supports one schedule and one connected platform only."}
+            ? "Choose your AI Twin, product, connected platforms, video and schedule time. Instagram starts first when selected."
+            : "Free plan supports one active schedule and one connected platform."}
         </p>
 
-        {!connectedPlatforms.length && !socialLoading && (
-          <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-white/10 dark:bg-white/10">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-black text-orange-600 dark:text-orange-400">
-                  No connected platform found
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Connect Instagram, YouTube, Facebook or TikTok before scheduling.
-                </p>
-              </div>
+        {!connectedPlatforms.length &&
+          !socialLoading && (
+            <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-white/10 dark:bg-white/10">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-orange-600 dark:text-orange-400">
+                    No connected platform found
+                  </p>
 
-              <button
-                onClick={() => navigate("/app/connect")}
-                className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
-              >
-                Connect Platform
-              </button>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Connect Instagram, YouTube, Facebook or TikTok before scheduling.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/app/connect"
+                    )
+                  }
+                  className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
+                >
+                  Connect Platform
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+
+        {connectedPlatforms.includes(
+          "instagram"
+        ) &&
+          !instagramRtmpConfigured && (
+            <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/20 dark:bg-orange-500/10">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-orange-600 dark:text-orange-400">
+                    Instagram Live setup required
+                  </p>
+
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Save your Instagram Live Producer RTMP URL and stream key before scheduling Instagram.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/app/connect"
+                    )
+                  }
+                  className="rounded-[5px] border-2 border-orange-500 px-5 py-3 text-sm font-bold text-orange-600"
+                >
+                  Configure RTMP
+                </button>
+              </div>
+            </div>
+          )}
 
         {!isPro && (
           <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-black text-[var(--brand-pink)]">
-                  Schedule Limit: {loadingCount ? "..." : existingCount}/{maxSchedules}
+                  Schedule Limit:{" "}
+                  {loadingCount
+                    ? "..."
+                    : activeScheduleCount}
+                  /{maxSchedules}
                 </p>
+
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Upgrade to Pro for 50 schedules and all platforms.
+                  Upgrade to Pro for up to 50 active schedules and multiple platforms.
                 </p>
               </div>
 
               <button
-                onClick={upgradeToPro}
+                type="button"
+                onClick={
+                  upgradeToPro
+                }
                 className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
               >
                 Upgrade
@@ -356,13 +1024,15 @@ export default function CreateSchedule() {
 
         {reachedLimit && (
           <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-bold text-orange-600 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-400">
-            Free schedule limit reached. Upgrade to Pro to create more schedules.
+            {isPro
+              ? `You have reached your limit of ${maxSchedules} active schedules.`
+              : "Free schedule limit reached. Upgrade to Pro to create more schedules."}
           </div>
         )}
 
         {error && (
-          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-600 dark:text-red-400">
-            <AlertCircle className="h-5 w-5" />
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-600 dark:text-red-400">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
             {error}
           </div>
         )}
@@ -376,7 +1046,7 @@ export default function CreateSchedule() {
             </h2>
 
             <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
-              Your live session will use this AI Twin.
+              Your scheduled live session will use this AI Twin.
             </p>
 
             <div className="mt-4 rounded-2xl border-2 border-[var(--brand-pink)] bg-pink-50 p-5 dark:bg-white/10">
@@ -385,6 +1055,10 @@ export default function CreateSchedule() {
                   src={twin.image}
                   alt={twin.name}
                   className="h-24 w-24 rounded-2xl bg-background object-cover"
+                  onError={(event) => {
+                    event.currentTarget.src =
+                      "/images/bb.png";
+                  }}
                 />
 
                 <div className="flex-1">
@@ -393,7 +1067,8 @@ export default function CreateSchedule() {
                   </h3>
 
                   <p className="mt-1 text-sm font-medium text-muted-foreground">
-                    Voice: {twin.voice}
+                    Voice:{" "}
+                    {twin.voice}
                   </p>
 
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -402,13 +1077,20 @@ export default function CreateSchedule() {
                     </span>
 
                     <span className="inline-flex rounded-full bg-pink-100 px-3 py-1 text-xs font-bold tracking-wide text-[var(--brand-pink)] dark:bg-white/10">
-                      {isPro ? "Pro Twin Account" : "One Twin Account"}
+                      {isPro
+                        ? "Paid Twin Account"
+                        : "Free Twin Account"}
                     </span>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => navigate("/app/twin")}
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      "/app/twin"
+                    )
+                  }
                   className="rounded-[5px] border-2 border-[var(--brand-pink)] px-4 py-2 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-100 dark:hover:bg-white/10"
                 >
                   Manage
@@ -421,22 +1103,39 @@ export default function CreateSchedule() {
             <Field label="Select Product">
               <select
                 value={product}
-                onChange={(e) => setProduct(e.target.value)}
-                className={inputClass}
+                onChange={(event) =>
+                  setProduct(
+                    event.target.value
+                  )
+                }
+                className={
+                  inputClass
+                }
               >
-                {products.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
+                {products.map(
+                  (item) => (
+                    <option
+                      key={item}
+                      value={item}
+                    >
+                      {item}
+                    </option>
+                  )
+                )}
               </select>
             </Field>
 
             <Field label="Live Title">
               <input
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className={inputClass}
+                onChange={(event) =>
+                  setTitle(
+                    event.target.value
+                  )
+                }
+                className={
+                  inputClass
+                }
                 placeholder="Ex: Glow Serum Evening Sale"
               />
             </Field>
@@ -444,9 +1143,16 @@ export default function CreateSchedule() {
             <Field label="Date">
               <input
                 type="date"
+                min={minimumDate}
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className={inputClass}
+                onChange={(event) =>
+                  setDate(
+                    event.target.value
+                  )
+                }
+                className={
+                  inputClass
+                }
               />
             </Field>
 
@@ -454,9 +1160,63 @@ export default function CreateSchedule() {
               <input
                 type="time"
                 value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className={inputClass}
+                onChange={(event) =>
+                  setTime(
+                    event.target.value
+                  )
+                }
+                className={
+                  inputClass
+                }
               />
+            </Field>
+
+            <Field label="Live Duration">
+              <div className="relative">
+                <Timer className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--brand-pink)]" />
+
+                <input
+                  type="number"
+                  min="1"
+                  max="480"
+                  value={
+                    durationMinutes
+                  }
+                  onChange={(event) =>
+                    setDurationMinutes(
+                      event.target.value
+                    )
+                  }
+                  className={`${inputClass} pl-12`}
+                  placeholder="30"
+                />
+              </div>
+
+              <p className="mt-2 text-xs font-medium text-muted-foreground">
+                The live stream will automatically stop after this duration.
+              </p>
+            </Field>
+
+            <Field label="Uploaded Video URL">
+              <div className="relative">
+                <Video className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--brand-pink)]" />
+
+                <input
+                  type="url"
+                  value={videoPath}
+                  onChange={(event) =>
+                    setVideoPath(
+                      event.target.value
+                    )
+                  }
+                  className={`${inputClass} pl-12`}
+                  placeholder="https://storage.example.com/live-video.mp4"
+                />
+              </div>
+
+              <p className="mt-2 text-xs font-medium text-muted-foreground">
+                Use a permanent Cloudinary, S3 or Google Cloud Storage video URL.
+              </p>
             </Field>
           </div>
 
@@ -467,81 +1227,131 @@ export default function CreateSchedule() {
 
             <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
               {isPro
-                ? "Choose one or more connected platforms for Pro live."
+                ? "Choose one or more connected platforms. Instagram will start first when selected."
                 : "Free plan allows only one connected platform."}
             </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {platforms.map(({ id, name, icon: Icon, pro }) => {
-                const active = selectedPlatforms.includes(id);
-                const locked = pro && !isPro;
-                const isConnected = connectedPlatforms.includes(id);
+              {platforms.map(
+                ({
+                  id,
+                  name,
+                  icon: Icon,
+                  pro,
+                }) => {
+                  const active =
+                    selectedPlatforms.includes(
+                      id
+                    );
 
-                return (
-                  <button
-                    key={id}
-                    onClick={() => togglePlatform(id)}
-                    className={`relative rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
-                      active
-                        ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
-                        : "border-border bg-background text-foreground"
-                    } ${!isConnected ? "opacity-70" : ""}`}
-                  >
-                    {locked && (
-                      <span className="absolute right-3 top-3 rounded-full bg-pink-500 px-2 py-1 text-[10px] font-black text-white">
-                        PRO
-                      </span>
-                    )}
+                  const locked =
+                    pro && !isPro;
 
-                    {!isConnected ? (
-                      <Lock className="h-6 w-6 text-[var(--brand-pink)]" />
-                    ) : locked ? (
-                      <Lock className="h-6 w-6 text-[var(--brand-pink)]" />
-                    ) : (
-                      <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
-                    )}
+                  const isConnected =
+                    connectedPlatforms.includes(
+                      id
+                    );
 
-                    <p className="mt-3 text-base font-black tracking-tight text-foreground">
-                      {name}
-                    </p>
+                  const needsInstagramRtmp =
+                    id ===
+                      "instagram" &&
+                    isConnected &&
+                    !instagramRtmpConfigured;
 
-                    <p className="mt-1 text-xs font-medium text-muted-foreground">
-                      {active
-                        ? "Selected"
-                        : !isConnected
-                        ? "Connect first"
-                        : locked
-                        ? "Pro only"
-                        : "Click to select"}
-                    </p>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() =>
+                        togglePlatform(
+                          id
+                        )
+                      }
+                      className={`relative rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
+                        active
+                          ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+                          : "border-border bg-background text-foreground"
+                      } ${
+                        !isConnected
+                          ? "opacity-70"
+                          : ""
+                      }`}
+                    >
+                      {locked && (
+                        <span className="absolute right-3 top-3 rounded-full bg-pink-500 px-2 py-1 text-[10px] font-black text-white">
+                          PRO
+                        </span>
+                      )}
+
+                      {id ===
+                        "instagram" &&
+                        active && (
+                          <span className="absolute left-3 top-3 rounded-full bg-emerald-500 px-2 py-1 text-[9px] font-black text-white">
+                            FIRST
+                          </span>
+                        )}
+
+                      {!isConnected ||
+                      locked ? (
+                        <Lock className="mt-5 h-6 w-6 text-[var(--brand-pink)]" />
+                      ) : (
+                        <Icon className="mt-5 h-6 w-6 text-[var(--brand-pink)]" />
+                      )}
+
+                      <p className="mt-3 text-base font-black tracking-tight text-foreground">
+                        {name}
+                      </p>
+
+                      <p className="mt-1 text-xs font-medium text-muted-foreground">
+                        {needsInstagramRtmp
+                          ? "Configure RTMP"
+                          : active
+                          ? "Selected"
+                          : !isConnected
+                          ? "Connect first"
+                          : locked
+                          ? "Pro only"
+                          : "Click to select"}
+                      </p>
+                    </button>
+                  );
+                }
+              )}
             </div>
           </div>
 
           <Field label="Live Description">
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(event) =>
+                setDescription(
+                  event.target.value
+                )
+              }
               className="mt-3 w-full rounded-2xl border border-border bg-background p-4 text-sm font-medium leading-6 text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20"
               rows="5"
-              placeholder="Describe what your AI Twin should talk about in this live..."
+              placeholder="Describe what your AI Twin should talk about during this live..."
             />
           </Field>
 
           <button
-            onClick={saveSchedule}
+            type="button"
+            onClick={
+              saveSchedule
+            }
             disabled={
               saving ||
               !date ||
               !time ||
-              selectedPlatforms.length === 0 ||
+              !videoPath.trim() ||
+              selectedPlatforms.length ===
+                0 ||
               reachedLimit
             }
             className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
+
             {saving
               ? "Saving..."
               : reachedLimit
@@ -561,6 +1371,10 @@ export default function CreateSchedule() {
                 src={twin.image}
                 alt={twin.name}
                 className="h-16 w-16 rounded-2xl object-cover"
+                onError={(event) => {
+                  event.currentTarget.src =
+                    "/images/bb.png";
+                }}
               />
 
               <div>
@@ -575,30 +1389,93 @@ export default function CreateSchedule() {
             </div>
 
             <div className="mt-5 space-y-3">
-              <Info icon={UserRound} label="AI Twin" value={twin.name} />
-              <Info icon={Package} label="Product" value={product} />
-              <Info icon={Calendar} label="Date" value={date || "Not selected"} />
-              <Info icon={Clock} label="Time" value={time || "Not selected"} />
+              <Info
+                icon={UserRound}
+                label="AI Twin"
+                value={twin.name}
+              />
+
+              <Info
+                icon={Package}
+                label="Product"
+                value={product}
+              />
+
+              <Info
+                icon={Calendar}
+                label="Date"
+                value={
+                  date ||
+                  "Not selected"
+                }
+              />
+
+              <Info
+                icon={Clock}
+                label="Time"
+                value={
+                  time ||
+                  "Not selected"
+                }
+              />
+
+              <Info
+                icon={Timer}
+                label="Duration"
+                value={`${durationMinutes || 0} minutes`}
+              />
+
               <Info
                 icon={Radio}
                 label="Platforms"
                 value={
                   selectedPlatforms.length
-                    ? selectedPlatforms
+                    ? sortPlatformsByPriority(
+                        selectedPlatforms
+                      )
                         .map(
                           (id) =>
-                            platforms.find((item) => item.id === id)?.name || id
+                            platforms.find(
+                              (item) =>
+                                item.id ===
+                                id
+                            )?.name ||
+                            id
                         )
                         .join(", ")
                     : "Not selected"
                 }
               />
+
+              <Info
+                icon={Link2}
+                label="Video"
+                value={
+                  videoPath
+                    ? "Video URL added"
+                    : "Not added"
+                }
+              />
             </div>
           </div>
 
+          {selectedPlatforms.includes(
+            "instagram"
+          ) && (
+            <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 text-sm font-medium text-muted-foreground dark:border-white/10 dark:bg-white/10">
+              <p className="font-black text-[var(--brand-pink)]">
+                Instagram Priority
+              </p>
+
+              <p className="mt-1">
+                Instagram will be started before the other selected platforms.
+              </p>
+            </div>
+          )}
+
           {saved && (
             <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm font-bold tracking-wide text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-5 w-5" />
+              <CheckCircle2 className="h-5 w-5 shrink-0" />
               Schedule saved successfully
             </div>
           )}
@@ -608,27 +1485,36 @@ export default function CreateSchedule() {
   );
 }
 
-function Field({ label, children }) {
+function Field({
+  label,
+  children,
+}) {
   return (
     <div>
       <label className="text-sm font-black tracking-tight text-foreground">
         {label}
       </label>
 
-      <div className="mt-2">{children}</div>
+      <div className="mt-2">
+        {children}
+      </div>
     </div>
   );
 }
 
-function Info({ icon: Icon, label, value }) {
+function Info({
+  icon: Icon,
+  label,
+  value,
+}) {
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <Icon className="h-4 w-4 text-[var(--brand-pink)]" />
+        <Icon className="h-4 w-4 shrink-0 text-[var(--brand-pink)]" />
         {label}
       </div>
 
-      <p className="mt-2 text-sm font-black tracking-tight text-foreground">
+      <p className="mt-2 break-words text-sm font-black tracking-tight text-foreground">
         {value}
       </p>
     </div>
