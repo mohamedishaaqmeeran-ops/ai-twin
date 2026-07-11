@@ -15,6 +15,8 @@ import {
   Rocket,
   HeartHandshake,
   TrendingUp,
+  Cpu,
+  Blocks,
 } from "lucide-react";
 import Nav from "../components/Nav";
 
@@ -36,11 +38,19 @@ export default function Team() {
     desc: "Designing AI Twin flows for creators, brands and agencies.",
     linkedin: "https://www.linkedin.com/in/vijaysree-arunkumar/",
   },
+   {
+  name: "Sanjay",
+  role: "Chief Identity Engineer",
+  image: "/images/sanjay.jpeg",
+  icon: Blocks,
+  desc: "Securing, Protecting and Commercializing digital likeness for global creators.",
+  linkedin: "https://www.linkedin.com/in/mohamed-ishaaq/",
+},
  {
   name: "Mohamed Ishaaq",
   role: "Product Manager",
   image: "/images/ishaaq.png",
-  icon: Code2,
+  icon: Cpu,
   desc: "Turning ideas into high-performance full-stack applications.",
   linkedin: "https://www.linkedin.com/in/mohamed-ishaaq/",
 },
