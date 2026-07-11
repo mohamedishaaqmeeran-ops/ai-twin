@@ -208,6 +208,14 @@ export default function CreateSchedule() {
     setVideoPath,
   ] = useState("");
 
+
+  const [videoFile, setVideoFile] = useState(null);
+
+const [uploadingVideo, setUploadingVideo] =
+  useState(false);
+
+const [videoUploadProgress, setVideoUploadProgress] =
+  useState(0);
   const [
     durationMinutes,
     setDurationMinutes,
@@ -221,6 +229,107 @@ export default function CreateSchedule() {
 
   const [error, setError] =
     useState("");
+
+    const uploadLiveVideo = async () => {
+  try {
+    setError("");
+
+    if (!videoFile) {
+      setError("Please select a video file.");
+      return;
+    }
+
+    setUploadingVideo(true);
+    setVideoUploadProgress(0);
+
+    const formData = new FormData();
+
+    formData.append("video", videoFile);
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.open(
+      "POST",
+      `${API}/live/upload-video`
+    );
+
+    xhr.withCredentials = true;
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) {
+        return;
+      }
+
+      const progress = Math.round(
+        (event.loaded / event.total) * 100
+      );
+
+      setVideoUploadProgress(progress);
+    };
+
+    xhr.onload = () => {
+      try {
+        const data = JSON.parse(
+          xhr.responseText || "{}"
+        );
+
+        if (
+          xhr.status < 200 ||
+          xhr.status >= 300 ||
+          data.success === false
+        ) {
+          throw new Error(
+            data.message || "Video upload failed."
+          );
+        }
+
+        const uploadedUrl =
+          data.data?.videoUrl ||
+          data.videoUrl ||
+          data.videoPath;
+
+        if (!uploadedUrl) {
+          throw new Error(
+            "Uploaded video URL was not returned."
+          );
+        }
+
+        setVideoPath(uploadedUrl);
+
+        localStorage.setItem(
+          "selectedVideoUrl",
+          uploadedUrl
+        );
+
+        setVideoUploadProgress(100);
+      } catch (uploadError) {
+        setError(
+          uploadError.message ||
+            "Video upload failed."
+        );
+      } finally {
+        setUploadingVideo(false);
+      }
+    };
+
+    xhr.onerror = () => {
+      setUploadingVideo(false);
+
+      setError(
+        "Unable to upload video. Check your connection."
+      );
+    };
+
+    xhr.send(formData);
+  } catch (uploadError) {
+    setUploadingVideo(false);
+
+    setError(
+      uploadError.message ||
+        "Unable to upload video."
+    );
+  }
+};
 
   const selectedProduct =
     useMemo(() => {
@@ -672,9 +781,9 @@ export default function CreateSchedule() {
       return "Please select at least one connected platform.";
     }
 
-    if (!videoPath.trim()) {
-      return "Please enter the uploaded video URL required for the scheduled live.";
-    }
+    if (!videoPath) {
+  return "Please upload a video.";
+}
 
     const scheduledDate =
       new Date(
@@ -1325,27 +1434,87 @@ export default function CreateSchedule() {
               </p>
             </Field>
 
-            <Field label="Uploaded Video URL">
-              <div className="relative">
-                <Video className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--brand-pink)]" />
+           <Field label="Upload Live Video">
+  <div className="rounded-2xl border border-border bg-background p-4">
+    <input
+      type="file"
+      accept="video/mp4,video/webm,video/quicktime,video/x-matroska"
+      onChange={(event) => {
+        const file =
+          event.target.files?.[0] || null;
 
-                <input
-                  type="url"
-                  value={videoPath}
-                  onChange={(event) =>
-                    setVideoPath(
-                      event.target.value
-                    )
-                  }
-                  className={`${inputClass} pl-12`}
-                  placeholder="https://storage.example.com/live-video.mp4"
-                />
-              </div>
+        setVideoFile(file);
+        setVideoPath("");
+        setVideoUploadProgress(0);
+        setError("");
+      }}
+      className="block w-full text-sm font-medium text-foreground file:mr-4 file:rounded-[5px] file:border-0 file:bg-pink-50 file:px-4 file:py-2 file:text-sm file:font-bold file:text-[var(--brand-pink)]"
+    />
 
-              <p className="mt-2 text-xs font-medium text-muted-foreground">
-                Use a permanent Cloudinary, S3 or Google Cloud Storage video URL.
-              </p>
-            </Field>
+    {videoFile && (
+      <div className="mt-4">
+        <p className="truncate text-sm font-bold text-foreground">
+          {videoFile.name}
+        </p>
+
+        <p className="mt-1 text-xs text-muted-foreground">
+          {(
+            videoFile.size /
+            (1024 * 1024)
+          ).toFixed(2)}{" "}
+          MB
+        </p>
+      </div>
+    )}
+
+    {uploadingVideo && (
+      <div className="mt-4">
+        <div className="h-2 overflow-hidden rounded-full bg-border">
+          <div
+            className="brand-gradient h-full transition-all"
+            style={{
+              width: `${videoUploadProgress}%`,
+            }}
+          />
+        </div>
+
+        <p className="mt-2 text-xs font-bold text-muted-foreground">
+          Uploading {videoUploadProgress}%
+        </p>
+      </div>
+    )}
+
+    {videoPath && (
+      <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-600">
+        <CheckCircle2 className="h-5 w-5" />
+        Video uploaded successfully
+      </div>
+    )}
+
+    <button
+      type="button"
+      onClick={uploadLiveVideo}
+      disabled={
+        !videoFile ||
+        uploadingVideo ||
+        Boolean(videoPath)
+      }
+      className="brand-gradient mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <Video className="h-4 w-4" />
+
+      {uploadingVideo
+        ? `Uploading ${videoUploadProgress}%`
+        : videoPath
+        ? "Video Uploaded"
+        : "Upload Video"}
+    </button>
+  </div>
+
+  <p className="mt-2 text-xs font-medium text-muted-foreground">
+    Supported formats: MP4, MOV, WebM and MKV.
+  </p>
+</Field>
           </div>
 
           <div className="mt-6">
@@ -1468,17 +1637,17 @@ export default function CreateSchedule() {
               saveSchedule
             }
             disabled={
-              saving ||
-              loadingProducts ||
-              !selectedProductId ||
-              !selectedProduct ||
-              !date ||
-              !time ||
-              !videoPath.trim() ||
-              selectedPlatforms.length ===
-                0 ||
-              reachedLimit
-            }
+  saving ||
+  uploadingVideo ||
+  loadingProducts ||
+  !selectedProductId ||
+  !selectedProduct ||
+  !date ||
+  !time ||
+  !videoPath ||
+  selectedPlatforms.length === 0 ||
+  reachedLimit
+}
             className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
