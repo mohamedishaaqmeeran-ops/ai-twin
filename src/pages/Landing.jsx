@@ -130,8 +130,7 @@ function Hero() {
 const { user } = useSelector((state) => state.auth);
 const dispatch = useDispatch();
 const { connections = [] } = useSelector((state) => state.social || {});
-const videoRef = useRef(null);
-const [isMuted, setIsMuted] = useState(true);
+
 useEffect(() => {
   if (user) {
     dispatch(fetchConnections());
@@ -201,39 +200,60 @@ const [objective, setObjective] = useState("Conversions");
 const [budget, setBudget] = useState("₹1,000 / day");
 const [showVideo, setShowVideo] = useState(false);
 
+const videoRef = useRef(null);
+const initializedRef = useRef(false);
+
+const [isMuted, setIsMuted] = useState(true);
+const [isPlaying, setIsPlaying] = useState(false);
+
 useEffect(() => {
   const video = videoRef.current;
 
-  if (!video) return;
+  if (!video || initializedRef.current) return;
 
-  const playVideo = async () => {
+  initializedRef.current = true;
+
+  const startVideo = async () => {
     try {
+      // Muted only for the initial autoplay.
       video.muted = true;
       video.defaultMuted = true;
       video.playsInline = true;
 
       await video.play();
-    } catch (err) {
-      console.log("Autoplay blocked:", err);
+
+      setIsMuted(true);
+      setIsPlaying(true);
+    } catch (error) {
+      console.error("Autoplay blocked:", error);
+      setIsPlaying(false);
     }
   };
 
-  playVideo();
-
-  video.addEventListener("canplay", playVideo);
-
-  return () => {
-    video.removeEventListener("canplay", playVideo);
-  };
+  startVideo();
 }, []);
 
+const toggleMute = async () => {
+  const video = videoRef.current;
 
+  if (!video) return;
 
-const toggleMute = () => {
-  if (!videoRef.current) return;
+  try {
+    // If the video is paused, start playing it.
+    if (video.paused) {
+      await video.play();
+      setIsPlaying(true);
+    }
 
-  videoRef.current.muted = !videoRef.current.muted;
-  setIsMuted(videoRef.current.muted);
+    const nextMutedState = !video.muted;
+
+    video.muted = nextMutedState;
+    video.volume = nextMutedState ? 0 : 1;
+
+    setIsMuted(nextMutedState);
+  } catch (error) {
+    console.error("Unable to toggle sound:", error);
+  }
 };
 
 
@@ -333,17 +353,23 @@ const toggleMute = () => {
     controls={false}
     disablePictureInPicture
     disableRemotePlayback
+    onPlay={() => setIsPlaying(true)}
+    onPause={() => setIsPlaying(false)}
     className="h-[560px] w-full object-cover"
   >
     <source
       src="/videos/live-demo.mp4"
       type="video/mp4"
     />
+
+    Your browser does not support the video tag.
   </video>
 
   <button
+    type="button"
     onClick={toggleMute}
-    className="absolute bottom-5 right-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80"
+    aria-label={isMuted ? "Unmute video" : "Mute video"}
+    className="absolute bottom-5 right-5 z-20 grid h-12 w-12 place-items-center rounded-full bg-black/60 text-white shadow-lg backdrop-blur-md transition hover:scale-105 hover:bg-black/80"
   >
     {isMuted ? (
       <VolumeX className="h-6 w-6" />
@@ -352,7 +378,6 @@ const toggleMute = () => {
     )}
   </button>
 </div>
-
   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />  
 </div>
 
