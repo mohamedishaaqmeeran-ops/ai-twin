@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { useRef, useEffect, useState } from "react";
 import { fetchConnections , disconnectSocial} from "../features/social/socialSlice";
 import {
   Activity,
@@ -10,7 +11,7 @@ import {
  MessageCircle,
   
   ShoppingCart,
-  
+  Volume2, VolumeX,
   BadgeIndianRupee,
   CheckCircle2,
   CalendarDays,
@@ -129,7 +130,8 @@ function Hero() {
 const { user } = useSelector((state) => state.auth);
 const dispatch = useDispatch();
 const { connections = [] } = useSelector((state) => state.social || {});
-
+const videoRef = useRef(null);
+const [isMuted, setIsMuted] = useState(true);
 useEffect(() => {
   if (user) {
     dispatch(fetchConnections());
@@ -198,6 +200,43 @@ const [platform, setPlatform] = useState("Facebook & Instagram");
 const [objective, setObjective] = useState("Conversions");
 const [budget, setBudget] = useState("₹1,000 / day");
 const [showVideo, setShowVideo] = useState(false);
+
+useEffect(() => {
+  const video = videoRef.current;
+
+  if (!video) return;
+
+  const playVideo = async () => {
+    try {
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
+
+      await video.play();
+    } catch (err) {
+      console.log("Autoplay blocked:", err);
+    }
+  };
+
+  playVideo();
+
+  video.addEventListener("canplay", playVideo);
+
+  return () => {
+    video.removeEventListener("canplay", playVideo);
+  };
+}, []);
+
+
+
+const toggleMute = () => {
+  if (!videoRef.current) return;
+
+  videoRef.current.muted = !videoRef.current.muted;
+  setIsMuted(videoRef.current.muted);
+};
+
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-pink-50/40 to-orange-50/30 py-16 dark:from-background dark:via-white/5 dark:to-white/5">
       <div className="mx-auto grid max-w-7xl gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_520px] lg:items-center lg:px-8">
@@ -283,20 +322,36 @@ const [showVideo, setShowVideo] = useState(false);
        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-[280px_260px] xl:grid-cols-[300px_270px] items-start justify-center">
          <div className="relative mx-auto w-full max-w-[420px] overflow-hidden rounded-[40px] border-[8px] border-white bg-[#0d0d12] shadow-2xl dark:border-white/10 sm:max-w-[430px] lg:max-w-[450px] xl:max-w-[480px]">
 
- <video
-  autoPlay
-  muted
-  loop
-  playsInline
-  preload="auto"
-  controls={false}
-  disablePictureInPicture
-  disableRemotePlayback
-  
-  className="h-[560px] w-full object-cover"
->
-  <source src="/videos/live-demo.mp4" type="video/mp4" />
-</video>
+<div className="relative">
+  <video
+    ref={videoRef}
+    autoPlay
+    muted
+    loop
+    playsInline
+    preload="auto"
+    controls={false}
+    disablePictureInPicture
+    disableRemotePlayback
+    className="h-[560px] w-full object-cover"
+  >
+    <source
+      src="/videos/live-demo.mp4"
+      type="video/mp4"
+    />
+  </video>
+
+  <button
+    onClick={toggleMute}
+    className="absolute bottom-5 right-5 z-20 flex h-12 w-12 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/80"
+  >
+    {isMuted ? (
+      <VolumeX className="h-6 w-6" />
+    ) : (
+      <Volume2 className="h-6 w-6" />
+    )}
+  </button>
+</div>
 
   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />  
 </div>
