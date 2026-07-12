@@ -1,4 +1,3 @@
-
 import {
   useEffect,
   useMemo,
@@ -110,19 +109,6 @@ const sortPlatformsByPriority = (
   );
 };
 
-const getConnection = (
-  connections,
-  platform
-) => {
-  return connections.find(
-    (connection) =>
-      normalizePlatform(
-        connection?.platform
-      ) === platform &&
-      connection?.connected !== false
-  );
-};
-
 export default function CreateSchedule() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -171,8 +157,10 @@ export default function CreateSchedule() {
     status: "Active",
   });
 
-  const [products, setProducts] =
-    useState([]);
+  const [
+    products,
+    setProducts,
+  ] = useState([]);
 
   const [
     selectedProductId,
@@ -184,14 +172,20 @@ export default function CreateSchedule() {
     setLoadingProducts,
   ] = useState(false);
 
-  const [title, setTitle] =
-    useState("");
+  const [
+    title,
+    setTitle,
+  ] = useState("");
 
-  const [date, setDate] =
-    useState("");
+  const [
+    date,
+    setDate,
+  ] = useState("");
 
-  const [time, setTime] =
-    useState("");
+  const [
+    time,
+    setTime,
+  ] = useState("");
 
   const [
     selectedPlatforms,
@@ -204,141 +198,59 @@ export default function CreateSchedule() {
   ] = useState("");
 
   const [
-    videoPath,
-    setVideoPath,
-  ] = useState("");
-
-
-  const [videoFile, setVideoFile] = useState(null);
-
-const [uploadingVideo, setUploadingVideo] =
-  useState(false);
-
-const [videoUploadProgress, setVideoUploadProgress] =
-  useState(0);
-  const [
     durationMinutes,
     setDurationMinutes,
   ] = useState(30);
 
-  const [saved, setSaved] = useState(false);
+  const [
+    videoFile,
+    setVideoFile,
+  ] = useState(null);
 
-const [saving, setSaving] = useState(false);
+  const [
+    videoPath,
+    setVideoPath,
+  ] = useState("");
 
-const [error, setError] = useState("");
+  const [
+    uploadingVideo,
+    setUploadingVideo,
+  ] = useState(false);
 
-const [instagramRtmpUrl, setInstagramRtmpUrl] = useState(
-  "rtmps://live-upload.instagram.com:443/rtmp"
-);
+  const [
+    videoUploadProgress,
+    setVideoUploadProgress,
+  ] = useState(0);
 
-const [instagramStreamKey, setInstagramStreamKey] = useState("");
-const [savingInstagramRtmp, setSavingInstagramRtmp] =
-  useState(false);
+  const [
+    instagramRtmpUrl,
+    setInstagramRtmpUrl,
+  ] = useState(
+    "rtmps://live-upload.instagram.com:443/rtmp"
+  );
 
-const [instagramRtmpSaved, setInstagramRtmpSaved] =
-  useState(false);
+  const [
+    instagramStreamKey,
+    setInstagramStreamKey,
+  ] = useState("");
 
+  const [
+    saved,
+    setSaved,
+  ] = useState(false);
 
-    const uploadLiveVideo = async () => {
-  try {
-    setError("");
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
 
-    if (!videoFile) {
-      setError("Please select a video file.");
-      return;
-    }
+  const [
+    error,
+    setError,
+  ] = useState("");
 
-    setUploadingVideo(true);
-    setVideoUploadProgress(0);
-
-    const formData = new FormData();
-
-    formData.append("video", videoFile);
-
-    const xhr = new XMLHttpRequest();
-
-    xhr.open(
-      "POST",
-      `${API}/live/upload-video`
-    );
-
-    xhr.withCredentials = true;
-
-    xhr.upload.onprogress = (event) => {
-      if (!event.lengthComputable) {
-        return;
-      }
-
-      const progress = Math.round(
-        (event.loaded / event.total) * 100
-      );
-
-      setVideoUploadProgress(progress);
-    };
-
-    xhr.onload = () => {
-      try {
-        const data = JSON.parse(
-          xhr.responseText || "{}"
-        );
-
-        if (
-          xhr.status < 200 ||
-          xhr.status >= 300 ||
-          data.success === false
-        ) {
-          throw new Error(
-            data.message || "Video upload failed."
-          );
-        }
-
-        const uploadedUrl =
-          data.data?.videoUrl ||
-          data.videoUrl ||
-          data.videoPath;
-
-        if (!uploadedUrl) {
-          throw new Error(
-            "Uploaded video URL was not returned."
-          );
-        }
-
-        setVideoPath(uploadedUrl);
-
-        localStorage.setItem(
-          "selectedVideoUrl",
-          uploadedUrl
-        );
-
-        setVideoUploadProgress(100);
-      } catch (uploadError) {
-        setError(
-          uploadError.message ||
-            "Video upload failed."
-        );
-      } finally {
-        setUploadingVideo(false);
-      }
-    };
-
-    xhr.onerror = () => {
-      setUploadingVideo(false);
-
-      setError(
-        "Unable to upload video. Check your connection."
-      );
-    };
-
-    xhr.send(formData);
-  } catch (uploadError) {
-    setUploadingVideo(false);
-
-    setError(
-      uploadError.message ||
-        "Unable to upload video."
-    );
-  }
-};
+  const inputClass =
+    "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
 
   const selectedProduct =
     useMemo(() => {
@@ -377,79 +289,9 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
     activeScheduleCount >=
     maxSchedules;
 
-  const instagramConnection =
-    useMemo(
-      () =>
-        getConnection(
-          connections,
-          "instagram"
-        ),
-      [connections]
-    );
-
-  
-
-    const saveInstagramRtmp = async () => {
-  try {
-    setError("");
-    setInstagramRtmpSaved(false);
-
-    if (!instagramRtmpUrl.trim()) {
-      setError("Instagram RTMP URL is required.");
-      return;
-    }
-
-    if (!instagramStreamKey.trim()) {
-      setError("Instagram stream key is required.");
-      return;
-    }
-
-    setSavingInstagramRtmp(true);
-
-    const res = await fetch(
-      `${API}/social/connections/instagram/rtmp`,
-      {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          rtmpUrl: instagramRtmpUrl.trim(),
-          streamKey: instagramStreamKey.trim(),
-        }),
-      }
-    );
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok || data.success === false) {
-      throw new Error(
-        data.message || "Unable to save Instagram RTMP settings."
-      );
-    }
-
-    setInstagramRtmpSaved(true);
-
-    await dispatch(fetchConnections());
-
-    setInstagramStreamKey("");
-  } catch (saveError) {
-    setError(
-      saveError.message ||
-        "Unable to save Instagram RTMP settings."
-    );
-  } finally {
-    setSavingInstagramRtmp(false);
-  }
-};
-
   const minimumDate = new Date()
     .toISOString()
     .split("T")[0];
-
-  const inputClass =
-    "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
 
   const upgradeToPro = () => {
     navigate("/pricing");
@@ -541,7 +383,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
         ) {
           throw new Error(
             data.message ||
-              "Unable to load products"
+              "Unable to load products."
           );
         }
 
@@ -563,30 +405,30 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
           normalizedProducts
         );
 
-        const savedProduct =
+        const storedProduct =
           localStorage.getItem(
             "selectedProduct"
           );
 
-        let savedProductId = "";
+        let storedProductId = "";
 
-        if (savedProduct) {
+        if (storedProduct) {
           try {
             const parsed =
               JSON.parse(
-                savedProduct
+                storedProduct
               );
 
-            savedProductId =
+            storedProductId =
               parsed?._id ||
               parsed?.id ||
               "";
           } catch {
-            savedProductId = "";
+            storedProductId = "";
           }
         }
 
-        const savedProductExists =
+        const storedProductExists =
           normalizedProducts.some(
             (item) =>
               String(
@@ -594,13 +436,13 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                   item.id
               ) ===
               String(
-                savedProductId
+                storedProductId
               )
           );
 
-        if (savedProductExists) {
+        if (storedProductExists) {
           setSelectedProductId(
-            savedProductId
+            storedProductId
           );
         } else if (
           normalizedProducts.length >
@@ -613,9 +455,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                 .id
           );
         } else {
-          setSelectedProductId(
-            ""
-          );
+          setSelectedProductId("");
         }
       } catch (loadError) {
         console.error(
@@ -624,16 +464,143 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
         );
 
         setProducts([]);
-        setSelectedProductId(
-          ""
-        );
+        setSelectedProductId("");
 
         setError(
           loadError.message ||
-            "Unable to load products"
+            "Unable to load products."
         );
       } finally {
         setLoadingProducts(false);
+      }
+    };
+
+  const uploadLiveVideo =
+    async () => {
+      try {
+        setError("");
+
+        if (!videoFile) {
+          setError(
+            "Please select a video file."
+          );
+          return;
+        }
+
+        setUploadingVideo(true);
+        setVideoUploadProgress(0);
+
+        const formData =
+          new FormData();
+
+        formData.append(
+          "video",
+          videoFile
+        );
+
+        const xhr =
+          new XMLHttpRequest();
+
+        xhr.open(
+          "POST",
+          `${API}/live/upload-video`
+        );
+
+        xhr.withCredentials = true;
+
+        xhr.upload.onprogress = (
+          event
+        ) => {
+          if (
+            !event.lengthComputable
+          ) {
+            return;
+          }
+
+          const progress =
+            Math.round(
+              (event.loaded /
+                event.total) *
+                100
+            );
+
+          setVideoUploadProgress(
+            progress
+          );
+        };
+
+        xhr.onload = () => {
+          try {
+            const data =
+              JSON.parse(
+                xhr.responseText ||
+                  "{}"
+              );
+
+            if (
+              xhr.status < 200 ||
+              xhr.status >= 300 ||
+              data.success === false
+            ) {
+              throw new Error(
+                data.message ||
+                  "Video upload failed."
+              );
+            }
+
+            const uploadedUrl =
+              data.data?.videoUrl ||
+              data.videoUrl ||
+              data.videoPath;
+
+            if (!uploadedUrl) {
+              throw new Error(
+                "Uploaded video URL was not returned."
+              );
+            }
+
+            setVideoPath(
+              uploadedUrl
+            );
+
+            localStorage.setItem(
+              "selectedVideoUrl",
+              uploadedUrl
+            );
+
+            setVideoUploadProgress(
+              100
+            );
+          } catch (
+            uploadError
+          ) {
+            setError(
+              uploadError.message ||
+                "Video upload failed."
+            );
+          } finally {
+            setUploadingVideo(
+              false
+            );
+          }
+        };
+
+        xhr.onerror = () => {
+          setUploadingVideo(false);
+
+          setError(
+            "Unable to upload video. Check your connection."
+          );
+        };
+
+        xhr.send(formData);
+      } catch (uploadError) {
+        setUploadingVideo(false);
+
+        setError(
+          uploadError.message ||
+            "Unable to upload video."
+        );
       }
     };
 
@@ -715,22 +682,22 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
     if (
       !connectedPlatforms.length
     ) {
-      setSelectedPlatforms(
-        []
-      );
-
+      setSelectedPlatforms([]);
       return;
     }
 
-    const sorted =
+    const sortedPlatforms =
       sortPlatformsByPriority(
         connectedPlatforms
       );
 
     setSelectedPlatforms(
       isPro
-        ? sorted
-        : sorted.slice(0, 1)
+        ? sortedPlatforms
+        : sortedPlatforms.slice(
+            0,
+            1
+          )
     );
   }, [
     connectedPlatforms,
@@ -764,7 +731,6 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
       );
 
       navigate("/app/connect");
-
       return;
     }
 
@@ -785,6 +751,13 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
               item !== platformId
           )
       );
+
+      if (
+        platformId ===
+        "instagram"
+      ) {
+        setInstagramStreamKey("");
+      }
 
       return;
     }
@@ -813,91 +786,111 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
     );
   };
 
-  const validateSchedule = () => {
-    if (reachedLimit) {
-      return isPro
-        ? `You have reached the limit of ${maxSchedules} active schedules.`
-        : "Free schedule limit reached. Upgrade to Pro to create more schedules.";
-    }
+  const validateSchedule =
+    () => {
+      if (reachedLimit) {
+        return isPro
+          ? `You have reached the limit of ${maxSchedules} active schedules.`
+          : "Free schedule limit reached. Upgrade to Pro to create more schedules.";
+      }
 
-    if (
-      !selectedProductId ||
-      !selectedProduct
-    ) {
-      return "Please select a product.";
-    }
+      if (
+        !selectedProductId ||
+        !selectedProduct
+      ) {
+        return "Please select a product.";
+      }
 
-    if (!date || !time) {
-      return "Please select a date and time.";
-    }
+      if (!date || !time) {
+        return "Please select a date and time.";
+      }
 
-    if (
-      !selectedPlatforms.length
-    ) {
-      return "Please select at least one connected platform.";
-    }
+      if (
+        !selectedPlatforms.length
+      ) {
+        return "Please select at least one connected platform.";
+      }
 
-    if (!videoPath) {
-  return "Please upload a video.";
-}
+      if (!videoPath) {
+        return "Please upload a video.";
+      }
 
-    const scheduledDate =
-      new Date(
-        `${date}T${time}:00`
-      );
+      if (
+        selectedPlatforms.includes(
+          "instagram"
+        )
+      ) {
+        const normalizedRtmpUrl =
+          instagramRtmpUrl.trim();
 
-    if (
-      Number.isNaN(
-        scheduledDate.getTime()
-      )
-    ) {
-      return "Please select a valid date and time.";
-    }
+        const normalizedStreamKey =
+          instagramStreamKey.trim();
 
-    if (
-      scheduledDate.getTime() <=
-      Date.now()
-    ) {
-      return "Scheduled date and time must be in the future.";
-    }
+        if (!normalizedRtmpUrl) {
+          return "Instagram RTMP URL is required for this schedule.";
+        }
 
-    if (
-  selectedPlatforms.includes("instagram")
-) {
-  if (!instagramRtmpUrl.trim()) {
-    return "Please enter Instagram RTMP URL.";
-  }
+        if (!normalizedStreamKey) {
+          return "Instagram stream key is required for this schedule.";
+        }
 
-  if (!instagramStreamKey.trim()) {
-    return "Please enter Instagram Stream Key.";
-  }
-}
-
-    const invalidConnection =
-      selectedPlatforms.find(
-        (platformId) =>
-          !connectedPlatforms.includes(
-            platformId
+        if (
+          !normalizedRtmpUrl.startsWith(
+            "rtmp://"
+          ) &&
+          !normalizedRtmpUrl.startsWith(
+            "rtmps://"
           )
-      );
+        ) {
+          return "Instagram RTMP URL must start with rtmp:// or rtmps://.";
+        }
+      }
 
-    if (invalidConnection) {
-      return `Connect ${invalidConnection} before creating this schedule.`;
-    }
+      const scheduledDate =
+        new Date(
+          `${date}T${time}:00`
+        );
 
-    const duration =
-      Number(durationMinutes);
+      if (
+        Number.isNaN(
+          scheduledDate.getTime()
+        )
+      ) {
+        return "Please select a valid date and time.";
+      }
 
-    if (
-      Number.isNaN(duration) ||
-      duration < 1 ||
-      duration > 480
-    ) {
-      return "Duration must be between 1 and 480 minutes.";
-    }
+      if (
+        scheduledDate.getTime() <=
+        Date.now()
+      ) {
+        return "Scheduled date and time must be in the future.";
+      }
 
-    return "";
-  };
+      const invalidConnection =
+        selectedPlatforms.find(
+          (platformId) =>
+            !connectedPlatforms.includes(
+              platformId
+            )
+        );
+
+      if (invalidConnection) {
+        return `Connect ${invalidConnection} before creating this schedule.`;
+      }
+
+      const duration =
+        Number(durationMinutes);
+
+      if (
+        Number.isNaN(duration) ||
+        duration < 1 ||
+        duration > 480
+      ) {
+        return "Duration must be between 1 and 480 minutes.";
+      }
+
+      return "";
+    };
 
   const saveSchedule =
     async () => {
@@ -979,6 +972,30 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
           platforms:
             orderedPlatforms,
 
+          instagramRtmpUrl:
+            orderedPlatforms.includes(
+              "instagram"
+            )
+              ? instagramRtmpUrl
+                  .trim()
+                  .replace(
+                    /\/+$/,
+                    ""
+                  )
+              : "",
+
+          instagramStreamKey:
+            orderedPlatforms.includes(
+              "instagram"
+            )
+              ? instagramStreamKey
+                  .trim()
+                  .replace(
+                    /^\/+/,
+                    ""
+                  )
+              : "",
+
           scheduledAt:
             localDateTime.toISOString(),
 
@@ -995,6 +1012,18 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
 
           plan,
         };
+
+        console.log(
+          "CREATE SCHEDULE PAYLOAD:",
+          {
+            ...payload,
+
+            instagramStreamKey:
+              payload.instagramStreamKey
+                ? "***provided***"
+                : "",
+          }
+        );
 
         const res = await fetch(
           `${API}/schedules`,
@@ -1025,7 +1054,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
         ) {
           throw new Error(
             data.message ||
-              "Unable to save schedule"
+              "Unable to save schedule."
           );
         }
 
@@ -1079,7 +1108,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
       } catch (saveError) {
         setError(
           saveError.message ||
-            "Unable to save schedule"
+            "Unable to save schedule."
         );
       } finally {
         setSaving(false);
@@ -1182,70 +1211,6 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
             </div>
           )}
 
-      {selectedPlatforms.includes("instagram") && (
-  <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-5 dark:border-orange-500/20 dark:bg-orange-500/10">
-    <div>
-      <p className="text-sm font-black text-orange-600 dark:text-orange-400">
-        Instagram RTMP details for this live
-      </p>
-
-      <p className="mt-1 text-sm text-muted-foreground">
-        Every user must enter the RTMP URL and stream key for this scheduled
-        Instagram live.
-      </p>
-    </div>
-
-    <div className="mt-4 grid gap-4 md:grid-cols-2">
-      <div>
-        <label className="text-sm font-black text-foreground">
-          Instagram RTMP URL
-        </label>
-
-        <input
-          type="text"
-          value={instagramRtmpUrl}
-          onChange={(event) =>
-            setInstagramRtmpUrl(event.target.value)
-          }
-          className={`${inputClass} mt-2`}
-          placeholder="rtmps://live-upload.instagram.com:443/rtmp"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm font-black text-foreground">
-          Instagram Stream Key
-        </label>
-
-        <input
-          type="password"
-          value={instagramStreamKey}
-          onChange={(event) =>
-            setInstagramStreamKey(event.target.value)
-          }
-          className={`${inputClass} mt-2`}
-          placeholder="Paste stream key for this live"
-          autoComplete="off"
-        />
-      </div>
-    </div>
-
-    <button
-      type="button"
-      onClick={() =>
-        window.open(
-          "https://www.instagram.com/live/producer/",
-          "_blank",
-          "noopener,noreferrer"
-        )
-      }
-      className="mt-4 rounded-[5px] border-2 border-orange-500 px-5 py-3 text-sm font-bold text-orange-600"
-    >
-      Open Instagram Live Producer
-    </button>
-  </div>
-)}
-
         {!isPro && (
           <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1265,9 +1230,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
 
               <button
                 type="button"
-                onClick={
-                  upgradeToPro
-                }
+                onClick={upgradeToPro}
                 className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
               >
                 Upgrade
@@ -1321,8 +1284,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                   </h3>
 
                   <p className="mt-1 text-sm font-medium text-muted-foreground">
-                    Voice:{" "}
-                    {twin.voice}
+                    Voice: {twin.voice}
                   </p>
 
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -1366,11 +1328,10 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                 }
                 disabled={
                   loadingProducts ||
-                  products.length === 0
+                  products.length ===
+                    0
                 }
-                className={
-                  inputClass
-                }
+                className={inputClass}
               >
                 {loadingProducts ? (
                   <option value="">
@@ -1462,9 +1423,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                     event.target.value
                   )
                 }
-                className={
-                  inputClass
-                }
+                className={inputClass}
                 placeholder="Ex: Glow Serum Evening Sale"
               />
             </Field>
@@ -1479,9 +1438,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                     event.target.value
                   )
                 }
-                className={
-                  inputClass
-                }
+                className={inputClass}
               />
             </Field>
 
@@ -1494,9 +1451,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                     event.target.value
                   )
                 }
-                className={
-                  inputClass
-                }
+                className={inputClass}
               />
             </Field>
 
@@ -1526,87 +1481,102 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
               </p>
             </Field>
 
-           <Field label="Upload Live Video">
-  <div className="rounded-2xl border border-border bg-background p-4">
-    <input
-      type="file"
-      accept="video/mp4,video/webm,video/quicktime,video/x-matroska"
-      onChange={(event) => {
-        const file =
-          event.target.files?.[0] || null;
+            <Field label="Upload Live Video">
+              <div className="rounded-2xl border border-border bg-background p-4">
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,video/x-matroska"
+                  onChange={(event) => {
+                    const file =
+                      event.target.files?.[0] ||
+                      null;
 
-        setVideoFile(file);
-        setVideoPath("");
-        setVideoUploadProgress(0);
-        setError("");
-      }}
-      className="block w-full text-sm font-medium text-foreground file:mr-4 file:rounded-[5px] file:border-0 file:bg-pink-50 file:px-4 file:py-2 file:text-sm file:font-bold file:text-[var(--brand-pink)]"
-    />
+                    setVideoFile(file);
+                    setVideoPath("");
+                    setVideoUploadProgress(
+                      0
+                    );
+                    setError("");
+                  }}
+                  className="block w-full text-sm font-medium text-foreground file:mr-4 file:rounded-[5px] file:border-0 file:bg-pink-50 file:px-4 file:py-2 file:text-sm file:font-bold file:text-[var(--brand-pink)]"
+                />
 
-    {videoFile && (
-      <div className="mt-4">
-        <p className="truncate text-sm font-bold text-foreground">
-          {videoFile.name}
-        </p>
+                {videoFile && (
+                  <div className="mt-4">
+                    <p className="truncate text-sm font-bold text-foreground">
+                      {videoFile.name}
+                    </p>
 
-        <p className="mt-1 text-xs text-muted-foreground">
-          {(
-            videoFile.size /
-            (1024 * 1024)
-          ).toFixed(2)}{" "}
-          MB
-        </p>
-      </div>
-    )}
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {(
+                        videoFile.size /
+                        (1024 * 1024)
+                      ).toFixed(2)}{" "}
+                      MB
+                    </p>
+                  </div>
+                )}
 
-    {uploadingVideo && (
-      <div className="mt-4">
-        <div className="h-2 overflow-hidden rounded-full bg-border">
-          <div
-            className="brand-gradient h-full transition-all"
-            style={{
-              width: `${videoUploadProgress}%`,
-            }}
-          />
-        </div>
+                {uploadingVideo && (
+                  <div className="mt-4">
+                    <div className="h-2 overflow-hidden rounded-full bg-border">
+                      <div
+                        className="brand-gradient h-full transition-all"
+                        style={{
+                          width: `${videoUploadProgress}%`,
+                        }}
+                      />
+                    </div>
 
-        <p className="mt-2 text-xs font-bold text-muted-foreground">
-          Uploading {videoUploadProgress}%
-        </p>
-      </div>
-    )}
+                    <p className="mt-2 text-xs font-bold text-muted-foreground">
+                      Uploading{" "}
+                      {
+                        videoUploadProgress
+                      }
+                      %
+                    </p>
+                  </div>
+                )}
 
-    {videoPath && (
-      <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-600">
-        <CheckCircle2 className="h-5 w-5" />
-        Video uploaded successfully
-      </div>
-    )}
+                {videoPath && (
+                  <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3">
+                    <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+                      <CheckCircle2 className="h-5 w-5" />
+                      Video uploaded successfully
+                    </div>
 
-    <button
-      type="button"
-      onClick={uploadLiveVideo}
-      disabled={
-        !videoFile ||
-        uploadingVideo ||
-        Boolean(videoPath)
-      }
-      className="brand-gradient mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <Video className="h-4 w-4" />
+                    <p className="mt-2 break-all text-xs text-muted-foreground">
+                      {videoPath}
+                    </p>
+                  </div>
+                )}
 
-      {uploadingVideo
-        ? `Uploading ${videoUploadProgress}%`
-        : videoPath
-        ? "Video Uploaded"
-        : "Upload Video"}
-    </button>
-  </div>
+                <button
+                  type="button"
+                  onClick={
+                    uploadLiveVideo
+                  }
+                  disabled={
+                    !videoFile ||
+                    uploadingVideo ||
+                    Boolean(videoPath)
+                  }
+                  className="brand-gradient mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Video className="h-4 w-4" />
 
-  <p className="mt-2 text-xs font-medium text-muted-foreground">
-    Supported formats: MP4, MOV, WebM and MKV.
-  </p>
-</Field>
+                  {uploadingVideo
+                    ? `Uploading ${videoUploadProgress}%`
+                    : videoPath
+                    ? "Video Uploaded"
+                    : "Upload Video"}
+                </button>
+              </div>
+
+              <p className="mt-2 text-xs font-medium text-muted-foreground">
+                Supported formats: MP4, MOV, WebM and MKV.
+              </p>
+            </Field>
           </div>
 
           <div className="mt-6">
@@ -1640,8 +1610,6 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                     connectedPlatforms.includes(
                       id
                     );
-
-                 
 
                   return (
                     <button
@@ -1688,22 +1656,102 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                       </p>
 
                       <p className="mt-1 text-xs font-medium text-muted-foreground">
-  {active
-    ? id === "instagram"
-      ? "Selected · RTMP required below"
-      : "Selected"
-    : !isConnected
-    ? "Connect first"
-    : locked
-    ? "Pro only"
-    : "Click to select"}
-</p>
+                        {active
+                          ? id ===
+                            "instagram"
+                            ? "Selected · RTMP required below"
+                            : "Selected"
+                          : !isConnected
+                          ? "Connect first"
+                          : locked
+                          ? "Pro only"
+                          : "Click to select"}
+                      </p>
                     </button>
                   );
                 }
               )}
             </div>
           </div>
+
+          {selectedPlatforms.includes(
+            "instagram"
+          ) && (
+            <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-5 dark:border-orange-500/20 dark:bg-orange-500/10">
+              <div>
+                <p className="text-sm font-black text-orange-600 dark:text-orange-400">
+                  Instagram RTMP details for this live
+                </p>
+
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Enter the RTMP URL and stream key for this scheduled Instagram live.
+                </p>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-sm font-black text-foreground">
+                    Instagram RTMP URL
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      instagramRtmpUrl
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setInstagramRtmpUrl(
+                        event.target
+                          .value
+                      )
+                    }
+                    className={`${inputClass} mt-2`}
+                    placeholder="rtmps://live-upload.instagram.com:443/rtmp"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-black text-foreground">
+                    Instagram Stream Key
+                  </label>
+
+                  <input
+                    type="password"
+                    value={
+                      instagramStreamKey
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setInstagramStreamKey(
+                        event.target
+                          .value
+                      )
+                    }
+                    className={`${inputClass} mt-2`}
+                    placeholder="Paste stream key for this live"
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    "https://www.instagram.com/",
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
+                className="mt-4 rounded-[5px] border-2 border-orange-500 px-5 py-3 text-sm font-bold text-orange-600"
+              >
+                Open Instagram
+              </button>
+            </div>
+          )}
 
           <Field label="Live Description">
             <textarea
@@ -1721,21 +1769,29 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
 
           <button
             type="button"
-            onClick={
-              saveSchedule
-            }
+            onClick={saveSchedule}
             disabled={
-  saving ||
-  uploadingVideo ||
-  loadingProducts ||
-  !selectedProductId ||
-  !selectedProduct ||
-  !date ||
-  !time ||
-  !videoPath ||
-  selectedPlatforms.length === 0 ||
-  reachedLimit
-}
+              saving ||
+              uploadingVideo ||
+              loadingProducts ||
+              !selectedProductId ||
+              !selectedProduct ||
+              !date ||
+              !time ||
+              !videoPath ||
+              selectedPlatforms.length ===
+                0 ||
+              (
+                selectedPlatforms.includes(
+                  "instagram"
+                ) &&
+                (
+                  !instagramRtmpUrl.trim() ||
+                  !instagramStreamKey.trim()
+                )
+              ) ||
+              reachedLimit
+            }
             className="brand-gradient mt-6 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
@@ -1846,10 +1902,24 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
                 label="Video"
                 value={
                   videoPath
-                    ? "Video URL added"
-                    : "Not added"
+                    ? "Video uploaded"
+                    : "Not uploaded"
                 }
               />
+
+              {selectedPlatforms.includes(
+                "instagram"
+              ) && (
+                <Info
+                  icon={Instagram}
+                  label="Instagram RTMP"
+                  value={
+                    instagramStreamKey.trim()
+                      ? "RTMP details added"
+                      : "RTMP details required"
+                  }
+                />
+              )}
             </div>
           </div>
 
@@ -1914,4 +1984,3 @@ function Info({
     </div>
   );
 }
-
