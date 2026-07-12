@@ -232,7 +232,11 @@ const [instagramRtmpUrl, setInstagramRtmpUrl] = useState(
 );
 
 const [instagramStreamKey, setInstagramStreamKey] = useState("");
+const [savingInstagramRtmp, setSavingInstagramRtmp] =
+  useState(false);
 
+const [instagramRtmpSaved, setInstagramRtmpSaved] =
+  useState(false);
 
 
     const uploadLiveVideo = async () => {
@@ -858,13 +862,16 @@ const [instagramStreamKey, setInstagramStreamKey] = useState("");
     }
 
     if (
-      selectedPlatforms.includes(
-        "instagram"
-      ) &&
-      !instagramRtmpConfigured
-    ) {
-      return "Configure the Instagram RTMP URL and stream key before scheduling Instagram Live.";
-    }
+  selectedPlatforms.includes("instagram")
+) {
+  if (!instagramRtmpUrl.trim()) {
+    return "Please enter Instagram RTMP URL.";
+  }
+
+  if (!instagramStreamKey.trim()) {
+    return "Please enter Instagram Stream Key.";
+  }
+}
 
     const invalidConnection =
       selectedPlatforms.find(
@@ -1634,11 +1641,7 @@ const [instagramStreamKey, setInstagramStreamKey] = useState("");
                       id
                     );
 
-                  const needsInstagramRtmp =
-                    id ===
-                      "instagram" &&
-                    isConnected &&
-                    !instagramRtmpConfigured;
+                 
 
                   return (
                     <button
@@ -1685,16 +1688,16 @@ const [instagramStreamKey, setInstagramStreamKey] = useState("");
                       </p>
 
                       <p className="mt-1 text-xs font-medium text-muted-foreground">
-                        {needsInstagramRtmp
-                          ? "Configure RTMP"
-                          : active
-                          ? "Selected"
-                          : !isConnected
-                          ? "Connect first"
-                          : locked
-                          ? "Pro only"
-                          : "Click to select"}
-                      </p>
+  {active
+    ? id === "instagram"
+      ? "Selected · RTMP required below"
+      : "Selected"
+    : !isConnected
+    ? "Connect first"
+    : locked
+    ? "Pro only"
+    : "Click to select"}
+</p>
                     </button>
                   );
                 }
