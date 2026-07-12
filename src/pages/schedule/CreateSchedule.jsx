@@ -233,11 +233,7 @@ const [instagramRtmpUrl, setInstagramRtmpUrl] = useState(
 
 const [instagramStreamKey, setInstagramStreamKey] = useState("");
 
-const [savingInstagramRtmp, setSavingInstagramRtmp] =
-  useState(false);
 
-const [instagramRtmpSaved, setInstagramRtmpSaved] =
-  useState(false);
 
     const uploadLiveVideo = async () => {
   try {
@@ -387,15 +383,7 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
       [connections]
     );
 
-  const instagramRtmpConfigured =
-    Boolean(
-      instagramConnection
-        ?.instagramRtmpConfigured ||
-        instagramConnection
-          ?.rtmpConfigured ||
-        instagramConnection
-          ?.instagramRtmpUrl
-    );
+  
 
     const saveInstagramRtmp = async () => {
   try {
@@ -1187,95 +1175,69 @@ const [instagramRtmpSaved, setInstagramRtmpSaved] =
             </div>
           )}
 
-       {connectedPlatforms.includes("instagram") &&
-  !instagramRtmpConfigured && (
-    <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-5 dark:border-orange-500/20 dark:bg-orange-500/10">
-      <div className="flex flex-col gap-4">
-        <div>
-          <p className="text-sm font-black text-orange-600 dark:text-orange-400">
-            Instagram Live setup required
-          </p>
+      {selectedPlatforms.includes("instagram") && (
+  <div className="mt-5 rounded-2xl border border-orange-200 bg-orange-50 p-5 dark:border-orange-500/20 dark:bg-orange-500/10">
+    <div>
+      <p className="text-sm font-black text-orange-600 dark:text-orange-400">
+        Instagram RTMP details for this live
+      </p>
 
-          <p className="mt-1 text-sm text-muted-foreground">
-            Copy the RTMP URL and Stream Key from Instagram Live Producer and
-            paste them below.
-          </p>
-        </div>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Every user must enter the RTMP URL and stream key for this scheduled
+        Instagram live.
+      </p>
+    </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-black text-foreground">
-              Instagram RTMP URL
-            </label>
+    <div className="mt-4 grid gap-4 md:grid-cols-2">
+      <div>
+        <label className="text-sm font-black text-foreground">
+          Instagram RTMP URL
+        </label>
 
-            <input
-              type="text"
-              value={instagramRtmpUrl}
-              onChange={(event) =>
-                setInstagramRtmpUrl(event.target.value)
-              }
-              className={inputClass}
-              placeholder="rtmps://live-upload.instagram.com:443/rtmp"
-            />
-          </div>
+        <input
+          type="text"
+          value={instagramRtmpUrl}
+          onChange={(event) =>
+            setInstagramRtmpUrl(event.target.value)
+          }
+          className={`${inputClass} mt-2`}
+          placeholder="rtmps://live-upload.instagram.com:443/rtmp"
+        />
+      </div>
 
-          <div>
-            <label className="text-sm font-black text-foreground">
-              Instagram Stream Key
-            </label>
+      <div>
+        <label className="text-sm font-black text-foreground">
+          Instagram Stream Key
+        </label>
 
-            <input
-              type="password"
-              value={instagramStreamKey}
-              onChange={(event) =>
-                setInstagramStreamKey(event.target.value)
-              }
-              className={inputClass}
-              placeholder="Paste Instagram stream key"
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            onClick={() =>
-              window.open(
-                "https://www.instagram.com/live/producer/",
-                "_blank",
-                "noopener,noreferrer"
-              )
-            }
-            className="rounded-[5px] border-2 border-orange-500 px-5 py-3 text-sm font-bold text-orange-600"
-          >
-            Open Instagram Live Producer
-          </button>
-
-          <button
-            type="button"
-            onClick={saveInstagramRtmp}
-            disabled={
-              savingInstagramRtmp ||
-              !instagramRtmpUrl.trim() ||
-              !instagramStreamKey.trim()
-            }
-            className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {savingInstagramRtmp
-              ? "Saving..."
-              : "Save Instagram RTMP"}
-          </button>
-        </div>
-
-        {instagramRtmpSaved && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-600">
-            <CheckCircle2 className="h-5 w-5" />
-            Instagram RTMP settings saved successfully
-          </div>
-        )}
+        <input
+          type="password"
+          value={instagramStreamKey}
+          onChange={(event) =>
+            setInstagramStreamKey(event.target.value)
+          }
+          className={`${inputClass} mt-2`}
+          placeholder="Paste stream key for this live"
+          autoComplete="off"
+        />
       </div>
     </div>
-  )}
+
+    <button
+      type="button"
+      onClick={() =>
+        window.open(
+          "https://www.instagram.com/live/producer/",
+          "_blank",
+          "noopener,noreferrer"
+        )
+      }
+      className="mt-4 rounded-[5px] border-2 border-orange-500 px-5 py-3 text-sm font-bold text-orange-600"
+    >
+      Open Instagram Live Producer
+    </button>
+  </div>
+)}
 
         {!isPro && (
           <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
