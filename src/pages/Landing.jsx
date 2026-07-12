@@ -58,7 +58,7 @@ import {
   Sparkle
 } from "lucide-react";
 import Logo from "../components/Logo";
-import { useState , useEffect} from "react";
+
 import Nav from "../components/Nav";
 import shopifyLogo from "/images/eee.png";
 import wordpressLogo from "/images/ddd.png";
