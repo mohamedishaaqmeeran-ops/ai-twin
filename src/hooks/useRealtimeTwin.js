@@ -27,17 +27,13 @@ import useMicrophonePcm from "./useMicrophonePcm";
 import usePcmPlayer from "./usePcmPlayer";
 
 export default function useRealtimeTwin() {
-  const dispatch =
-    useDispatch();
+  const dispatch = useDispatch();
 
-  const realtime =
-    useSelector(
-      (state) =>
-        state.realtime
-    );
+  const realtime = useSelector(
+    (state) => state.realtime
+  );
 
-  const socketRef =
-    useRef(null);
+  const socketRef = useRef(null);
 
   const sessionIdRef =
     useRef(null);
@@ -48,93 +44,112 @@ export default function useRealtimeTwin() {
   const assistantTranscriptRef =
     useRef("");
 
+  const mountedRef =
+    useRef(true);
+
+  /*
+   * Stable callback.
+   * Do not pass a new inline function
+   * into usePcmPlayer on every render.
+   */
+  const handleSpeakingChange =
+    useCallback(
+      (value) => {
+        dispatch(
+          setAssistantSpeaking(value)
+        );
+      },
+      [dispatch]
+    );
+
   const {
     speaking,
     playChunk,
     stopPlayback,
     closePlayer,
   } = usePcmPlayer({
-    defaultSampleRate:
-      24000,
+    defaultSampleRate: 24000,
 
     onSpeakingChange:
-      (value) => {
-        dispatch(
-          setAssistantSpeaking(
-            value
-          )
-        );
-      },
+      handleSpeakingChange,
   });
 
-  /* =======================================================
-     SEND WEBSOCKET EVENT
-  ======================================================= */
-
   const sendSocketEvent =
+    useCallback((payload) => {
+      const socket =
+        socketRef.current;
+
+      if (
+        !socket ||
+        socket.readyState !==
+          WebSocket.OPEN
+      ) {
+        return false;
+      }
+
+      socket.send(
+        JSON.stringify(payload)
+      );
+
+      return true;
+    }, []);
+
+  /*
+   * Use refs so microphone callbacks do
+   * not depend on changing functions.
+   */
+  const sendSocketEventRef =
+    useRef(sendSocketEvent);
+
+  useEffect(() => {
+    sendSocketEventRef.current =
+      sendSocketEvent;
+  }, [sendSocketEvent]);
+
+  const handleAudioChunk =
     useCallback(
-      (payload) => {
-        const socket =
-          socketRef.current;
-
-        if (
-          !socket ||
-          socket.readyState !==
-            WebSocket.OPEN
-        ) {
-          return false;
-        }
-
-        socket.send(
-          JSON.stringify(
-            payload
-          )
-        );
-
-        return true;
+      ({
+        base64,
+        mimeType,
+      }) => {
+        sendSocketEventRef.current({
+          event: "audio:input",
+          audio: base64,
+          mimeType,
+        });
       },
       []
     );
 
-  /* =======================================================
-     MICROPHONE
-  ======================================================= */
+  const handleMicrophoneError =
+    useCallback(
+      (error) => {
+        dispatch(
+          setRealtimeError(
+            error?.message ||
+              "Microphone error."
+          )
+        );
+      },
+      [dispatch]
+    );
 
   const {
     recording,
     permission,
+
     start:
       startMicrophoneCapture,
+
     stop:
       stopMicrophoneCapture,
   } = useMicrophonePcm({
-    onAudioChunk: ({
-      base64,
-      mimeType,
-    }) => {
-      sendSocketEvent({
-        event:
-          "audio:input",
+    onAudioChunk:
+      handleAudioChunk,
 
-        audio: base64,
-
-        mimeType,
-      });
-    },
-
-    onError: (error) => {
-      dispatch(
-        setRealtimeError(
-          error.message ||
-            "Microphone error."
-        )
-      );
-    },
+    onError:
+      handleMicrophoneError,
   });
-
-  /* =======================================================
-     DISCONNECT SOCKET
-  ======================================================= */
 
   const disconnectSocket =
     useCallback(() => {
@@ -145,6 +160,10 @@ export default function useRealtimeTwin() {
         return;
       }
 
+      /*
+       * Remove handlers before closing,
+       * preventing stale callbacks.
+       */
       socket.onopen = null;
       socket.onmessage = null;
       socket.onerror = null;
@@ -162,379 +181,485 @@ export default function useRealtimeTwin() {
         );
       }
 
-      socketRef.current =
-        null;
+      socketRef.current = null;
 
       dispatch(
-        setRealtimeConnected(
-          false
-        )
+        setRealtimeConnected(false)
       );
     }, [dispatch]);
 
-  /* =======================================================
-     CONNECT
-  ======================================================= */
+  const connect = useCallback(
+    async ({
+      twinId,
+      productId = null,
+      mode = "test",
+      language = "English",
+    }) => {
+      /*
+       * Prevent duplicate connections.
+       */
+      if (
+        socketRef.current &&
+        [
+          WebSocket.OPEN,
+          WebSocket.CONNECTING,
+        ].includes(
+          socketRef.current
+            .readyState
+        )
+      ) {
+        return;
+      }
 
-  const connect =
-    useCallback(
-      async ({
-        twinId,
-        productId = null,
-        mode = "test",
-        language = "English",
-      }) => {
-        dispatch(
-          setRealtimeError(null)
+      dispatch(
+        setRealtimeError(null)
+      );
+
+      dispatch(
+        setConnectionStage(
+          "creating-session"
+        )
+      );
+
+      const result =
+        await dispatch(
+          createRealtimeSession({
+            twinId,
+            productId,
+            mode,
+            language,
+          })
+        ).unwrap();
+
+      const sessionId =
+        result.session?._id;
+
+      const socketUrl =
+        result.socketUrl;
+
+      const socketToken =
+        result.socketToken;
+
+      if (!sessionId) {
+        throw new Error(
+          "Realtime session ID was not returned."
+        );
+      }
+
+      if (
+        !socketUrl ||
+        !socketToken
+      ) {
+        throw new Error(
+          "WebSocket connection information was not returned."
+        );
+      }
+
+      sessionIdRef.current =
+        sessionId;
+
+      dispatch(
+        setConnectionStage(
+          "connecting-socket"
+        )
+      );
+
+      const separator =
+        socketUrl.includes("?")
+          ? "&"
+          : "?";
+
+      const completeUrl =
+        `${socketUrl}${separator}token=${encodeURIComponent(
+          socketToken
+        )}`;
+
+      console.log(
+        "CREATING WEBSOCKET:",
+        socketUrl
+      );
+
+      const socket =
+        new WebSocket(
+          completeUrl
         );
 
-        if (
-          socketRef.current
-        ) {
-          disconnectSocket();
+      socketRef.current =
+        socket;
+
+      socket.onopen = () => {
+        console.log(
+          "BROWSER WEBSOCKET OPEN"
+        );
+
+        if (!mountedRef.current) {
+          return;
         }
 
-        const result =
-          await dispatch(
-            createRealtimeSession({
-              twinId,
-              productId,
-              mode,
-              language,
-            })
-          ).unwrap();
+        dispatch(
+          setConnectionStage(
+            "initializing-gemini"
+          )
+        );
 
-        const sessionId =
-          result.session?._id;
+        sendSocketEventRef.current({
+          event: "ping",
+        });
+      };
 
-        const socketUrl =
-          result.socketUrl;
+      socket.onmessage =
+        async (event) => {
+          if (!mountedRef.current) {
+            return;
+          }
 
-        const socketToken =
-          result.socketToken;
+          try {
+            const message =
+              JSON.parse(
+                event.data
+              );
 
-        if (!sessionId) {
-          throw new Error(
-            "Backend did not return a realtime session ID."
-          );
-        }
+            console.log(
+              "WEBSOCKET MESSAGE:",
+              message.event
+            );
 
-        if (
-          !socketUrl ||
-          !socketToken
-        ) {
-          throw new Error(
-            "Backend did not return WebSocket connection information."
-          );
-        }
-
-        sessionIdRef.current =
-          sessionId;
-
-        const separator =
-          socketUrl.includes("?")
-            ? "&"
-            : "?";
-
-        const completeUrl =
-          `${socketUrl}${separator}token=${encodeURIComponent(
-            socketToken
-          )}`;
-
-        const socket =
-          new WebSocket(
-            completeUrl
-          );
-
-        socketRef.current =
-          socket;
-
-       socket.onopen = () => {
-  console.log(
-    "BROWSER WEBSOCKET OPEN"
-  );
-
-  dispatch(
-    setConnectionStage(
-      "initializing-gemini"
-    )
-  );
-
-  sendSocketEvent({
-    event: "ping",
-  });
-};
-
-        socket.onmessage =
-          async (event) => {
-            try {
-              const message =
-                JSON.parse(
-                  event.data
+            switch (
+              message.event
+            ) {
+              case "socket:connected": {
+                dispatch(
+                  setConnectionStage(
+                    "initializing-gemini"
+                  )
                 );
 
-              switch (
-                message.event
-              ) {
-                case "session:ready": {
-                  dispatch(
-                    setRealtimeConnected(
-                      true
-                    )
-                  );
+                dispatch(
+                  setRealtimeError(null)
+                );
 
-                  break;
-                }
-case "socket:connected": {
-  console.log(
-    "SOCKET CONNECTED:",
-    message
-  );
-
-  dispatch(
-    setConnectionStage(
-      "initializing-gemini"
-    )
-  );
-
-  dispatch(
-    setRealtimeError(null)
-  );
-
-  break;
-}
-
-                case "pong": {
-                  break;
-                }
-
-                case "audio:output": {
-                  await playChunk(
-                    message.audio,
-
-                    Number(
-                      message.sampleRate ||
-                        24000
-                    )
-                  );
-
-                  break;
-                }
-
-                case "transcript:user": {
-                  const transcript =
-                    String(
-                      message.text ||
-                        ""
-                    );
-
-                  userTranscriptRef.current =
-                    transcript;
-
-                  dispatch(
-                    setUserTranscript(
-                      transcript
-                    )
-                  );
-
-                  break;
-                }
-
-                case "transcript:assistant": {
-                  const transcript =
-                    String(
-                      message.text ||
-                        ""
-                    );
-
-                  assistantTranscriptRef.current =
-                    transcript;
-
-                  dispatch(
-                    setAssistantTranscript(
-                      transcript
-                    )
-                  );
-
-                  break;
-                }
-
-                case "conversation:turn-complete": {
-                  const userText =
-                    userTranscriptRef.current.trim();
-
-                  const assistantText =
-                    assistantTranscriptRef.current.trim();
-
-                  if (userText) {
-                    dispatch(
-                      appendRealtimeMessage({
-                        role: "user",
-                        text:
-                          userText,
-                      })
-                    );
-                  }
-
-                  if (
-                    assistantText
-                  ) {
-                    dispatch(
-                      appendRealtimeMessage({
-                        role:
-                          "assistant",
-
-                        text:
-                          assistantText,
-                      })
-                    );
-                  }
-
-                  userTranscriptRef.current =
-                    "";
-
-                  assistantTranscriptRef.current =
-                    "";
-
-                  dispatch(
-                    setUserTranscript(
-                      ""
-                    )
-                  );
-
-                  dispatch(
-                    setAssistantTranscript(
-                      ""
-                    )
-                  );
-
-                  break;
-                }
-
-                case "conversation:interrupted": {
-                  stopPlayback();
-
-                  dispatch(
-                    setAssistantSpeaking(
-                      false
-                    )
-                  );
-
-                  break;
-                }
-
-                case "session:error": {
-                  dispatch(
-                    setRealtimeError(
-                      message.message ||
-                        "Realtime session error."
-                    )
-                  );
-
-                  break;
-                }
-
-                case "gemini:closed": {
-                  dispatch(
-                    setRealtimeConnected(
-                      false
-                    )
-                  );
-
-                  break;
-                }
-
-                default: {
-                  console.log(
-                    "Unhandled realtime message:",
-                    message
-                  );
-                }
+                break;
               }
-            } catch (error) {
-              dispatch(
-                setRealtimeError(
-                  error.message ||
-                    "Unable to process realtime response."
-                )
-              );
-            }
-          };
 
-        socket.onerror =
-          () => {
-            dispatch(
-              setRealtimeConnected(
-                false
-              )
+              case "pong": {
+                console.log(
+                  "WEBSOCKET PONG:",
+                  message
+                );
+
+                break;
+              }
+
+              case "session:ready": {
+                console.log(
+                  "GEMINI SESSION READY:",
+                  message
+                );
+
+                dispatch(
+                  setRealtimeConnected(
+                    true
+                  )
+                );
+
+                dispatch(
+                  setConnectionStage(
+                    "ready"
+                  )
+                );
+
+                dispatch(
+                  setRealtimeError(null)
+                );
+
+                break;
+              }
+
+              case "audio:output": {
+                await playChunk(
+                  message.audio,
+
+                  Number(
+                    message.sampleRate ||
+                      24000
+                  )
+                );
+
+                break;
+              }
+
+              case "transcript:user": {
+                const transcript =
+                  String(
+                    message.text || ""
+                  );
+
+                userTranscriptRef.current =
+                  transcript;
+
+                dispatch(
+                  setUserTranscript(
+                    transcript
+                  )
+                );
+
+                break;
+              }
+
+              case "transcript:assistant": {
+                const transcript =
+                  String(
+                    message.text || ""
+                  );
+
+                assistantTranscriptRef.current =
+                  transcript;
+
+                dispatch(
+                  setAssistantTranscript(
+                    transcript
+                  )
+                );
+
+                break;
+              }
+
+              case "conversation:turn-complete": {
+                const userText =
+                  userTranscriptRef.current.trim();
+
+                const assistantText =
+                  assistantTranscriptRef.current.trim();
+
+                if (userText) {
+                  dispatch(
+                    appendRealtimeMessage({
+                      role: "user",
+                      text: userText,
+                    })
+                  );
+                }
+
+                if (
+                  assistantText
+                ) {
+                  dispatch(
+                    appendRealtimeMessage({
+                      role:
+                        "assistant",
+
+                      text:
+                        assistantText,
+                    })
+                  );
+                }
+
+                userTranscriptRef.current =
+                  "";
+
+                assistantTranscriptRef.current =
+                  "";
+
+                dispatch(
+                  setUserTranscript("")
+                );
+
+                dispatch(
+                  setAssistantTranscript(
+                    ""
+                  )
+                );
+
+                break;
+              }
+
+              case "conversation:interrupted": {
+                stopPlayback();
+
+                dispatch(
+                  setAssistantSpeaking(
+                    false
+                  )
+                );
+
+                break;
+              }
+
+              case "session:error": {
+                console.error(
+                  "REALTIME SERVER ERROR:",
+                  message
+                );
+
+                dispatch(
+                  setConnectionStage(
+                    "failed"
+                  )
+                );
+
+                dispatch(
+                  setRealtimeError(
+                    message.message ||
+                      "Realtime session error."
+                  )
+                );
+
+                break;
+              }
+
+              case "gemini:closed": {
+                console.error(
+                  "GEMINI CLOSED:",
+                  message
+                );
+
+                dispatch(
+                  setRealtimeConnected(
+                    false
+                  )
+                );
+
+                dispatch(
+                  setConnectionStage(
+                    "failed"
+                  )
+                );
+
+                dispatch(
+                  setRealtimeError(
+                    message.reason ||
+                      "Gemini Live closed."
+                  )
+                );
+
+                break;
+              }
+
+              default: {
+                console.log(
+                  "Unhandled realtime event:",
+                  message
+                );
+              }
+            }
+          } catch (error) {
+            console.error(
+              "WEBSOCKET MESSAGE ERROR:",
+              error
             );
 
             dispatch(
               setRealtimeError(
-                "Unable to connect to realtime WebSocket."
+                error.message ||
+                  "Invalid realtime response."
               )
             );
-          };
+          }
+        };
 
-        socket.onclose =
-          (event) => {
-            dispatch(
-              setRealtimeConnected(
-                false
-              )
-            );
+      socket.onerror = (
+        event
+      ) => {
+        console.error(
+          "BROWSER WEBSOCKET ERROR:",
+          event
+        );
 
-            dispatch(
-              setMicrophoneActive(
-                false
-              )
-            );
+        if (!mountedRef.current) {
+          return;
+        }
 
-            if (
-              event.code !==
-              1000
-            ) {
-              dispatch(
-                setRealtimeError(
-                  event.reason ||
-                    "Realtime connection closed unexpectedly."
-                )
-              );
-            }
-          };
+        dispatch(
+          setConnectionStage(
+            "failed"
+          )
+        );
 
-        return result;
-      },
-      [
-        dispatch,
-        disconnectSocket,
-        playChunk,
-        sendSocketEvent,
-        stopPlayback,
-      ]
-    );
+        dispatch(
+          setRealtimeError(
+            "WebSocket connection failed."
+          )
+        );
+      };
 
-  /* =======================================================
-     START MICROPHONE
-  ======================================================= */
+      socket.onclose = (
+        event
+      ) => {
+        console.error(
+          "BROWSER WEBSOCKET CLOSED:",
+          {
+            code:
+              event.code,
+
+            reason:
+              event.reason,
+
+            wasClean:
+              event.wasClean,
+          }
+        );
+
+        socketRef.current =
+          null;
+
+        if (!mountedRef.current) {
+          return;
+        }
+
+        dispatch(
+          setRealtimeConnected(
+            false
+          )
+        );
+
+        dispatch(
+          setMicrophoneActive(
+            false
+          )
+        );
+
+        dispatch(
+          setConnectionStage(
+            event.code === 1000
+              ? "closed"
+              : "failed"
+          )
+        );
+
+        if (
+          event.code !== 1000
+        ) {
+          dispatch(
+            setRealtimeError(
+              `Realtime connection closed (${event.code}). ${
+                event.reason || ""
+              }`
+            )
+          );
+        }
+      };
+
+      return result;
+    },
+    [
+      dispatch,
+      playChunk,
+      stopPlayback,
+    ]
+  );
 
   const startMicrophone =
     useCallback(async () => {
       if (
-        !socketRef.current ||
-        socketRef.current
-          .readyState !==
-          WebSocket.OPEN
+        realtime.connectionStage !==
+          "ready" ||
+        !realtime.connected
       ) {
         throw new Error(
-          "Start the realtime session first."
+          "Gemini Live is not ready."
         );
       }
 
-      /*
-       * Stop current Gemini audio so the
-       * customer can interrupt the AI.
-       */
       stopPlayback();
 
       sendSocketEvent({
@@ -549,20 +674,16 @@ case "socket:connected": {
       await startMicrophoneCapture();
 
       dispatch(
-        setMicrophoneActive(
-          true
-        )
+        setMicrophoneActive(true)
       );
     }, [
       dispatch,
+      realtime.connected,
+      realtime.connectionStage,
       sendSocketEvent,
       startMicrophoneCapture,
       stopPlayback,
     ]);
-
-  /* =======================================================
-     STOP MICROPHONE
-  ======================================================= */
 
   const stopMicrophone =
     useCallback(async () => {
@@ -573,9 +694,7 @@ case "socket:connected": {
       });
 
       dispatch(
-        setMicrophoneActive(
-          false
-        )
+        setMicrophoneActive(false)
       );
     }, [
       dispatch,
@@ -583,34 +702,30 @@ case "socket:connected": {
       stopMicrophoneCapture,
     ]);
 
-  /* =======================================================
-     SEND TEXT
-  ======================================================= */
-
   const sendText =
     useCallback(
       (text) => {
         const normalized =
-          String(text || "")
-            .trim();
+          String(text || "").trim();
 
-        if (!normalized) {
+        if (
+          !normalized ||
+          realtime.connectionStage !==
+            "ready"
+        ) {
           return false;
         }
 
         return sendSocketEvent({
-          event:
-            "text:input",
-
+          event: "text:input",
           text: normalized,
         });
       },
-      [sendSocketEvent]
+      [
+        realtime.connectionStage,
+        sendSocketEvent,
+      ]
     );
-
-  /* =======================================================
-     INTERRUPT
-  ======================================================= */
 
   const interrupt =
     useCallback(() => {
@@ -625,10 +740,6 @@ case "socket:connected": {
       stopPlayback,
     ]);
 
-  /* =======================================================
-     DISCONNECT
-  ======================================================= */
-
   const disconnect =
     useCallback(async () => {
       try {
@@ -640,14 +751,13 @@ case "socket:connected": {
       stopPlayback();
 
       sendSocketEvent({
-        event:
-          "session:stop",
+        event: "session:stop",
       });
-
-      disconnectSocket();
 
       const sessionId =
         sessionIdRef.current;
+
+      disconnectSocket();
 
       if (sessionId) {
         try {
@@ -657,15 +767,18 @@ case "socket:connected": {
             )
           ).unwrap();
         } catch {
-          /*
-           * The WebSocket close handler may
-           * already have ended the session.
-           */
+          // Socket close also ends it.
         }
       }
 
       sessionIdRef.current =
         null;
+
+      dispatch(
+        setConnectionStage(
+          "closed"
+        )
+      );
     }, [
       dispatch,
       disconnectSocket,
@@ -674,25 +787,40 @@ case "socket:connected": {
       stopPlayback,
     ]);
 
-  /* =======================================================
-     CLEANUP
-  ======================================================= */
-
+  /*
+   * IMPORTANT:
+   * This effect is intended to run cleanup
+   * only when the component unmounts.
+   *
+   * The referenced functions are now stable.
+   */
   useEffect(() => {
+    mountedRef.current = true;
+
     return () => {
-      stopMicrophoneCapture()
-        .catch(() => {});
+      mountedRef.current = false;
 
-      closePlayer()
-        .catch(() => {});
+      const socket =
+        socketRef.current;
 
-      disconnectSocket();
+      if (
+        socket &&
+        [
+          WebSocket.OPEN,
+          WebSocket.CONNECTING,
+        ].includes(
+          socket.readyState
+        )
+      ) {
+        socket.close(
+          1000,
+          "Component unmounted"
+        );
+      }
+
+      socketRef.current = null;
     };
-  }, [
-    closePlayer,
-    disconnectSocket,
-    stopMicrophoneCapture,
-  ]);
+  }, []);
 
   return {
     ...realtime,

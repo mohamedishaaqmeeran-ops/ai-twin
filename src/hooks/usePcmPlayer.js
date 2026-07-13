@@ -1,80 +1,56 @@
 import {
   useCallback,
+  useEffect,
   useRef,
   useState,
 } from "react";
 
-/* =========================================================
-   BASE64 → ARRAY BUFFER
-========================================================= */
+const base64ToArrayBuffer = (base64) => {
+  const binary = window.atob(base64);
 
-const base64ToArrayBuffer = (
-  base64
-) => {
-  const binary =
-    window.atob(base64);
-
-  const bytes =
-    new Uint8Array(
-      binary.length
-    );
+  const bytes = new Uint8Array(
+    binary.length
+  );
 
   for (
     let index = 0;
-    index <
-    binary.length;
+    index < binary.length;
     index += 1
   ) {
     bytes[index] =
-      binary.charCodeAt(
-        index
-      );
+      binary.charCodeAt(index);
   }
 
   return bytes.buffer;
 };
 
-/* =========================================================
-   PCM16 → FLOAT32
-========================================================= */
-
 const pcm16ToFloat32 = (
   arrayBuffer
 ) => {
   const pcm =
-    new Int16Array(
-      arrayBuffer
-    );
+    new Int16Array(arrayBuffer);
 
-  const floatSamples =
-    new Float32Array(
-      pcm.length
-    );
+  const output =
+    new Float32Array(pcm.length);
 
   for (
     let index = 0;
     index < pcm.length;
     index += 1
   ) {
-    floatSamples[index] =
+    output[index] =
       pcm[index] / 32768;
   }
 
-  return floatSamples;
+  return output;
 };
-
-/* =========================================================
-   HOOK
-========================================================= */
 
 export default function usePcmPlayer({
   defaultSampleRate = 24000,
   onSpeakingChange,
 } = {}) {
-  const [
-    speaking,
-    setSpeaking,
-  ] = useState(false);
+  const [speaking, setSpeaking] =
+    useState(false);
 
   const audioContextRef =
     useRef(null);
@@ -85,17 +61,27 @@ export default function usePcmPlayer({
   const activeSourcesRef =
     useRef(new Set());
 
-  const updateSpeaking =
-    useCallback(
-      (value) => {
-        setSpeaking(value);
+  /*
+   * Store changing callback in a ref.
+   * This prevents play/cleanup functions
+   * from changing on every React render.
+   */
+  const onSpeakingChangeRef =
+    useRef(onSpeakingChange);
 
-        onSpeakingChange?.(
-          value
-        );
-      },
-      [onSpeakingChange]
-    );
+  useEffect(() => {
+    onSpeakingChangeRef.current =
+      onSpeakingChange;
+  }, [onSpeakingChange]);
+
+  const updateSpeaking =
+    useCallback((value) => {
+      setSpeaking(value);
+
+      onSpeakingChangeRef.current?.(
+        value
+      );
+    }, []);
 
   const getAudioContext =
     useCallback(async () => {
@@ -106,9 +92,7 @@ export default function usePcmPlayer({
           window.AudioContext ||
           window.webkitAudioContext;
 
-        if (
-          !AudioContextClass
-        ) {
+        if (!AudioContextClass) {
           throw new Error(
             "Web Audio API is not supported."
           );
@@ -142,31 +126,29 @@ export default function usePcmPlayer({
         const audioContext =
           await getAudioContext();
 
-        const arrayBuffer =
+        const pcmBuffer =
           base64ToArrayBuffer(
             base64Audio
           );
 
         const floatSamples =
           pcm16ToFloat32(
-            arrayBuffer
+            pcmBuffer
           );
 
-        if (
-          floatSamples.length ===
-          0
-        ) {
+        if (!floatSamples.length) {
           return;
         }
+
+        const actualSampleRate =
+          Number(sampleRate) ||
+          defaultSampleRate;
 
         const audioBuffer =
           audioContext.createBuffer(
             1,
-
             floatSamples.length,
-
-            Number(sampleRate) ||
-              defaultSampleRate
+            actualSampleRate
           );
 
         audioBuffer.copyToChannel(
@@ -184,19 +166,15 @@ export default function usePcmPlayer({
           audioContext.destination
         );
 
-        const currentTime =
-          audioContext.currentTime;
-
         const startTime =
           Math.max(
-            currentTime + 0.02,
+            audioContext.currentTime +
+              0.02,
 
             nextStartTimeRef.current
           );
 
-        source.start(
-          startTime
-        );
+        source.start(startTime);
 
         nextStartTimeRef.current =
           startTime +
@@ -208,25 +186,21 @@ export default function usePcmPlayer({
 
         updateSpeaking(true);
 
-        source.onended =
-          () => {
-            activeSourcesRef.current.delete(
-              source
-            );
+        source.onended = () => {
+          activeSourcesRef.current.delete(
+            source
+          );
 
-            if (
-              activeSourcesRef
-                .current
-                .size === 0
-            ) {
-              nextStartTimeRef.current =
-                audioContext.currentTime;
+          if (
+            activeSourcesRef.current
+              .size === 0
+          ) {
+            nextStartTimeRef.current =
+              audioContext.currentTime;
 
-              updateSpeaking(
-                false
-              );
-            }
-          };
+            updateSpeaking(false);
+          }
+        };
       },
       [
         defaultSampleRate,
@@ -248,7 +222,7 @@ export default function usePcmPlayer({
           try {
             source.disconnect();
           } catch {
-            // Ignore disconnect failure.
+            // Ignore.
           }
         }
       );
@@ -277,8 +251,7 @@ export default function usePcmPlayer({
       audioContextRef.current =
         null;
 
-      nextStartTimeRef.current =
-        0;
+      nextStartTimeRef.current = 0;
     }, [stopPlayback]);
 
   return {
