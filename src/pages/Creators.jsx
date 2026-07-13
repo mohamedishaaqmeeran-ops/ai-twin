@@ -11,7 +11,7 @@ import {
   Mic,
   BarChart3,
   Instagram,
-  HeartHandshake,
+ 
   Quote,
 } from "lucide-react";
 import Logo from "../components/Logo";
@@ -314,7 +314,7 @@ const createTwinPath = user ? "/app/twin/create" : "/signin";
 
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="brand-gradient rounded-[40px] p-8 text-center text-white shadow-xl sm:p-12">
-            <HeartHandshake className="mx-auto h-12 w-12" />
+            
 
             <h2 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
               Ready to let your AI Twin sell for you?
