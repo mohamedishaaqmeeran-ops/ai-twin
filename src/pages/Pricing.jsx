@@ -154,7 +154,7 @@ const faqs = [
 ];
 
 export default function Pricing() {
-  const [billing, setBilling] = useState("monthly");
+  const [billing, setBilling] = useState("yearly");
   const navigate = useNavigate();
   const location = useLocation();
 
