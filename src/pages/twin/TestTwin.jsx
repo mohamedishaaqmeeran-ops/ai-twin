@@ -1,488 +1,747 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import {
-  Send,
-  Mic,
-  Volume2,
-  Sparkles,
-  RefreshCcw,
-  CheckCircle2,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useDispatch,
+  useSelector,
+} from "react-redux";
+
+import {
+  useSearchParams,
+} from "react-router-dom";
+
+import {
   AlertCircle,
-  Brain,
+  Bot,
+  CheckCircle2,
+  LoaderCircle,
   MessageSquare,
-  Languages,
-  BadgeCheck,
-  Crown,
-  Lock,
-  Radio,
+  Mic,
+  MicOff,
+  Phone,
+  PhoneOff,
+  Send,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  Waves,
 } from "lucide-react";
-import { useSelector } from "react-redux";
 
-const freeQuestions = [
-  "What is the price?",
-  "Is delivery available?",
-  "Why should I buy this product?",
-  "Is there any discount?",
-];
+import {
+  fetchTwins,
+} from "../../features/twin/twinSlice";
 
-const proQuestions = [
-  "Create a live sales pitch",
-  "Handle angry customer",
-  "Explain product benefits in Tamil",
-  "Suggest discount strategy",
-];
+import useRealtimeTwin from "../../hooks/useRealtimeTwin";
 
-export default function TestTwin() {
-  const navigate = useNavigate();
+/* =========================================================
+   HELPERS
+========================================================= */
 
- const { user } = useSelector((state) => state.auth);
+const getTwinImage = (
+  twin
+) => {
+  return (
+    twin?.appearance?.avatarUrl ||
+    twin?.image ||
+    "/images/bb.png"
+  );
+};
 
-const plan = user?.plan || "free";
-const isPro = plan === "pro" || plan === "business";
-
-const twin = user?.twins?.[0] || user?.twin || {};
-const twinName = twin?.name || "My AI Twin";
-const twinImage = twin?.image || "/images/bb.png";
-
-const selectedProduct =
-  user?.selectedProduct?.name ||
-  user?.products?.[0]?.name ||
-  "Vitamin C Glow Serum";
-  const sampleQuestions = isPro
-    ? [...freeQuestions, ...proQuestions]
-    : freeQuestions;
-
-  const [question, setQuestion] = useState("");
-  const [language, setLanguage] = useState("English");
-  const [testing, setTesting] = useState(false);
-
-  const [messages, setMessages] = useState([
-    {
-      from: "ai",
-      text: `Hi! I’m ${twinName}. Ask me anything about ${selectedProduct}.`,
-    },
-  ]);
-
-  const upgradeToPro = () => {
-    navigate("/pricing");
-  };
-
-  const getAIResponse = (q) => {
-    const text = q.toLowerCase();
-
-    if (text.includes("price")) {
-      return `${selectedProduct} is available for ₹799. Today’s live offer includes free shipping.`;
-    }
-
-    if (text.includes("delivery")) {
-      return "Delivery usually takes 3 to 5 working days. Cash on delivery can also be enabled based on your store settings.";
-    }
-
-    if (text.includes("discount")) {
-      return isPro
-        ? "For Pro live selling, I recommend a limited-time coupon, countdown urgency, and bundle offer to increase conversions."
-        : "Yes! During live sessions, we can show a limited-time discount coupon to increase conversions.";
-    }
-
-    if (text.includes("pitch")) {
-      return isPro
-        ? `Here is a Pro live pitch: “Everyone, this ${selectedProduct} is perfect if you want visible results, easy usage, and great value. Stay till the end for today's special offer.”`
-        : "Live sales pitch generation is available in Pro plan.";
-    }
-
-    if (text.includes("angry")) {
-      return isPro
-        ? "I understand your concern. Let me help you clearly. We can explain product details, delivery, return policy, and offer support politely."
-        : "Advanced customer handling is available in Pro plan.";
-    }
-
-    if (text.includes("tamil")) {
-      return isPro
-        ? `${selectedProduct} romba useful product. Live offer la free shipping kooda irukku. Ippo order panna best value kidaikkum.`
-        : "Multi-language advanced reply is available in Pro plan.";
-    }
-
-    if (text.includes("buy") || text.includes("order")) {
-      return "You can click the Buy Now button during live. I’ll also remind viewers about the product link.";
-    }
-
-    return isPro
-      ? `Great question! As a Pro AI Twin, I can explain benefits, compare objections, pitch the product, and guide viewers to buy ${selectedProduct}.`
-      : `Great question! ${selectedProduct} is a strong product to promote live. I can explain benefits, answer customer questions, and guide viewers to buy.`;
-  };
-
-  const sendQuestion = (value = question) => {
-    if (!value.trim()) return;
-
-    setMessages((prev) => [...prev, { from: "user", text: value }]);
-    setQuestion("");
-    setTesting(true);
-
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { from: "ai", text: getAIResponse(value) },
-      ]);
-      setTesting(false);
-    }, 700);
-  };
+const getTwinVoice = (
+  twin
+) => {
+  if (
+    typeof twin?.voice ===
+    "string"
+  ) {
+    return twin.voice;
+  }
 
   return (
-    <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
+    twin?.voice?.voiceType ||
+    twin?.voice?.voiceName ||
+    twin?.voiceName ||
+    "Warm Female"
+  );
+};
+
+/* =========================================================
+   PAGE
+========================================================= */
+
+export default function TestTwin() {
+  const dispatch =
+    useDispatch();
+
+  const [
+    searchParams,
+  ] = useSearchParams();
+
+  const {
+    twins = [],
+    loading: twinsLoading,
+  } = useSelector(
+    (state) => state.twin
+  );
+
+  const realtime =
+    useRealtimeTwin();
+
+  const [
+    selectedTwinId,
+    setSelectedTwinId,
+  ] = useState(
+    searchParams.get(
+      "twinId"
+    ) || ""
+  );
+
+  const [
+    selectedProductId,
+    setSelectedProductId,
+  ] = useState("");
+
+  const [
+    language,
+    setLanguage,
+  ] = useState("English");
+
+  const [
+    textQuestion,
+    setTextQuestion,
+  ] = useState("");
+
+  useEffect(() => {
+    dispatch(fetchTwins());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (
+      !selectedTwinId &&
+      twins.length > 0
+    ) {
+      setSelectedTwinId(
+        twins[0]._id
+      );
+    }
+  }, [
+    selectedTwinId,
+    twins,
+  ]);
+
+  const selectedTwin =
+    useMemo(() => {
+      return (
+        twins.find(
+          (twin) =>
+            twin._id ===
+            selectedTwinId
+        ) || null
+      );
+    }, [
+      selectedTwinId,
+      twins,
+    ]);
+
+  const twinImage =
+    getTwinImage(
+      selectedTwin
+    );
+
+  const twinVoice =
+    getTwinVoice(
+      selectedTwin
+    );
+
+  /* =======================================================
+     CONNECT
+  ======================================================= */
+
+  const handleConnect =
+    async () => {
+      try {
+        if (!selectedTwinId) {
+          throw new Error(
+            "Select an AI Twin."
+          );
+        }
+
+        await realtime.connect({
+          twinId:
+            selectedTwinId,
+
+          productId:
+            selectedProductId ||
+            null,
+
+          mode: "test",
+
+          language,
+        });
+      } catch (error) {
+        console.error(
+          "REALTIME CONNECT ERROR:",
+          error
+        );
+      }
+    };
+
+  /* =======================================================
+     MICROPHONE
+  ======================================================= */
+
+  const handleMicrophone =
+    async () => {
+      try {
+        if (
+          realtime.recording
+        ) {
+          await realtime.stopMicrophone();
+        } else {
+          await realtime.startMicrophone();
+        }
+      } catch (error) {
+        console.error(
+          "MICROPHONE ERROR:",
+          error
+        );
+      }
+    };
+
+  /* =======================================================
+     TEXT MESSAGE
+  ======================================================= */
+
+  const handleSendText =
+    () => {
+      const normalized =
+        textQuestion.trim();
+
+      if (!normalized) {
+        return;
+      }
+
+      const sent =
+        realtime.sendText(
+          normalized
+        );
+
+      if (sent) {
+        setTextQuestion("");
+      }
+    };
+
+  if (
+    twinsLoading &&
+    twins.length === 0
+  ) {
+    return (
+      <div className="flex min-h-[450px] items-center justify-center">
+        <LoaderCircle className="h-10 w-10 animate-spin text-[var(--brand-pink)]" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 bg-background text-foreground">
+      {/* HEADER */}
+
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-            {isPro ? (
-              <Crown className="h-4 w-4 text-[var(--brand-pink)]" />
-            ) : (
-              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-            )}
-            {isPro ? "PRO TEST AI TWIN" : "TEST AI TWIN"}
-          </span>
+        <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 px-4 py-2 text-xs font-bold">
+          <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
 
-          <span
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
-              isPro
-                ? "bg-pink-500 text-white"
-                : "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
-            }`}
-          >
-            {isPro ? <Crown className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-            {isPro ? "PRO PLAN ACTIVE" : "FREE PLAN"}
-          </span>
-        </div>
+          REALTIME AI TWIN
+        </span>
 
-        <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-          Test{" "}
+        <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
+          Speak with your{" "}
+
           <span className="brand-text">
-            {isPro ? `Pro ${twinName}` : twinName}
+            AI Twin
           </span>
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          {isPro
-            ? "Test advanced sales replies, multilingual responses, customer objections, voice, lip sync and live selling flow."
-            : "Test voice, lip sync, product knowledge and customer responses before going live."}
+          Ask questions through your
+          microphone and hear your AI Twin
+          respond using Gemini Live.
         </p>
 
-        {!isPro && (
-          <div className="mt-5 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-white/10 dark:bg-white/10">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-black text-[var(--brand-pink)]">
-                  Unlock Pro Testing
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Test multilingual answers, sales pitches, objections and full
-                  live simulation.
-                </p>
-              </div>
+        {realtime.error && (
+          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-300">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
 
-              <button
-                onClick={upgradeToPro}
-                className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white"
-              >
-                Upgrade
-              </button>
-            </div>
+            {realtime.error}
           </div>
         )}
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <ScoreCard icon={Mic} label="Voice" value={isPro ? "98%" : "92%"} />
-        <ScoreCard
-          icon={BadgeCheck}
-          label="Lip Sync"
-          value={isPro ? "HD 96%" : "88%"}
-        />
-        <ScoreCard
-          icon={Brain}
-          label="Knowledge"
-          value={isPro ? "Advanced" : "95%"}
-        />
-        <ScoreCard
-          icon={MessageSquare}
-          label="Sales Reply"
-          value={isPro ? "Pro 97%" : "91%"}
-        />
-      </section>
+      <section className="grid gap-6 xl:grid-cols-[380px_1fr]">
+        {/* LEFT PREVIEW */}
 
-      <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
         <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-2xl font-black tracking-tight brand-text">
+          <h2 className="text-xl font-black brand-text">
             Twin Preview
           </h2>
 
-          <div className="relative mt-5 rounded-3xl bg-pink-50 p-3 dark:bg-white/10">
-            {isPro && (
-              <span className="absolute right-5 top-5 z-10 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
-                PRO
-              </span>
-            )}
-
+          <div className="relative mt-5 overflow-hidden rounded-3xl border border-border bg-pink-50 dark:bg-white/10">
             <img
               src={twinImage}
-              alt="AI Twin"
-              className="h-96 w-full rounded-2xl object-cover"
-            />
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-border bg-background p-4">
-            <p className="text-lg font-black tracking-tight text-foreground">
-              {twinName}
-            </p>
-
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Product: {selectedProduct}
-            </p>
-
-            <p className="mt-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-              ● {isPro ? "Pro testing ready" : "Ready for testing"}
-            </p>
-          </div>
-
-          <div className="mt-5 space-y-3">
-            <TestButton icon={Volume2} text="Test Voice" />
-            <TestButton icon={BadgeCheck} text="Test Lip Sync" />
-            <TestButton
-              icon={RefreshCcw}
-              text={isPro ? "Run Pro Full Test" : "Run Full Test Again"}
+              alt={
+                selectedTwin?.name ||
+                "AI Twin"
+              }
+              onError={(
+                event
+              ) => {
+                event.currentTarget.src =
+                  "/images/bb.png";
+              }}
+              className={`h-96 w-full object-cover transition duration-300 ${
+                realtime.speaking
+                  ? "scale-[1.02]"
+                  : ""
+              }`}
             />
 
-            {!isPro && (
-              <button
-                onClick={upgradeToPro}
-                className="brand-gradient flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-              >
-                <Crown className="h-4 w-4" />
-                Unlock Pro Test
-              </button>
+            {realtime.speaking && (
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-black/65 px-4 py-3 text-sm font-bold text-white">
+                <Waves className="h-5 w-5 animate-pulse" />
+
+                AI Twin is speaking
+              </div>
             )}
           </div>
+
+          <label className="mt-5 block">
+            <span className="mb-2 block text-sm font-black">
+              Select AI Twin
+            </span>
+
+            <select
+              value={
+                selectedTwinId
+              }
+              disabled={
+                realtime.connected
+              }
+              onChange={(event) =>
+                setSelectedTwinId(
+                  event.target.value
+                )
+              }
+              className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {twins.length ===
+                0 && (
+                <option value="">
+                  No AI Twins found
+                </option>
+              )}
+
+              {twins.map(
+                (twin) => (
+                  <option
+                    key={
+                      twin._id
+                    }
+                    value={
+                      twin._id
+                    }
+                  >
+                    {twin.name}
+                  </option>
+                )
+              )}
+            </select>
+          </label>
+
+          <label className="mt-4 block">
+            <span className="mb-2 block text-sm font-black">
+              Language
+            </span>
+
+            <select
+              value={language}
+              disabled={
+                realtime.connected
+              }
+              onChange={(event) =>
+                setLanguage(
+                  event.target.value
+                )
+              }
+              className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <option value="English">
+                English
+              </option>
+
+              <option value="Tamil">
+                Tamil
+              </option>
+
+              <option value="Malayalam">
+                Malayalam
+              </option>
+
+              <option value="Hindi">
+                Hindi
+              </option>
+
+              <option value="Arabic">
+                Arabic
+              </option>
+            </select>
+          </label>
+
+          <div className="mt-5 rounded-2xl border border-border bg-background p-4">
+            <p className="text-lg font-black">
+              {selectedTwin?.name ||
+                "No Twin selected"}
+            </p>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Voice: {twinVoice}
+            </p>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Language:{" "}
+              {language}
+            </p>
+          </div>
+
+          {!realtime.connected ? (
+            <button
+              type="button"
+              disabled={
+                !selectedTwin ||
+                realtime.status ===
+                  "creating"
+              }
+              onClick={
+                handleConnect
+              }
+              className="brand-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {realtime.status ===
+              "creating" ? (
+                <LoaderCircle className="h-5 w-5 animate-spin" />
+              ) : (
+                <Phone className="h-5 w-5" />
+              )}
+
+              {realtime.status ===
+              "creating"
+                ? "Connecting..."
+                : "Start Realtime Test"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={
+                realtime.disconnect
+              }
+              className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] bg-red-500 text-sm font-bold text-white hover:bg-red-600"
+            >
+              <PhoneOff className="h-5 w-5" />
+
+              End Session
+            </button>
+          )}
         </aside>
 
+        {/* RIGHT CONVERSATION */}
+
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <h2 className="text-2xl font-black tracking-tight brand-text">
-                {isPro ? "Pro Chat Test" : "Chat Test"}
+              <h2 className="text-2xl font-black brand-text">
+                Voice Conversation
               </h2>
 
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Ask product questions and check AI Twin answers.
+              <p className="mt-1 text-sm text-muted-foreground">
+                Start a session and tap
+                the microphone to ask a
+                question.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-3 py-2">
-              <Languages className="h-4 w-4 text-[var(--brand-pink)]" />
-
-              <select
-                value={language}
-                onChange={(e) => {
-                  if (!isPro && !["English", "Tamil", "Hindi", "Arabic"].includes(e.target.value)) {
-                    upgradeToPro();
-                    return;
-                  }
-
-                  setLanguage(e.target.value);
-                }}
-                className="bg-transparent text-sm font-bold text-foreground outline-none"
-              >
-                <option>English</option>
-                <option>Tamil</option>
-                <option>Hindi</option>
-                <option>Arabic</option>
-                {isPro && (
-                  <>
-                    <option>Malayalam</option>
-                    <option>Telugu</option>
-                    <option>French</option>
-                    <option>Spanish</option>
-                  </>
-                )}
-              </select>
-            </div>
+            <ConnectionStatus
+              connected={
+                realtime.connected
+              }
+              recording={
+                realtime.recording
+              }
+              speaking={
+                realtime.speaking
+              }
+            />
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
-            {sampleQuestions.map((q) => {
-              const locked = proQuestions.includes(q) && !isPro;
+          {/* MICROPHONE */}
 
-              return (
-                <button
-                  key={q}
-                  onClick={() => {
-                    if (locked) {
-                      upgradeToPro();
-                      return;
-                    }
+          <div className="mt-6 flex flex-col items-center justify-center rounded-3xl border border-border bg-background p-8 text-center">
+            <button
+              type="button"
+              disabled={
+                !realtime.connected
+              }
+              onClick={
+                handleMicrophone
+              }
+              className={`grid h-28 w-28 place-items-center rounded-full text-white shadow-xl transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                realtime.recording
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "brand-gradient hover:opacity-90"
+              }`}
+            >
+              {realtime.recording ? (
+                <MicOff className="h-10 w-10" />
+              ) : (
+                <Mic className="h-10 w-10" />
+              )}
+            </button>
 
-                    sendQuestion(q);
-                  }}
-                  className="rounded-full border border-border bg-background px-4 py-2 text-xs font-semibold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-pink-50 dark:hover:bg-white/10"
-                >
-                  {locked && <Lock className="mr-1 inline h-3 w-3" />}
-                  {q}
-                </button>
-              );
-            })}
-          </div>
+            <p className="mt-5 text-lg font-black">
+              {realtime.recording
+                ? "Listening..."
+                : realtime.speaking
+                ? "AI Twin is speaking..."
+                : realtime.connected
+                ? "Tap microphone to speak"
+                : "Start a realtime session"}
+            </p>
 
-          <div className="mt-5 h-[420px] overflow-y-auto rounded-3xl border border-border bg-background p-5">
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`mb-4 flex ${
-                  msg.from === "user" ? "justify-end" : "justify-start"
-                }`}
+            <p className="mt-2 text-sm text-muted-foreground">
+              Microphone permission:{" "}
+
+              {realtime.permission}
+            </p>
+
+            {realtime.speaking && (
+              <button
+                type="button"
+                onClick={
+                  realtime.interrupt
+                }
+                className="mt-4 flex items-center gap-2 rounded-[5px] border border-red-500 px-4 py-2 text-sm font-bold text-red-500"
               >
-                <div
-                  className={
-                    msg.from === "user"
-                      ? "brand-gradient max-w-md rounded-2xl px-4 py-3 text-sm font-medium leading-7 text-white shadow-md"
-                      : "max-w-md rounded-2xl border border-border bg-card px-4 py-3 text-sm font-medium leading-7 text-foreground shadow-sm"
-                  }
-                >
-                  {msg.text}
-                </div>
-              </div>
-            ))}
+                <VolumeX className="h-4 w-4" />
 
-            {testing && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm font-bold text-muted-foreground shadow-sm">
-                  AI Twin is thinking...
-                </div>
-              </div>
+                Interrupt AI
+              </button>
             )}
           </div>
 
+          {/* CONVERSATION */}
+
+          <div className="mt-6 h-[380px] overflow-y-auto rounded-3xl border border-border bg-background p-5">
+            {realtime.messages
+              .length === 0 &&
+              !realtime.userTranscript &&
+              !realtime.assistantTranscript && (
+                <div className="flex h-full flex-col items-center justify-center text-center">
+                  <MessageSquare className="h-10 w-10 text-[var(--brand-pink)]" />
+
+                  <p className="mt-3 font-black">
+                    Conversation appears
+                    here
+                  </p>
+
+                  <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
+                    Ask questions about
+                    products, prices,
+                    policies, shipping or
+                    uploaded knowledge.
+                  </p>
+                </div>
+              )}
+
+            {realtime.messages.map(
+              (message) => (
+                <MessageBubble
+                  key={message.id}
+                  role={
+                    message.role
+                  }
+                  text={
+                    message.text
+                  }
+                />
+              )
+            )}
+
+            {realtime.userTranscript && (
+              <MessageBubble
+                role="user"
+                text={
+                  realtime.userTranscript
+                }
+                live
+              />
+            )}
+
+            {realtime.assistantTranscript && (
+              <MessageBubble
+                role="assistant"
+                text={
+                  realtime.assistantTranscript
+                }
+                live
+              />
+            )}
+          </div>
+
+          {/* TEXT INPUT */}
+
           <div className="mt-5 flex gap-3">
             <input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") sendQuestion();
-              }}
-              placeholder={
-                isPro
-                  ? "Ask your Pro AI Twin..."
-                  : "Ask your AI Twin..."
+              value={
+                textQuestion
               }
-              className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20"
+              disabled={
+                !realtime.connected
+              }
+              onChange={(event) =>
+                setTextQuestion(
+                  event.target.value
+                )
+              }
+              onKeyDown={(event) => {
+                if (
+                  event.key ===
+                    "Enter" &&
+                  !event.shiftKey
+                ) {
+                  event.preventDefault();
+
+                  handleSendText();
+                }
+              }}
+              placeholder="Type a question to test the AI Twin..."
+              className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
             />
 
             <button
-              onClick={() => sendQuestion()}
-              className="brand-gradient grid h-12 w-12 shrink-0 place-items-center rounded-[5px] text-white shadow-md transition hover:opacity-90"
+              type="button"
+              disabled={
+                !realtime.connected ||
+                !textQuestion.trim()
+              }
+              onClick={
+                handleSendText
+              }
+              className="brand-gradient grid h-12 w-12 shrink-0 place-items-center rounded-[5px] text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
             </button>
           </div>
         </section>
-      </div>
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-2xl font-black tracking-tight brand-text">
-            Readiness Checklist
-          </h2>
-
-          <div className="mt-5 space-y-4">
-            <CheckItem title="Avatar Created" done />
-            <CheckItem title="Voice Selected" done />
-            <CheckItem title={isPro ? "HD Lip Sync Ready" : "Lip Sync Ready"} done />
-            <CheckItem title={isPro ? "Advanced Knowledge Added" : "Knowledge Added"} done />
-            <CheckItem title="Product Selected" done />
-            <CheckItem title="Multi-platform Simulation" done={isPro} />
-          </div>
-        </div>
-
-        <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-2xl font-black tracking-tight brand-text">
-            AI Suggestions
-          </h2>
-
-          <div className="mt-5 space-y-4">
-            <Suggestion text="Add more FAQ answers for better customer support." />
-            <Suggestion text="Record a clearer voice sample for better lip sync." />
-            <Suggestion text="Add discount script to improve conversion." />
-            {isPro && (
-              <Suggestion text="Use multilingual sales replies for wider audience reach." />
-            )}
-          </div>
-
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Link
-              to="/app/twin/train"
-              className="flex h-11 flex-1 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] py-2 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
-            >
-              Retrain Twin
-            </Link>
-
-            <button
-              onClick={() => navigate("/app/golive")}
-              className="brand-gradient flex h-11 flex-1 items-center justify-center gap-2 rounded-[5px] py-2 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90"
-            >
-              {isPro ? "Go Pro Live" : "Go Live"}
-              <Radio className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
       </section>
     </div>
   );
 }
 
-function ScoreCard({ icon: Icon, label, value }) {
+/* =========================================================
+   CONNECTION STATUS
+========================================================= */
+
+function ConnectionStatus({
+  connected,
+  recording,
+  speaking,
+}) {
+  if (!connected) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-black text-gray-600 dark:bg-white/10 dark:text-gray-300">
+        <AlertCircle className="h-4 w-4" />
+
+        Disconnected
+      </span>
+    );
+  }
+
+  if (recording) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-2 text-xs font-black text-red-700 dark:bg-red-900/30 dark:text-red-300">
+        <Mic className="h-4 w-4" />
+
+        Listening
+      </span>
+    );
+  }
+
+  if (speaking) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-pink-100 px-4 py-2 text-xs font-black text-[var(--brand-pink)] dark:bg-white/10">
+        <Volume2 className="h-4 w-4" />
+
+        Speaking
+      </span>
+    );
+  }
+
   return (
-    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-      <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-          <Icon className="h-6 w-6" />
+    <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-xs font-black text-green-700 dark:bg-green-900/30 dark:text-green-300">
+      <CheckCircle2 className="h-4 w-4" />
+
+      Connected
+    </span>
+  );
+}
+
+/* =========================================================
+   MESSAGE BUBBLE
+========================================================= */
+
+function MessageBubble({
+  role,
+  text,
+  live,
+}) {
+  const isUser =
+    role === "user";
+
+  return (
+    <div
+      className={`mb-4 flex ${
+        isUser
+          ? "justify-end"
+          : "justify-start"
+      }`}
+    >
+      <div
+        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-7 ${
+          isUser
+            ? "brand-gradient text-white"
+            : "border border-border bg-card text-foreground"
+        }`}
+      >
+        <div className="mb-1 flex items-center gap-2 text-xs font-black opacity-80">
+          {isUser ? (
+            <Mic className="h-3 w-3" />
+          ) : (
+            <Bot className="h-3 w-3" />
+          )}
+
+          {isUser
+            ? "You"
+            : "AI Twin"}
+
+          {live && (
+            <span className="animate-pulse">
+              • Live
+            </span>
+          )}
         </div>
 
-        <div>
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <p className="text-3xl font-black tracking-tight brand-text">
-            {value}
-          </p>
-        </div>
+        {text}
       </div>
-    </div>
-  );
-}
-
-function TestButton({ icon: Icon, text }) {
-  return (
-    <button className="flex w-full items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] py-3 text-sm font-bold tracking-wide text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10">
-      <Icon className="h-4 w-4" />
-      {text}
-    </button>
-  );
-}
-
-function CheckItem({ title, done }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-background p-4">
-      {done ? (
-        <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-      ) : (
-        <AlertCircle className="h-5 w-5 text-orange-500 dark:text-orange-400" />
-      )}
-
-      <p className="text-sm font-black tracking-tight text-foreground">
-        {title}
-      </p>
-    </div>
-  );
-}
-
-function Suggestion({ text }) {
-  return (
-    <div className="rounded-2xl border border-border bg-background p-4">
-      <p className="text-sm font-medium leading-6 text-foreground">{text}</p>
     </div>
   );
 }
