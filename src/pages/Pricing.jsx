@@ -182,6 +182,18 @@ export default function Pricing() {
           </p>
 
           <div className="mx-auto mt-8 flex w-fit rounded-full border border-border bg-card p-1 shadow-sm">
+           
+            <button
+              onClick={() => setBilling("yearly")}
+              className={`rounded-full px-5 py-2 text-sm font-bold ${
+                billing === "yearly"
+                  ? "brand-gradient text-white"
+                  : "text-muted-foreground"
+              }`}
+            >
+              Annual · Save up to 20%
+            </button>
+           
             <button
               onClick={() => setBilling("monthly")}
               className={`rounded-full px-5 py-2 text-sm font-bold ${
@@ -193,16 +205,7 @@ export default function Pricing() {
               Monthly
             </button>
 
-            <button
-              onClick={() => setBilling("yearly")}
-              className={`rounded-full px-5 py-2 text-sm font-bold ${
-                billing === "yearly"
-                  ? "brand-gradient text-white"
-                  : "text-muted-foreground"
-              }`}
-            >
-              Annual · Save up to 20%
-            </button>
+           
           </div>
         </section>
 
