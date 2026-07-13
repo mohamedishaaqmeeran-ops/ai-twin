@@ -160,34 +160,44 @@ export default function TestTwin() {
      CONNECT
   ======================================================= */
 
-  const handleConnect =
-    async () => {
-      try {
-        if (!selectedTwinId) {
-          throw new Error(
-            "Select an AI Twin."
-          );
-        }
+ const handleConnect = async () => {
+  try {
+    if (!selectedTwinId) {
+      throw new Error(
+        "Select an AI Twin first."
+      );
+    }
 
-        await realtime.connect({
-          twinId:
-            selectedTwinId,
-
-          productId:
-            selectedProductId ||
-            null,
-
-          mode: "test",
-
-          language,
-        });
-      } catch (error) {
-        console.error(
-          "REALTIME CONNECT ERROR:",
-          error
-        );
+    console.log(
+      "Starting realtime session:",
+      {
+        twinId: selectedTwinId,
+        productId:
+          selectedProductId || null,
+        language,
       }
-    };
+    );
+
+    const result =
+      await realtime.connect({
+        twinId: selectedTwinId,
+        productId:
+          selectedProductId || null,
+        mode: "test",
+        language,
+      });
+
+    console.log(
+      "Realtime session connected:",
+      result
+    );
+  } catch (error) {
+    console.error(
+      "REALTIME CONNECT ERROR:",
+      error
+    );
+  }
+};
 
   /* =======================================================
      MICROPHONE
@@ -282,7 +292,7 @@ export default function TestTwin() {
       <section className="grid gap-6 xl:grid-cols-[380px_1fr]">
         {/* LEFT PREVIEW */}
 
-        <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+        <aside className="h-fit rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-black brand-text">
             Twin Preview
           </h2>
@@ -486,57 +496,79 @@ export default function TestTwin() {
           {/* MICROPHONE */}
 
           <div className="mt-6 flex flex-col items-center justify-center rounded-3xl border border-border bg-background p-8 text-center">
-            <button
-              type="button"
-              disabled={
-                !realtime.connected
-              }
-              onClick={
-                handleMicrophone
-              }
-              className={`grid h-28 w-28 place-items-center rounded-full text-white shadow-xl transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                realtime.recording
-                  ? "bg-red-500 hover:bg-red-600"
-                  : "brand-gradient hover:opacity-90"
-              }`}
-            >
-              {realtime.recording ? (
-                <MicOff className="h-10 w-10" />
-              ) : (
-                <Mic className="h-10 w-10" />
-              )}
-            </button>
+  {!realtime.connected ? (
+    <>
+      <button
+        type="button"
+        disabled={
+          !selectedTwinId ||
+          realtime.status === "creating"
+        }
+        onClick={handleConnect}
+        className="brand-gradient flex h-12 min-w-[220px] items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {realtime.status === "creating" ? (
+          <>
+            <LoaderCircle className="h-5 w-5 animate-spin" />
+            Connecting...
+          </>
+        ) : (
+          <>
+            <Phone className="h-5 w-5" />
+            Start Realtime Session
+          </>
+        )}
+      </button>
 
-            <p className="mt-5 text-lg font-black">
-              {realtime.recording
-                ? "Listening..."
-                : realtime.speaking
-                ? "AI Twin is speaking..."
-                : realtime.connected
-                ? "Tap microphone to speak"
-                : "Start a realtime session"}
-            </p>
+      <p className="mt-5 text-lg font-black">
+        Start a realtime session
+      </p>
 
-            <p className="mt-2 text-sm text-muted-foreground">
-              Microphone permission:{" "}
+      <p className="mt-2 text-sm text-muted-foreground">
+        Connect your AI Twin before enabling the microphone.
+      </p>
+    </>
+  ) : (
+    <>
+      <button
+        type="button"
+        onClick={handleMicrophone}
+        className={`grid h-28 w-28 place-items-center rounded-full text-white shadow-xl transition ${
+          realtime.recording
+            ? "bg-red-500 hover:bg-red-600"
+            : "brand-gradient hover:opacity-90"
+        }`}
+      >
+        {realtime.recording ? (
+          <MicOff className="h-10 w-10" />
+        ) : (
+          <Mic className="h-10 w-10" />
+        )}
+      </button>
 
-              {realtime.permission}
-            </p>
+      <p className="mt-5 text-lg font-black">
+        {realtime.recording
+          ? "Listening..."
+          : realtime.speaking
+          ? "AI Twin is speaking..."
+          : "Tap microphone to speak"}
+      </p>
 
-            {realtime.speaking && (
-              <button
-                type="button"
-                onClick={
-                  realtime.interrupt
-                }
-                className="mt-4 flex items-center gap-2 rounded-[5px] border border-red-500 px-4 py-2 text-sm font-bold text-red-500"
-              >
-                <VolumeX className="h-4 w-4" />
+      <p className="mt-2 text-sm text-muted-foreground">
+        Microphone permission: {realtime.permission}
+      </p>
 
-                Interrupt AI
-              </button>
-            )}
-          </div>
+      <button
+        type="button"
+        onClick={realtime.disconnect}
+        className="mt-5 flex items-center gap-2 rounded-[5px] border border-red-500 px-5 py-2 text-sm font-bold text-red-500"
+      >
+        <PhoneOff className="h-4 w-4" />
+        End Session
+      </button>
+    </>
+  )}
+</div>
 
           {/* CONVERSATION */}
 
