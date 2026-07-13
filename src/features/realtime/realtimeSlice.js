@@ -157,7 +157,7 @@ const initialState = {
   socketToken: "",
 
   status: "idle",
-
+connectionStage: "idle",
   connected: false,
   microphoneActive: false,
   assistantSpeaking: false,
@@ -184,7 +184,13 @@ const realtimeSlice =
         state.connected =
           Boolean(action.payload);
       },
-
+setConnectionStage(
+  state,
+  action
+) {
+  state.connectionStage =
+    action.payload || "idle";
+},
       setMicrophoneActive(
         state,
         action
@@ -421,6 +427,7 @@ const realtimeSlice =
   });
 
 export const {
+  setConnectionStage,
   setRealtimeConnected,
   setMicrophoneActive,
   setAssistantSpeaking,

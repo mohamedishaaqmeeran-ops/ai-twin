@@ -16,6 +16,7 @@ import {
   endRealtimeSession,
   setAssistantSpeaking,
   setAssistantTranscript,
+  setConnectionStage,
   setMicrophoneActive,
   setRealtimeConnected,
   setRealtimeError,
@@ -248,18 +249,21 @@ export default function useRealtimeTwin() {
         socketRef.current =
           socket;
 
-        socket.onopen =
-          () => {
-            dispatch(
-              setRealtimeConnected(
-                true
-              )
-            );
+       socket.onopen = () => {
+  console.log(
+    "BROWSER WEBSOCKET OPEN"
+  );
 
-            sendSocketEvent({
-              event: "ping",
-            });
-          };
+  dispatch(
+    setConnectionStage(
+      "initializing-gemini"
+    )
+  );
+
+  sendSocketEvent({
+    event: "ping",
+  });
+};
 
         socket.onmessage =
           async (event) => {
@@ -281,6 +285,24 @@ export default function useRealtimeTwin() {
 
                   break;
                 }
+case "socket:connected": {
+  console.log(
+    "SOCKET CONNECTED:",
+    message
+  );
+
+  dispatch(
+    setConnectionStage(
+      "initializing-gemini"
+    )
+  );
+
+  dispatch(
+    setRealtimeError(null)
+  );
+
+  break;
+}
 
                 case "pong": {
                   break;
