@@ -39,22 +39,39 @@ const getDefaultSocketUrl = () => {
   }
 
   const apiUrl =
-    import.meta.env.VITE_API_URL ||
-    "http://localhost:8000/api";
+    import.meta.env.VITE_API_URL;
 
-  try {
-    const parsedUrl =
-      new URL(apiUrl);
+  if (apiUrl) {
+    try {
+      const parsedUrl =
+        new URL(apiUrl);
 
-    const protocol =
-      parsedUrl.protocol === "https:"
-        ? "wss:"
-        : "ws:";
+      const protocol =
+        parsedUrl.protocol === "https:"
+          ? "wss:"
+          : "ws:";
 
-    return `${protocol}//${parsedUrl.host}/ws/realtime`;
-  } catch {
+      return `${protocol}//${parsedUrl.host}/ws/realtime`;
+    } catch (error) {
+      console.error(
+        "INVALID VITE_API_URL:",
+        error
+      );
+    }
+  }
+
+  if (
+    window.location.hostname ===
+      "localhost" ||
+    window.location.hostname ===
+      "127.0.0.1"
+  ) {
     return "ws://localhost:8000/ws/realtime";
   }
+
+  throw new Error(
+    "VITE_REALTIME_WS_URL is not configured for production."
+  );
 };
 
 const getMessageEvent = (
