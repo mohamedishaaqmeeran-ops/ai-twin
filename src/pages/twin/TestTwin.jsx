@@ -18,23 +18,26 @@ import {
   AlertCircle,
   Bot,
   CheckCircle2,
-  ExternalLink,
   LoaderCircle,
   MessageSquare,
   Mic,
+  MicOff,
   Phone,
   PhoneOff,
-  RefreshCw,
-  ShieldCheck,
+  Send,
   Sparkles,
   Video,
+  Volume2,
+  VolumeX,
+  Waves,
 } from "lucide-react";
 
 import {
   fetchTwins,
 } from "../../features/twin/twinSlice";
 
-import useLiveAvatarEmbed from "../../hooks/useLiveAvatarEmbed";
+import useRealtimeTwin from "../../hooks/useRealtimeTwin";
+import useAvatarStream from "../../hooks/useAvatarStream";
 
 /* =========================================================
    HELPERS
@@ -50,7 +53,8 @@ const getTwinImage = (twin) => {
 
 const getTwinVoice = (twin) => {
   if (
-    typeof twin?.voice === "string"
+    typeof twin?.voice ===
+    "string"
   ) {
     return twin.voice;
   }
@@ -59,7 +63,7 @@ const getTwinVoice = (twin) => {
     twin?.voice?.voiceType ||
     twin?.voice?.voiceName ||
     twin?.voiceName ||
-    "LiveAvatar voice agent"
+    "Warm Female"
   );
 };
 
@@ -68,10 +72,12 @@ const getTwinVoice = (twin) => {
 ========================================================= */
 
 export default function TestTwin() {
-  const dispatch = useDispatch();
+  const dispatch =
+    useDispatch();
 
-  const [searchParams] =
-    useSearchParams();
+  const [
+    searchParams,
+  ] = useSearchParams();
 
   const {
     twins = [],
@@ -80,8 +86,25 @@ export default function TestTwin() {
     (state) => state.twin
   );
 
-  const liveAvatar =
-    useLiveAvatarEmbed();
+  const realtime =
+    useRealtimeTwin();
+
+  const avatar =
+    useAvatarStream();
+
+    useEffect(() => {
+  window.avatarDebug = avatar;
+
+  return () => {
+    delete window.avatarDebug;
+  };
+}, [avatar]);
+
+  const conversationEndRef =
+    useRef(null);
+
+  const lastAvatarMessageIdRef =
+    useRef(null);
 
   const connectingRef =
     useRef(false);
@@ -90,14 +113,25 @@ export default function TestTwin() {
     selectedTwinId,
     setSelectedTwinId,
   ] = useState(
-    searchParams.get("twinId") ||
-      ""
+    searchParams.get(
+      "twinId"
+    ) || ""
   );
+
+  const [
+    selectedProductId,
+    setSelectedProductId,
+  ] = useState("");
 
   const [
     language,
     setLanguage,
   ] = useState("English");
+
+  const [
+    textQuestion,
+    setTextQuestion,
+  ] = useState("");
 
   const [
     pageError,
@@ -131,14 +165,98 @@ export default function TestTwin() {
   ]);
 
   /* =======================================================
-     CLEANUP
+     AUTO SCROLL CHAT
+  ======================================================= */
+
+  useEffect(() => {
+    conversationEndRef.current
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+  }, [
+    realtime.messages,
+    realtime.userTranscript,
+    realtime.assistantTranscript,
+  ]);
+
+  /* =======================================================
+     MAKE AVATAR SPEAK COMPLETED AI RESPONSE
+  ======================================================= */
+
+  useEffect(() => {
+    if (
+      !avatar.avatarConnected
+    ) {
+      return;
+    }
+
+    const messages =
+      realtime.messages || [];
+
+    const lastMessage =
+      messages[
+        messages.length - 1
+      ];
+
+    if (
+      !lastMessage ||
+      lastMessage.role !==
+        "assistant" ||
+      !lastMessage.text
+    ) {
+      return;
+    }
+
+    const messageIdentity =
+      lastMessage.id ||
+      `${lastMessage.createdAt}-${lastMessage.text}`;
+
+    if (
+      lastAvatarMessageIdRef.current ===
+      messageIdentity
+    ) {
+      return;
+    }
+
+    lastAvatarMessageIdRef.current =
+      messageIdentity;
+
+    avatar
+  .speak(
+    lastMessage.text,
+    language
+  )
+  .catch((error) => {
+    console.error(
+      "AVATAR SPEAK ERROR:",
+      error
+    );
+
+    setPageError(
+      error?.message ||
+        "Unable to make the avatar speak."
+    );
+  });
+  }, [
+    avatar.avatarConnected,
+    avatar.speak,
+    realtime.messages,
+  ]);
+
+  /* =======================================================
+     CLEANUP ON UNMOUNT
   ======================================================= */
 
   useEffect(() => {
     return () => {
-      liveAvatar.stop();
+      avatar
+        .closeAvatar()
+        .catch(() => {});
     };
-  }, [liveAvatar.stop]);
+  }, [
+    avatar.closeAvatar,
+  ]);
 
   /* =======================================================
      SELECTED TWIN
@@ -159,34 +277,46 @@ export default function TestTwin() {
     ]);
 
   const twinImage =
-    getTwinImage(selectedTwin);
+    getTwinImage(
+      selectedTwin
+    );
 
   const twinVoice =
-    getTwinVoice(selectedTwin);
+    getTwinVoice(
+      selectedTwin
+    );
 
   const connectionStarting =
-    liveAvatar.loading;
+    realtime.status ===
+      "creating" ||
+    realtime.connectionStage ===
+      "creating-session" ||
+    realtime.connectionStage ===
+      "connecting-socket" ||
+    realtime.connectionStage ===
+      "initializing-gemini" ||
+    avatar.avatarLoading;
 
   const sessionReady =
-    Boolean(
-      liveAvatar.embedUrl &&
-        liveAvatar.connected
-    );
+    realtime.connected &&
+    realtime.connectionStage ===
+      "ready";
 
   const visibleError =
     pageError ||
-    liveAvatar.error;
+    realtime.error ||
+    avatar.avatarError;
 
   /* =======================================================
-     START LIVEAVATAR
+     CONNECT REALTIME + AVATAR
   ======================================================= */
 
   const handleConnect =
     async () => {
       if (
         connectingRef.current ||
-        liveAvatar.loading ||
-        liveAvatar.embedUrl
+        connectionStarting ||
+        realtime.connected
       ) {
         return;
       }
@@ -204,32 +334,128 @@ export default function TestTwin() {
           true;
 
         console.log(
-          "STARTING LIVEAVATAR:",
+          "Starting realtime session:",
           {
             twinId:
               selectedTwinId,
+
+            productId:
+              selectedProductId ||
+              null,
 
             language,
           }
         );
 
-        const result =
-          await liveAvatar.start();
+        /*
+         * Step 1:
+         * Create Gemini realtime session
+         * and browser WebSocket.
+         */
+        const sessionResult =
+          await realtime.connect({
+            twinId:
+              selectedTwinId,
+
+            productId:
+              selectedProductId ||
+              null,
+
+            mode: "test",
+
+            language,
+          });
+
+        const realtimeSessionId =
+          sessionResult?.session?._id;
+
+        if (!realtimeSessionId) {
+          throw new Error(
+            "Realtime session ID was not returned."
+          );
+        }
 
         console.log(
-          "LIVEAVATAR SESSION CREATED:",
-          result
+          "Realtime session created:",
+          realtimeSessionId
         );
+
+        /*
+         * Step 2:
+         * Create avatar WebRTC stream.
+         */
+       const avatarResult =
+  await avatar.createAvatarSession({
+    twinId: selectedTwinId,
+    realtimeSessionId,
+  });
+
+console.log(
+  "Avatar session created:",
+  avatarResult
+);
+
+const warmupMessages = {
+  English:
+    "Hello. Your AI Twin is ready.",
+
+  Tamil:
+    "வணக்கம். உங்கள் AI ட்வின் தயாராக உள்ளது.",
+
+  Malayalam:
+    "നമസ്കാരം. നിങ്ങളുടെ എഐ ട്വിൻ തയ്യാറാണ്.",
+
+  Hindi:
+    "नमस्ते। आपका एआई ट्विन तैयार है।",
+
+  Arabic:
+    "مرحبًا. توأمك الذكي جاهز.",
+};
+
+const warmupText =
+  warmupMessages[language] ||
+  warmupMessages.English;
+
+console.log(
+  "SENDING D-ID WARMUP:",
+  {
+    language,
+    text: warmupText,
+  }
+);
+
+await avatar.speak(
+  warmupText,
+  language
+);
+
+console.log(
+  "D-ID WARMUP ACCEPTED"
+);
+
+       
       } catch (error) {
         console.error(
-          "LIVEAVATAR CONNECT ERROR:",
+          "REALTIME CONNECT ERROR:",
           error
         );
 
         setPageError(
           error?.message ||
-            "Unable to start LiveAvatar."
+            "Unable to start the realtime AI Twin."
         );
+
+        /*
+         * Clean up a partially created
+         * realtime or avatar session.
+         */
+        await avatar
+          .closeAvatar()
+          .catch(() => {});
+
+        await realtime
+          .disconnect()
+          .catch(() => {});
       } finally {
         connectingRef.current =
           false;
@@ -237,39 +463,109 @@ export default function TestTwin() {
     };
 
   /* =======================================================
-     STOP LIVEAVATAR
+     DISCONNECT REALTIME + AVATAR
   ======================================================= */
 
-  const handleDisconnect = () => {
-    setPageError("");
-
-    liveAvatar.stop();
-
-    connectingRef.current =
-      false;
-  };
-
-  /* =======================================================
-     RESTART
-  ======================================================= */
-
-  const handleRestart =
+  const handleDisconnect =
     async () => {
-      liveAvatar.stop();
+      try {
+        setPageError("");
 
-      await new Promise(
-        (resolve) =>
-          window.setTimeout(
-            resolve,
-            250
-          )
-      );
+        await avatar
+          .closeAvatar()
+          .catch((error) => {
+            console.error(
+              "AVATAR CLOSE ERROR:",
+              error
+            );
+          });
 
-      await handleConnect();
+        await realtime
+          .disconnect()
+          .catch((error) => {
+            console.error(
+              "REALTIME DISCONNECT ERROR:",
+              error
+            );
+          });
+      } finally {
+        lastAvatarMessageIdRef.current =
+          null;
+
+        connectingRef.current =
+          false;
+      }
     };
 
   /* =======================================================
-     LOADING TWINS
+     MICROPHONE
+  ======================================================= */
+
+  const handleMicrophone =
+    async () => {
+      try {
+        setPageError("");
+
+        if (!sessionReady) {
+          throw new Error(
+            "Wait until Gemini Live is connected."
+          );
+        }
+
+        if (
+          realtime.recording
+        ) {
+          await realtime.stopMicrophone();
+        } else {
+          await realtime.startMicrophone();
+        }
+      } catch (error) {
+        console.error(
+          "MICROPHONE ERROR:",
+          error
+        );
+
+        setPageError(
+          error?.message ||
+            "Unable to access the microphone."
+        );
+      }
+    };
+
+  /* =======================================================
+     TEXT MESSAGE
+  ======================================================= */
+
+  const handleSendText =
+    () => {
+      const normalized =
+        textQuestion.trim();
+
+      if (!normalized) {
+        return;
+      }
+
+      if (!sessionReady) {
+        setPageError(
+          "Start the realtime session before sending a message."
+        );
+
+        return;
+      }
+
+      const sent =
+        realtime.sendText(
+          normalized
+        );
+
+      if (sent) {
+        setTextQuestion("");
+        setPageError("");
+      }
+    };
+
+  /* =======================================================
+     LOADING
   ======================================================= */
 
   if (
@@ -295,7 +591,7 @@ export default function TestTwin() {
         <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 px-4 py-2 text-xs font-bold">
           <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
 
-          LIVE AI AVATAR
+          REALTIME AI TWIN
         </span>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
@@ -306,14 +602,13 @@ export default function TestTwin() {
           </span>
         </h1>
 
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-          Start a LiveAvatar session,
-          allow microphone access and
-          speak directly with your AI
-          avatar. LiveAvatar manages the
-          real-time video, voice and
-          lip-sync inside the embedded
-          session.
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+          Ask questions through your
+          microphone or chat. Gemini
+          answers using your Twin’s
+          product and knowledge data,
+          while the avatar provides
+          lip-synced video.
         </p>
 
         {visibleError && (
@@ -327,53 +622,105 @@ export default function TestTwin() {
         )}
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-        {/* LEFT PANEL */}
+      <section className="grid gap-6 xl:grid-cols-[380px_1fr]">
+        {/* LEFT SIDE */}
 
         <aside className="h-fit rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-black brand-text">
-              Twin Settings
+              Twin Preview
             </h2>
 
-            <LiveAvatarStatus
-              loading={
-                liveAvatar.loading
-              }
-              connected={
-                liveAvatar.connected
-              }
-              iframeLoaded={
-                liveAvatar.iframeLoaded
-              }
-            />
+      <AvatarStatus
+  loading={
+    avatar.avatarLoading
+  }
+  connected={
+    avatar.avatarConnected
+  }
+  playing={
+    avatar.avatarPlaying
+  }
+  connectionState={
+    avatar.connectionState
+  }
+/>
           </div>
 
-          {/* STATIC PREVIEW */}
+          {/* AVATAR VIDEO */}
 
-          <div className="relative mt-5 h-72 overflow-hidden rounded-3xl bg-black">
-            <img
-              src={twinImage}
-              alt={
-                selectedTwin?.name ||
-                "AI Twin"
-              }
-              onError={(event) => {
-                event.currentTarget.src =
-                  "/images/bb.png";
-              }}
-              className="h-full w-full object-cover"
-            />
+      <div className="relative h-96 overflow-hidden rounded-3xl bg-black">
+  <video
+  ref={avatar.videoRef}
+  autoPlay
+  playsInline
+  muted
+  onLoadedMetadata={() => {
+    console.log(
+      "AVATAR VIDEO METADATA LOADED"
+    );
 
-            {sessionReady && (
-              <div className="absolute inset-x-4 bottom-4 rounded-xl bg-black/75 px-4 py-3 text-center text-xs font-black text-white backdrop-blur">
-                LiveAvatar is active in
-                the conversation panel
-              </div>
-            )}
-          </div>
+    avatar.waitForVideoFrames();
+  }}
+  onLoadedData={() => {
+    console.log(
+      "AVATAR VIDEO DATA LOADED"
+    );
 
-          {/* SELECT TWIN */}
+    avatar.waitForVideoFrames();
+  }}
+  onCanPlay={() => {
+    console.log(
+      "AVATAR VIDEO CAN PLAY"
+    );
+
+    avatar.playVideo();
+  }}
+  onPlaying={() => {
+    console.log(
+      "AVATAR VIDEO PLAYING"
+    );
+  }}
+  onResize={(event) => {
+    console.log(
+      "AVATAR VIDEO SIZE:",
+      {
+        width:
+          event.currentTarget
+            .videoWidth,
+
+        height:
+          event.currentTarget
+            .videoHeight,
+      }
+    );
+  }}
+  onError={(event) => {
+    console.error(
+      "AVATAR VIDEO ERROR:",
+      event.currentTarget.error
+    );
+  }}
+  className={`absolute inset-0 h-full w-full object-cover transition-opacity ${
+    avatar.avatarPlaying
+      ? "opacity-100"
+      : "opacity-0"
+  }`}
+/>
+
+  {!avatar.avatarPlaying && (
+    <img
+      src={twinImage}
+      alt={
+        selectedTwin?.name ||
+        "AI Twin"
+      }
+      className="absolute inset-0 h-full w-full object-cover"
+    />
+  )}
+</div>
+
+          {/* TWIN SELECT */}
 
           <label className="mt-5 block">
             <span className="mb-2 block text-sm font-black">
@@ -381,32 +728,46 @@ export default function TestTwin() {
             </span>
 
             <select
-              value={selectedTwinId}
+              value={
+                selectedTwinId
+              }
               disabled={
-                sessionReady ||
+                realtime.connected ||
                 connectionStarting
               }
-              onChange={(event) => {
+              onChange={(
+                event
+              ) => {
                 setSelectedTwinId(
                   event.target.value
                 );
+
+                lastAvatarMessageIdRef.current =
+                  null;
               }}
               className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {twins.length === 0 && (
+              {twins.length ===
+                0 && (
                 <option value="">
                   No AI Twins found
                 </option>
               )}
 
-              {twins.map((twin) => (
-                <option
-                  key={twin._id}
-                  value={twin._id}
-                >
-                  {twin.name}
-                </option>
-              ))}
+              {twins.map(
+                (twin) => (
+                  <option
+                    key={
+                      twin._id
+                    }
+                    value={
+                      twin._id
+                    }
+                  >
+                    {twin.name}
+                  </option>
+                )
+              )}
             </select>
           </label>
 
@@ -414,20 +775,22 @@ export default function TestTwin() {
 
           <label className="mt-4 block">
             <span className="mb-2 block text-sm font-black">
-              Preferred language
+              Language
             </span>
 
             <select
               value={language}
               disabled={
-                sessionReady ||
+                realtime.connected ||
                 connectionStarting
               }
-              onChange={(event) => {
+              onChange={(
+                event
+              ) =>
                 setLanguage(
                   event.target.value
-                );
-              }}
+                )
+              }
               className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <option value="English">
@@ -452,7 +815,7 @@ export default function TestTwin() {
             </select>
           </label>
 
-          {/* DETAILS */}
+          {/* TWIN DETAILS */}
 
           <div className="mt-5 rounded-2xl border border-border bg-background p-4">
             <p className="text-lg font-black">
@@ -461,30 +824,36 @@ export default function TestTwin() {
             </p>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Configured voice:{" "}
-              {twinVoice}
+              Voice: {twinVoice}
             </p>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Preferred language:{" "}
+              Language:{" "}
               {language}
             </p>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Avatar engine: LiveAvatar
+              Gemini:{" "}
+              {sessionReady
+                ? "Ready"
+                : "Not connected"}
             </p>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Mode:{" "}
-              {sessionReady
-                ? "Active"
+              Avatar:{" "}
+              {avatar.avatarConnected
+                ? "Connected"
+                : avatar.avatarLoading
+                ? "Starting"
                 : "Not connected"}
             </p>
           </div>
 
-          {/* BUTTONS */}
+          {/* START / END */}
 
-          {!sessionReady ? (
+          {!realtime.connected &&
+          realtime.connectionStage !==
+            "ready" ? (
             <button
               type="button"
               disabled={
@@ -500,188 +869,238 @@ export default function TestTwin() {
                 <>
                   <LoaderCircle className="h-5 w-5 animate-spin" />
 
-                  Starting LiveAvatar...
+                  Starting AI Twin...
                 </>
               ) : (
                 <>
                   <Phone className="h-5 w-5" />
 
-                  Start LiveAvatar
+                  Start Realtime Test
                 </>
               )}
             </button>
           ) : (
-            <div className="mt-5 space-y-3">
-              <button
-                type="button"
-                onClick={
-                  handleRestart
-                }
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-[5px] border border-border bg-background text-sm font-bold hover:bg-muted"
-              >
-                <RefreshCw className="h-5 w-5" />
+            <button
+              type="button"
+              onClick={
+                handleDisconnect
+              }
+              className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] bg-red-500 text-sm font-bold text-white hover:bg-red-600"
+            >
+              <PhoneOff className="h-5 w-5" />
 
-                Restart Session
-              </button>
-
-              <button
-                type="button"
-                onClick={
-                  handleDisconnect
-                }
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-[5px] bg-red-500 text-sm font-bold text-white hover:bg-red-600"
-              >
-                <PhoneOff className="h-5 w-5" />
-
-                End Session
-              </button>
-            </div>
+              End Session
+            </button>
           )}
         </aside>
 
-        {/* RIGHT PANEL */}
+        {/* RIGHT SIDE */}
 
-        <section className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-          <div className="flex flex-col justify-between gap-4 border-b border-border p-5 sm:flex-row sm:items-center sm:p-6">
+        <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <h2 className="text-2xl font-black brand-text">
-                LiveAvatar
-                Conversation
+                Voice Conversation
               </h2>
 
               <p className="mt-1 text-sm text-muted-foreground">
-                The microphone, voice,
-                video and lip-sync run
-                inside this secure
-                LiveAvatar session.
+                Ask through the
+                microphone or type a
+                message below.
               </p>
             </div>
 
-            <ConversationStatus
-              loading={
-                liveAvatar.loading
-              }
+            <ConnectionStatus
               connected={
-                liveAvatar.connected
+                realtime.connected
               }
-              loaded={
-                liveAvatar.iframeLoaded
+              connectionStage={
+                realtime.connectionStage
+              }
+              recording={
+                realtime.recording
+              }
+              speaking={
+                realtime.speaking
               }
             />
           </div>
 
-          {/* EMBED AREA */}
+          {/* MICROPHONE */}
 
-          <div className="relative min-h-[640px] bg-black">
-            {liveAvatar.embedUrl ? (
-              <iframe
-                key={
-                  liveAvatar.embedUrl
+          <div className="mt-6 flex flex-col items-center justify-center rounded-3xl border border-border bg-background p-8 text-center">
+            <button
+              type="button"
+              disabled={
+                !sessionReady
+              }
+              onClick={
+                handleMicrophone
+              }
+              className={`grid h-28 w-28 place-items-center rounded-full text-white shadow-xl transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                realtime.recording
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "brand-gradient hover:opacity-90"
+              }`}
+            >
+              {realtime.recording ? (
+                <MicOff className="h-10 w-10" />
+              ) : (
+                <Mic className="h-10 w-10" />
+              )}
+            </button>
+
+            <p className="mt-5 text-lg font-black">
+              {realtime.recording
+                ? "Listening..."
+                : realtime.speaking
+                ? "AI Twin is speaking..."
+                : sessionReady
+                ? "Tap microphone to speak"
+                : connectionStarting
+                ? "Starting realtime session..."
+                : "Start a realtime session"}
+            </p>
+
+            <p className="mt-2 text-sm text-muted-foreground">
+              Microphone permission:{" "}
+
+              {realtime.permission}
+            </p>
+
+            {realtime.speaking && (
+              <button
+                type="button"
+                onClick={
+                  realtime.interrupt
                 }
-                src={
-                  liveAvatar.embedUrl
-                }
-                title="Twinn LiveAvatar"
-                allow="microphone; camera; autoplay; fullscreen"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-                onLoad={
-                  liveAvatar.markIframeLoaded
-                }
-                onError={
-                  liveAvatar.markIframeError
-                }
-                className="absolute inset-0 h-full w-full border-0"
-              />
-            ) : (
-              <div className="flex min-h-[640px] flex-col items-center justify-center p-8 text-center text-white">
-                <div className="grid h-24 w-24 place-items-center rounded-full bg-white/10">
-                  <Video className="h-11 w-11 text-pink-400" />
-                </div>
+                className="mt-4 flex items-center gap-2 rounded-[5px] border border-red-500 px-4 py-2 text-sm font-bold text-red-500"
+              >
+                <VolumeX className="h-4 w-4" />
 
-                <h3 className="mt-6 text-2xl font-black">
-                  Start your live AI
-                  avatar
-                </h3>
-
-                <p className="mt-3 max-w-lg text-sm leading-7 text-white/70">
-                  Select your AI Twin,
-                  start the session and
-                  allow microphone
-                  permission when the
-                  LiveAvatar frame opens.
-                </p>
-
-                <div className="mt-6 grid max-w-2xl gap-3 sm:grid-cols-3">
-                  <FeatureCard
-                    icon={Mic}
-                    title="Microphone"
-                    text="Speak naturally with the avatar."
-                  />
-
-                  <FeatureCard
-                    icon={Bot}
-                    title="AI Agent"
-                    text="The configured voice agent answers."
-                  />
-
-                  <FeatureCard
-                    icon={Video}
-                    title="Lip-sync"
-                    text="LiveAvatar renders synchronized video."
-                  />
-                </div>
-              </div>
-            )}
-
-            {liveAvatar.loading && (
-              <div className="absolute inset-0 z-20 grid place-items-center bg-black/75 text-white backdrop-blur-sm">
-                <div className="text-center">
-                  <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-pink-400" />
-
-                  <p className="mt-4 text-lg font-black">
-                    Creating LiveAvatar
-                    session...
-                  </p>
-
-                  <p className="mt-2 text-sm text-white/70">
-                    Preparing secure
-                    microphone and video
-                    access.
-                  </p>
-                </div>
-              </div>
+                Interrupt AI
+              </button>
             )}
           </div>
 
-          {/* FOOTER */}
+          {/* CHAT */}
 
-          <div className="flex flex-col justify-between gap-4 border-t border-border p-5 sm:flex-row sm:items-center sm:p-6">
-            <div className="flex items-start gap-3 text-sm text-muted-foreground">
-              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
+          <div className="mt-6 h-[380px] overflow-y-auto rounded-3xl border border-border bg-background p-5">
+            {realtime.messages
+              .length === 0 &&
+              !realtime.userTranscript &&
+              !realtime.assistantTranscript && (
+                <div className="flex h-full flex-col items-center justify-center text-center">
+                  <MessageSquare className="h-10 w-10 text-[var(--brand-pink)]" />
 
-              <p>
-                The API key remains on
-                your backend. The
-                frontend receives only
-                a short-lived embed URL.
-              </p>
-            </div>
+                  <p className="mt-3 font-black">
+                    Conversation appears
+                    here
+                  </p>
 
-            {liveAvatar.embedUrl && (
-              <a
-                href={
-                  liveAvatar.embedUrl
-                }
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-[5px] border border-border px-4 py-2 text-sm font-bold hover:bg-muted"
-              >
-                <ExternalLink className="h-4 w-4" />
+                  <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
+                    Ask about products,
+                    prices, policies,
+                    shipping or uploaded
+                    knowledge.
+                  </p>
+                </div>
+              )}
 
-                Open separately
-              </a>
+            {realtime.messages.map(
+              (
+                message,
+                index
+              ) => (
+                <MessageBubble
+                  key={
+                    message.id ||
+                    `${message.createdAt}-${index}`
+                  }
+                  role={
+                    message.role
+                  }
+                  text={
+                    message.text
+                  }
+                />
+              )
             )}
+
+            {realtime.userTranscript && (
+              <MessageBubble
+                role="user"
+                text={
+                  realtime.userTranscript
+                }
+                live
+              />
+            )}
+
+            {realtime.assistantTranscript && (
+              <MessageBubble
+                role="assistant"
+                text={
+                  realtime.assistantTranscript
+                }
+                live
+              />
+            )}
+
+            <div
+              ref={
+                conversationEndRef
+              }
+            />
+          </div>
+
+          {/* TEXT INPUT */}
+
+          <div className="mt-5 flex gap-3">
+            <input
+              value={
+                textQuestion
+              }
+              disabled={
+                !sessionReady
+              }
+              onChange={(
+                event
+              ) =>
+                setTextQuestion(
+                  event.target.value
+                )
+              }
+              onKeyDown={(
+                event
+              ) => {
+                if (
+                  event.key ===
+                    "Enter" &&
+                  !event.shiftKey
+                ) {
+                  event.preventDefault();
+
+                  handleSendText();
+                }
+              }}
+              placeholder="Type a question to test the AI Twin..."
+              className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
+            />
+
+            <button
+              type="button"
+              disabled={
+                !sessionReady ||
+                !textQuestion.trim()
+              }
+              onClick={
+                handleSendText
+              }
+              className="brand-gradient grid h-12 w-12 shrink-0 place-items-center rounded-[5px] text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
         </section>
       </section>
@@ -690,13 +1109,103 @@ export default function TestTwin() {
 }
 
 /* =========================================================
-   LIVEAVATAR STATUS
+   CONNECTION STATUS
 ========================================================= */
 
-function LiveAvatarStatus({
+function ConnectionStatus({
+  connected,
+  connectionStage,
+  recording,
+  speaking,
+}) {
+  if (
+    connectionStage ===
+      "creating-session" ||
+    connectionStage ===
+      "connecting-socket" ||
+    connectionStage ===
+      "initializing-gemini"
+  ) {
+    let label =
+      "Connecting";
+
+    if (
+      connectionStage ===
+      "creating-session"
+    ) {
+      label =
+        "Creating session";
+    }
+
+    if (
+      connectionStage ===
+      "initializing-gemini"
+    ) {
+      label =
+        "Starting Gemini";
+    }
+
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-xs font-black text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+        <LoaderCircle className="h-4 w-4 animate-spin" />
+
+        {label}
+      </span>
+    );
+  }
+
+  if (
+    !connected ||
+    connectionStage !==
+      "ready"
+  ) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-black text-gray-600 dark:bg-white/10 dark:text-gray-300">
+        <AlertCircle className="h-4 w-4" />
+
+        Disconnected
+      </span>
+    );
+  }
+
+  if (recording) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-4 py-2 text-xs font-black text-red-700 dark:bg-red-900/30 dark:text-red-300">
+        <Mic className="h-4 w-4" />
+
+        Listening
+      </span>
+    );
+  }
+
+  if (speaking) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-pink-100 px-4 py-2 text-xs font-black text-[var(--brand-pink)] dark:bg-white/10">
+        <Volume2 className="h-4 w-4" />
+
+        Speaking
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-xs font-black text-green-700 dark:bg-green-900/30 dark:text-green-300">
+      <CheckCircle2 className="h-4 w-4" />
+
+      Connected
+    </span>
+  );
+}
+
+/* =========================================================
+   AVATAR STATUS
+========================================================= */
+
+function AvatarStatus({
   loading,
   connected,
-  iframeLoaded,
+  playing,
+  connectionState,
 }) {
   if (loading) {
     return (
@@ -708,10 +1217,7 @@ function LiveAvatarStatus({
     );
   }
 
-  if (
-    connected &&
-    iframeLoaded
-  ) {
+  if (playing) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-[11px] font-black text-green-700">
         <Video className="h-3.5 w-3.5" />
@@ -724,9 +1230,9 @@ function LiveAvatarStatus({
   if (connected) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-[11px] font-black text-amber-700">
-        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+        <Video className="h-3.5 w-3.5" />
 
-        Loading frame
+        Video waiting
       </span>
     );
   }
@@ -735,72 +1241,61 @@ function LiveAvatarStatus({
     <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-[11px] font-black text-gray-600">
       <Video className="h-3.5 w-3.5" />
 
-      Offline
+      {connectionState ===
+      "failed"
+        ? "Avatar failed"
+        : "Static"}
     </span>
   );
 }
 
 /* =========================================================
-   CONVERSATION STATUS
+   MESSAGE BUBBLE
 ========================================================= */
 
-function ConversationStatus({
-  loading,
-  connected,
-  loaded,
-}) {
-  if (loading) {
-    return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-xs font-black text-amber-700">
-        <LoaderCircle className="h-4 w-4 animate-spin" />
-
-        Creating session
-      </span>
-    );
-  }
-
-  if (
-    connected &&
-    loaded
-  ) {
-    return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-4 py-2 text-xs font-black text-green-700">
-        <CheckCircle2 className="h-4 w-4" />
-
-        Connected
-      </span>
-    );
-  }
-
-  return (
-    <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-black text-gray-600">
-      <AlertCircle className="h-4 w-4" />
-
-      Disconnected
-    </span>
-  );
-}
-
-/* =========================================================
-   FEATURE CARD
-========================================================= */
-
-function FeatureCard({
-  icon: Icon,
-  title,
+function MessageBubble({
+  role,
   text,
+  live,
 }) {
+  const isUser =
+    role === "user";
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left">
-      <Icon className="h-5 w-5 text-pink-400" />
+    <div
+      className={`mb-4 flex ${
+        isUser
+          ? "justify-end"
+          : "justify-start"
+      }`}
+    >
+      <div
+        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-7 ${
+          isUser
+            ? "brand-gradient text-white"
+            : "border border-border bg-card text-foreground"
+        }`}
+      >
+        <div className="mb-1 flex items-center gap-2 text-xs font-black opacity-80">
+          {isUser ? (
+            <Mic className="h-3 w-3" />
+          ) : (
+            <Bot className="h-3 w-3" />
+          )}
 
-      <p className="mt-3 text-sm font-black">
-        {title}
-      </p>
+          {isUser
+            ? "You"
+            : "AI Twin"}
 
-      <p className="mt-1 text-xs leading-5 text-white/60">
+          {live && (
+            <span className="animate-pulse">
+              • Live
+            </span>
+          )}
+        </div>
+
         {text}
-      </p>
+      </div>
     </div>
   );
 }
