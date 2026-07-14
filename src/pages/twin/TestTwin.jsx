@@ -39,7 +39,7 @@ import {
 
 import {
   fetchProducts,
-} from "../../features/product/productSlice";
+} from "../../features/products/productSlice";
 
 import useRealtimeTwin from "../../hooks/useRealtimeTwin";
 import useAvatarStream from "../../hooks/useAvatarStream";
