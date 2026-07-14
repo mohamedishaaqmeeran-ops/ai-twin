@@ -4,6 +4,7 @@ import authReducer from "../features/auth/authSlice";
 import socialReducer from "../features/social/socialSlice";
 import uiReducer from "../features/ui/uiSlice";
 import realtimeReducer from "../features/realtime/realtimeSlice";
+import productReducer from "../features/products/productSlice";
 
 export const store = configureStore({
   reducer: {
@@ -13,5 +14,7 @@ export const store = configureStore({
     twin: twinReducer,
     realtime:
       realtimeReducer,
+      product:
+        productReducer,
   },
 });
