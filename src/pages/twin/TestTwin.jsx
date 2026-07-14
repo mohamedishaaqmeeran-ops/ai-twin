@@ -584,48 +584,76 @@ export default function TestTwin() {
               Twin Preview
             </h2>
 
-            <AvatarStatus
-              loading={
-                avatar.avatarLoading
-              }
-              connected={
-                avatar.avatarConnected
-              }
-            />
+          <AvatarStatus
+  loading={avatar.avatarLoading}
+  connected={avatar.avatarConnected}
+  playing={avatar.avatarPlaying}
+/>
           </div>
 
           {/* AVATAR VIDEO */}
 
           <div className="relative mt-5 overflow-hidden rounded-3xl border border-border bg-black">
             <video
-              ref={
-                avatar.videoRef
-              }
-              autoPlay
-              playsInline
-              className={`h-96 w-full object-cover ${
-                avatar.avatarConnected
-                  ? "block"
-                  : "hidden"
-              }`}
-            />
+  ref={avatar.videoRef}
+  autoPlay
+  playsInline
+  muted
+  onLoadedMetadata={async () => {
+    console.log(
+      "AVATAR VIDEO METADATA LOADED"
+    );
 
-            {!avatar.avatarConnected && (
-              <img
-                src={twinImage}
-                alt={
-                  selectedTwin?.name ||
-                  "AI Twin"
-                }
-                onError={(
-                  event
-                ) => {
-                  event.currentTarget.src =
-                    "/images/bb.png";
-                }}
-                className="h-96 w-full object-cover"
-              />
-            )}
+    await avatar.playVideo();
+  }}
+  onCanPlay={async () => {
+    console.log(
+      "AVATAR VIDEO CAN PLAY"
+    );
+
+    await avatar.playVideo();
+  }}
+  onPlaying={() => {
+    console.log(
+      "AVATAR VIDEO PLAYING"
+    );
+  }}
+  onWaiting={() => {
+    console.log(
+      "AVATAR VIDEO WAITING"
+    );
+  }}
+  onStalled={() => {
+    console.log(
+      "AVATAR VIDEO STALLED"
+    );
+  }}
+  onError={(event) => {
+    console.error(
+      "AVATAR VIDEO ELEMENT ERROR:",
+      event.currentTarget.error
+    );
+  }}
+  onClick={() => {
+    avatar.playVideo();
+  }}
+  className={`h-96 w-full object-cover ${
+    avatar.avatarPlaying
+      ? "block"
+      : "hidden"
+  }`}
+/>
+
+            {!avatar.avatarPlaying && (
+  <img
+    src={twinImage}
+    alt={
+      selectedTwin?.name ||
+      "AI Twin"
+    }
+    className="h-96 w-full object-cover"
+  />
+)}
 
             {avatar.avatarLoading && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/65 text-white">
@@ -1130,31 +1158,41 @@ function ConnectionStatus({
 function AvatarStatus({
   loading,
   connected,
+  playing,
 }) {
   if (loading) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-[11px] font-black text-amber-700">
         <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-
         Starting
+      </span>
+    );
+  }
+
+  if (playing) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-[11px] font-black text-green-700">
+        <Video className="h-3.5 w-3.5" />
+        Avatar Live
       </span>
     );
   }
 
   if (connected) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-[11px] font-black text-green-700">
+      <button
+        type="button"
+        className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-[11px] font-black text-amber-700"
+      >
         <Video className="h-3.5 w-3.5" />
-
-        Avatar Live
-      </span>
+        Stream waiting
+      </button>
     );
   }
 
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-[11px] font-black text-gray-600">
       <Video className="h-3.5 w-3.5" />
-
       Static
     </span>
   );
