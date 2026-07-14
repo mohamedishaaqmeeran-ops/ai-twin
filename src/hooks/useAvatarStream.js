@@ -9,28 +9,47 @@ const BASE_URL =
   import.meta.env.VITE_API_URL ||
   "https://twinn-backend.onrender.com";
 
-const parseResponse =
-  async (response) => {
-    const data = await response
-      .json()
-      .catch(() => ({}));
+/* =========================================================
+   RESPONSE PARSER
+========================================================= */
 
-    if (!response.ok) {
-      throw new Error(
-        data.message ||
-          data.description ||
-          `Avatar request failed (${response.status}).`
-      );
-    }
+const parseResponse = async (
+  response
+) => {
+  const contentType =
+    response.headers.get(
+      "content-type"
+    ) || "";
 
-    return data;
-  };
+  const data =
+    contentType.includes(
+      "application/json"
+    )
+      ? await response
+          .json()
+          .catch(() => ({}))
+      : {
+          message: await response
+            .text()
+            .catch(() => ""),
+        };
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message ||
+        data?.description ||
+        `Avatar request failed (${response.status}).`
+    );
+  }
+
+  return data;
+};
+
+/* =========================================================
+   HOOK
+========================================================= */
 
 export default function useAvatarStream() {
-  /*
-   * avatarConnected means WebRTC connected.
-   * avatarPlaying means actual video frames are playing.
-   */
   const [
     avatarConnected,
     setAvatarConnected,
@@ -71,8 +90,82 @@ export default function useAvatarStream() {
   const closedRef =
     useRef(false);
 
+  const streamAttachedRef =
+    useRef(false);
+
+  const playPromiseRef =
+    useRef(null);
+
   /* =======================================================
-     PLAY VIDEO
+     ATTACH STREAM ONLY ONCE
+  ======================================================= */
+
+  const attachStreamToVideo =
+    useCallback((stream) => {
+      const video =
+        videoRef.current;
+
+      if (
+        !video ||
+        !stream
+      ) {
+        return false;
+      }
+
+      /*
+       * Do not assign srcObject repeatedly.
+       * Reassigning it interrupts video.play().
+       */
+      if (
+        video.srcObject === stream
+      ) {
+        return true;
+      }
+
+      if (
+        streamAttachedRef.current &&
+        video.srcObject
+      ) {
+        return true;
+      }
+
+      video.srcObject =
+        stream;
+
+      video.autoplay =
+        true;
+
+      video.playsInline =
+        true;
+
+      /*
+       * Keep D-ID muted because Gemini
+       * is already playing audio.
+       */
+      video.muted =
+        true;
+
+      streamAttachedRef.current =
+        true;
+
+      console.log(
+        "D-ID STREAM ATTACHED TO VIDEO",
+        {
+          audioTracks:
+            stream.getAudioTracks()
+              .length,
+
+          videoTracks:
+            stream.getVideoTracks()
+              .length,
+        }
+      );
+
+      return true;
+    }, []);
+
+  /* =======================================================
+     PLAY VIDEO SAFELY
   ======================================================= */
 
   const playVideo =
@@ -87,40 +180,101 @@ export default function useAvatarStream() {
         return false;
       }
 
-      try {
-        /*
-         * Keep it muted initially.
-         * Browsers commonly block autoplay
-         * when a WebRTC stream includes audio.
-         */
-        video.muted = true;
-        video.playsInline = true;
-        video.autoplay = true;
-
-        await video.play();
-
-        console.log(
-          "D-ID VIDEO PLAYING"
-        );
-
-        setAvatarPlaying(true);
-        setAvatarError(null);
-
-        return true;
-      } catch (error) {
-        console.error(
-          "D-ID VIDEO PLAY ERROR:",
-          error
-        );
-
-        setAvatarPlaying(false);
-
-        setAvatarError(
-          "Avatar stream connected, but browser blocked video playback. Click the preview to start it."
-        );
-
-        return false;
+      /*
+       * Avoid multiple simultaneous play()
+       * calls, which can produce AbortError.
+       */
+      if (
+        playPromiseRef.current
+      ) {
+        return playPromiseRef.current;
       }
+
+      const attemptPlay =
+        async () => {
+          try {
+            video.autoplay =
+              true;
+
+            video.playsInline =
+              true;
+
+            video.muted =
+              true;
+
+            /*
+             * HAVE_CURRENT_DATA = 2.
+             * Below that, wait for canplay.
+             */
+            if (
+              video.readyState <
+              HTMLMediaElement.HAVE_CURRENT_DATA
+            ) {
+              console.log(
+                "D-ID VIDEO WAITING FOR MEDIA DATA:",
+                video.readyState
+              );
+
+              return false;
+            }
+
+            await video.play();
+
+            console.log(
+              "D-ID VIDEO PLAY STARTED"
+            );
+
+            setAvatarPlaying(
+              true
+            );
+
+            setAvatarError(
+              null
+            );
+
+            return true;
+          } catch (error) {
+            /*
+             * AbortError is usually temporary:
+             * the stream or media track changed
+             * while play() was starting.
+             */
+            if (
+              error?.name ===
+              "AbortError"
+            ) {
+              console.warn(
+                "D-ID VIDEO PLAY INTERRUPTED. WILL RETRY."
+              );
+
+              return false;
+            }
+
+            console.error(
+              "D-ID VIDEO PLAY ERROR:",
+              error
+            );
+
+            setAvatarPlaying(
+              false
+            );
+
+            setAvatarError(
+              error?.message ||
+                "The avatar video could not start."
+            );
+
+            return false;
+          } finally {
+            playPromiseRef.current =
+              null;
+          }
+        };
+
+      playPromiseRef.current =
+        attemptPlay();
+
+      return playPromiseRef.current;
     }, []);
 
   /* =======================================================
@@ -140,23 +294,34 @@ export default function useAvatarStream() {
 
         return new Promise(
           (resolve) => {
-            const timeout =
-              window.setTimeout(
-                () => {
-                  peerConnection.removeEventListener(
-                    "icegatheringstatechange",
-                    handleChange
-                  );
+            let finished =
+              false;
 
-                  resolve();
-                },
-                5000
-              );
+            const finish =
+              () => {
+                if (finished) {
+                  return;
+                }
 
-            const handleChange =
+                finished =
+                  true;
+
+                window.clearTimeout(
+                  timeoutId
+                );
+
+                peerConnection.removeEventListener(
+                  "icegatheringstatechange",
+                  handleStateChange
+                );
+
+                resolve();
+              };
+
+            const handleStateChange =
               () => {
                 console.log(
-                  "D-ID ICE GATHERING:",
+                  "D-ID ICE GATHERING STATE:",
                   peerConnection
                     .iceGatheringState
                 );
@@ -166,22 +331,19 @@ export default function useAvatarStream() {
                     .iceGatheringState ===
                   "complete"
                 ) {
-                  window.clearTimeout(
-                    timeout
-                  );
-
-                  peerConnection.removeEventListener(
-                    "icegatheringstatechange",
-                    handleChange
-                  );
-
-                  resolve();
+                  finish();
                 }
               };
 
+            const timeoutId =
+              window.setTimeout(
+                finish,
+                5000
+              );
+
             peerConnection.addEventListener(
               "icegatheringstatechange",
-              handleChange
+              handleStateChange
             );
           }
         );
@@ -195,7 +357,14 @@ export default function useAvatarStream() {
 
   const closeAvatar =
     useCallback(async () => {
-      closedRef.current = true;
+      closedRef.current =
+        true;
+
+      streamAttachedRef.current =
+        false;
+
+      playPromiseRef.current =
+        null;
 
       const avatarSessionId =
         avatarSessionIdRef.current;
@@ -203,16 +372,21 @@ export default function useAvatarStream() {
       avatarSessionIdRef.current =
         null;
 
-      if (avatarSessionId) {
+      if (
+        avatarSessionId
+      ) {
         await fetch(
           `${BASE_URL}/api/avatar/sessions/${avatarSessionId}`,
           {
-            method: "DELETE",
-            credentials: "include",
+            method:
+              "DELETE",
+
+            credentials:
+              "include",
           }
         ).catch((error) => {
           console.error(
-            "AVATAR DELETE ERROR:",
+            "AVATAR SESSION DELETE ERROR:",
             error
           );
         });
@@ -221,7 +395,9 @@ export default function useAvatarStream() {
       const peerConnection =
         peerConnectionRef.current;
 
-      if (peerConnection) {
+      if (
+        peerConnection
+      ) {
         peerConnection.ontrack =
           null;
 
@@ -234,22 +410,13 @@ export default function useAvatarStream() {
         peerConnection.oniceconnectionstatechange =
           null;
 
+        peerConnection.onicegatheringstatechange =
+          null;
+
         peerConnection.onsignalingstatechange =
           null;
 
         try {
-          peerConnection
-            .getSenders()
-            .forEach((sender) => {
-              sender.track?.stop();
-            });
-
-          peerConnection
-            .getReceivers()
-            .forEach((receiver) => {
-              receiver.track?.stop();
-            });
-
           peerConnection.close();
         } catch (error) {
           console.error(
@@ -262,35 +429,120 @@ export default function useAvatarStream() {
       peerConnectionRef.current =
         null;
 
-      if (
-        remoteStreamRef.current
-      ) {
-        remoteStreamRef.current
+      const remoteStream =
+        remoteStreamRef.current;
+
+      if (remoteStream) {
+        remoteStream
           .getTracks()
-          .forEach((track) => {
-            track.stop();
-          });
+          .forEach(
+            (track) => {
+              try {
+                track.stop();
+              } catch {
+                // Ignore.
+              }
+            }
+          );
       }
 
       remoteStreamRef.current =
         null;
 
-      if (videoRef.current) {
+      const video =
+        videoRef.current;
+
+      if (video) {
         try {
-          videoRef.current.pause();
+          video.pause();
         } catch {
           // Ignore.
         }
 
-        videoRef.current.srcObject =
+        video.srcObject =
           null;
       }
 
-      setAvatarConnected(false);
-      setAvatarPlaying(false);
-      setAvatarLoading(false);
-      setConnectionState("closed");
+      setAvatarConnected(
+        false
+      );
+
+      setAvatarPlaying(
+        false
+      );
+
+      setAvatarLoading(
+        false
+      );
+
+      setConnectionState(
+        "closed"
+      );
     }, []);
+
+  /* =======================================================
+     SEND ICE CANDIDATE
+  ======================================================= */
+
+  const sendIceCandidate =
+    useCallback(
+      async ({
+        avatarSessionId,
+        candidate,
+      }) => {
+        const response =
+          await fetch(
+            `${BASE_URL}/api/avatar/sessions/${avatarSessionId}/ice`,
+            {
+              method:
+                "POST",
+
+              credentials:
+                "include",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  candidate:
+                    candidate
+                      ?.candidate ??
+                    null,
+
+                  sdpMid:
+                    candidate
+                      ?.sdpMid ??
+                    null,
+
+                  sdpMLineIndex:
+                    candidate
+                      ?.sdpMLineIndex ??
+                    null,
+                }),
+            }
+          );
+
+        if (
+          !response.ok
+        ) {
+          const data =
+            await response
+              .json()
+              .catch(
+                () => ({})
+              );
+
+          console.error(
+            "D-ID ICE API ERROR:",
+            data
+          );
+        }
+      },
+      []
+    );
 
   /* =======================================================
      CREATE AVATAR SESSION
@@ -308,9 +560,6 @@ export default function useAvatarStream() {
           );
         }
 
-        /*
-         * Close any previous avatar connection.
-         */
         if (
           peerConnectionRef.current ||
           avatarSessionIdRef.current
@@ -318,26 +567,46 @@ export default function useAvatarStream() {
           await closeAvatar();
         }
 
-        closedRef.current = false;
+        closedRef.current =
+          false;
 
-        setAvatarLoading(true);
-        setAvatarConnected(false);
-        setAvatarPlaying(false);
-        setAvatarError(null);
+        streamAttachedRef.current =
+          false;
+
+        playPromiseRef.current =
+          null;
+
+        setAvatarLoading(
+          true
+        );
+
+        setAvatarConnected(
+          false
+        );
+
+        setAvatarPlaying(
+          false
+        );
+
+        setAvatarError(
+          null
+        );
+
         setConnectionState(
           "creating-session"
         );
 
         try {
-          /* -----------------------------------------------
-             1. CREATE D-ID STREAM
-          ----------------------------------------------- */
+          /* ---------------------------------------------
+             1. CREATE BACKEND/D-ID SESSION
+          --------------------------------------------- */
 
-          const response =
+          const sessionResponse =
             await fetch(
               `${BASE_URL}/api/avatar/sessions`,
               {
-                method: "POST",
+                method:
+                  "POST",
 
                 credentials:
                   "include",
@@ -358,33 +627,14 @@ export default function useAvatarStream() {
               }
             );
 
-          const data =
+          const sessionData =
             await parseResponse(
-              response
+              sessionResponse
             );
 
-          console.log(
-            "D-ID SESSION RESPONSE:",
-            {
-              avatarSessionId:
-                data.avatarSessionId,
-
-              streamId:
-                data.streamId,
-
-              hasOffer:
-                Boolean(
-                  data.offer
-                ),
-
-              iceServerCount:
-                data.iceServers
-                  ?.length || 0,
-            }
-          );
-
           if (
-            !data.avatarSessionId
+            !sessionData
+              .avatarSessionId
           ) {
             throw new Error(
               "Avatar session ID was not returned."
@@ -392,8 +642,10 @@ export default function useAvatarStream() {
           }
 
           if (
-            !data.offer?.sdp ||
-            !data.offer?.type
+            !sessionData.offer
+              ?.type ||
+            !sessionData.offer
+              ?.sdp
           ) {
             throw new Error(
               "D-ID did not return a valid WebRTC offer."
@@ -401,11 +653,34 @@ export default function useAvatarStream() {
           }
 
           avatarSessionIdRef.current =
-            data.avatarSessionId;
+            sessionData.avatarSessionId;
 
-          /* -----------------------------------------------
-             2. CREATE REMOTE MEDIA STREAM
-          ----------------------------------------------- */
+          console.log(
+            "D-ID SESSION CREATED:",
+            {
+              avatarSessionId:
+                sessionData
+                  .avatarSessionId,
+
+              streamId:
+                sessionData
+                  .streamId,
+
+              offerType:
+                sessionData.offer
+                  .type,
+
+              iceServers:
+                sessionData
+                  .iceServers
+                  ?.length ||
+                0,
+            }
+          );
+
+          /* ---------------------------------------------
+             2. CREATE REMOTE STREAM
+          --------------------------------------------- */
 
           const remoteStream =
             new MediaStream();
@@ -413,19 +688,23 @@ export default function useAvatarStream() {
           remoteStreamRef.current =
             remoteStream;
 
-          /* -----------------------------------------------
-             3. CREATE PEER CONNECTION
-          ----------------------------------------------- */
+          /* ---------------------------------------------
+             3. CREATE WEBRTC CONNECTION
+          --------------------------------------------- */
 
           const peerConnection =
-            new RTCPeerConnection({
-              iceServers:
-                Array.isArray(
-                  data.iceServers
-                )
-                  ? data.iceServers
-                  : [],
-            });
+            new RTCPeerConnection(
+              {
+                iceServers:
+                  Array.isArray(
+                    sessionData
+                      .iceServers
+                  )
+                    ? sessionData
+                        .iceServers
+                    : [],
+              }
+            );
 
           peerConnectionRef.current =
             peerConnection;
@@ -434,12 +713,12 @@ export default function useAvatarStream() {
             "connecting-webrtc"
           );
 
-          /* -----------------------------------------------
-             4. HANDLE REMOTE TRACKS
-          ----------------------------------------------- */
+          /* ---------------------------------------------
+             4. HANDLE REMOTE AUDIO/VIDEO TRACKS
+          --------------------------------------------- */
 
           peerConnection.ontrack =
-            async (event) => {
+            (event) => {
               if (
                 closedRef.current
               ) {
@@ -450,7 +729,8 @@ export default function useAvatarStream() {
                 "D-ID REMOTE TRACK:",
                 {
                   kind:
-                    event.track.kind,
+                    event.track
+                      .kind,
 
                   id:
                     event.track.id,
@@ -460,39 +740,47 @@ export default function useAvatarStream() {
                       .readyState,
 
                   muted:
-                    event.track.muted,
+                    event.track
+                      .muted,
 
                   streamCount:
                     event.streams
-                      ?.length || 0,
+                      ?.length ||
+                    0,
                 }
               );
 
+              const receivedStream =
+                event.streams
+                  ?.length
+                  ? event
+                      .streams[0]
+                  : null;
+
               /*
-               * D-ID may provide event.streams[0].
-               * Some WebRTC implementations provide
-               * the track without a stream.
+               * Add tracks into one stable
+               * MediaStream instance.
                */
               if (
-                event.streams?.[0]
+                receivedStream
               ) {
-                event.streams[0]
+                receivedStream
                   .getTracks()
                   .forEach(
                     (track) => {
-                      const alreadyAdded =
+                      const exists =
                         remoteStream
                           .getTracks()
                           .some(
                             (
-                              currentTrack
+                              existing
                             ) =>
-                              currentTrack.id ===
+                              existing.id ===
                               track.id
                           );
 
                       if (
-                        !alreadyAdded
+                        !exists
                       ) {
                         remoteStream.addTrack(
                           track
@@ -501,19 +789,19 @@ export default function useAvatarStream() {
                     }
                   );
               } else {
-                const alreadyAdded =
+                const exists =
                   remoteStream
                     .getTracks()
                     .some(
                       (
-                        currentTrack
+                        existing
                       ) =>
-                        currentTrack.id ===
+                        existing.id ===
                         event.track.id
                     );
 
                 if (
-                  !alreadyAdded
+                  !exists
                 ) {
                   remoteStream.addTrack(
                     event.track
@@ -521,47 +809,63 @@ export default function useAvatarStream() {
                 }
               }
 
+              /*
+               * Attach only once.
+               */
+              attachStreamToVideo(
+                remoteStream
+              );
+
               event.track.onunmute =
-                async () => {
+                () => {
                   console.log(
                     "D-ID TRACK UNMUTED:",
-                    event.track.kind
+                    event.track
+                      .kind
                   );
 
+                  /*
+                   * Do not assign srcObject again.
+                   */
                   if (
-                    videoRef.current
+                    event.track
+                      .kind ===
+                    "video"
                   ) {
-                    videoRef.current.srcObject =
-                      remoteStream;
-
-                    await playVideo();
+                    window.setTimeout(
+                      () => {
+                        playVideo();
+                      },
+                      100
+                    );
                   }
+                };
+
+              event.track.onmute =
+                () => {
+                  console.log(
+                    "D-ID TRACK MUTED:",
+                    event.track
+                      .kind
+                  );
                 };
 
               event.track.onended =
                 () => {
                   console.warn(
                     "D-ID TRACK ENDED:",
-                    event.track.kind
+                    event.track
+                      .kind
                   );
                 };
-
-              if (
-                videoRef.current
-              ) {
-                videoRef.current.srcObject =
-                  remoteStream;
-
-                await playVideo();
-              }
             };
 
-          /* -----------------------------------------------
-             5. HANDLE LOCAL ICE CANDIDATES
-          ----------------------------------------------- */
+          /* ---------------------------------------------
+             5. SEND LOCAL ICE CANDIDATES
+          --------------------------------------------- */
 
           peerConnection.onicecandidate =
-            async (event) => {
+            (event) => {
               if (
                 closedRef.current ||
                 !avatarSessionIdRef.current
@@ -569,80 +873,26 @@ export default function useAvatarStream() {
                 return;
               }
 
-              try {
-                /*
-                 * Send the candidate, including null
-                 * at the end of candidate gathering.
-                 */
-                const candidate =
-                  event.candidate;
+              sendIceCandidate({
+                avatarSessionId:
+                  sessionData
+                    .avatarSessionId,
 
-                const iceResponse =
-                  await fetch(
-                    `${BASE_URL}/api/avatar/sessions/${data.avatarSessionId}/ice`,
-                    {
-                      method:
-                        "POST",
-
-                      credentials:
-                        "include",
-
-                      headers: {
-                        "Content-Type":
-                          "application/json",
-                      },
-
-                      body:
-                        JSON.stringify({
-                          candidate:
-                            candidate
-                              ?.candidate ??
-                            null,
-
-                          sdpMid:
-                            candidate
-                              ?.sdpMid ??
-                            null,
-
-                          sdpMLineIndex:
-                            candidate
-                              ?.sdpMLineIndex ??
-                            null,
-                        }),
-                    }
-                  );
-
-                /*
-                 * Your controller may reject null
-                 * candidates. The backend fix is
-                 * included below.
-                 */
-                if (
-                  !iceResponse.ok
-                ) {
-                  const iceData =
-                    await iceResponse
-                      .json()
-                      .catch(
-                        () => ({})
-                      );
-
+                candidate:
+                  event.candidate,
+              }).catch(
+                (error) => {
                   console.error(
-                    "D-ID ICE API ERROR:",
-                    iceData
+                    "D-ID ICE SEND ERROR:",
+                    error
                   );
                 }
-              } catch (error) {
-                console.error(
-                  "D-ID ICE SEND ERROR:",
-                  error
-                );
-              }
+              );
             };
 
-          /* -----------------------------------------------
-             6. DEBUG CONNECTION STATES
-          ----------------------------------------------- */
+          /* ---------------------------------------------
+             6. CONNECTION STATE
+          --------------------------------------------- */
 
           peerConnection.onconnectionstatechange =
             () => {
@@ -671,22 +921,23 @@ export default function useAvatarStream() {
                   null
                 );
 
-                if (
-                  videoRef.current &&
-                  remoteStreamRef.current
-                ) {
-                  videoRef.current.srcObject =
-                    remoteStreamRef.current;
-
-                  playVideo();
-                }
+                /*
+                 * Do not change srcObject here.
+                 * Only retry play.
+                 */
+                window.setTimeout(
+                  () => {
+                    playVideo();
+                  },
+                  150
+                );
               }
 
               if (
                 state ===
-                  "failed" ||
+                  "disconnected" ||
                 state ===
-                  "disconnected"
+                  "failed"
               ) {
                 setAvatarConnected(
                   false
@@ -724,15 +975,6 @@ export default function useAvatarStream() {
               );
             };
 
-          peerConnection.onsignalingstatechange =
-            () => {
-              console.log(
-                "D-ID SIGNALING STATE:",
-                peerConnection
-                  .signalingState
-              );
-            };
-
           peerConnection.onicegatheringstatechange =
             () => {
               console.log(
@@ -742,23 +984,38 @@ export default function useAvatarStream() {
               );
             };
 
-          /* -----------------------------------------------
-             7. APPLY D-ID OFFER
-          ----------------------------------------------- */
+          peerConnection.onsignalingstatechange =
+            () => {
+              console.log(
+                "D-ID SIGNALING STATE:",
+                peerConnection
+                  .signalingState
+              );
+            };
+
+          /* ---------------------------------------------
+             7. APPLY REMOTE OFFER
+          --------------------------------------------- */
 
           await peerConnection.setRemoteDescription(
-            new RTCSessionDescription(
-              data.offer
-            )
+            {
+              type:
+                sessionData.offer
+                  .type,
+
+              sdp:
+                sessionData.offer
+                  .sdp,
+            }
           );
 
           console.log(
             "D-ID REMOTE DESCRIPTION SET"
           );
 
-          /* -----------------------------------------------
-             8. CREATE BROWSER ANSWER
-          ----------------------------------------------- */
+          /* ---------------------------------------------
+             8. CREATE LOCAL ANSWER
+          --------------------------------------------- */
 
           const answer =
             await peerConnection.createAnswer();
@@ -767,10 +1024,6 @@ export default function useAvatarStream() {
             answer
           );
 
-          /*
-           * Allow ICE candidates to be collected.
-           * Trickle ICE is still sent separately.
-           */
           await waitForIceGatheringComplete(
             peerConnection
           );
@@ -779,22 +1032,26 @@ export default function useAvatarStream() {
             peerConnection.localDescription;
 
           if (
-            !localDescription?.sdp
+            !localDescription
+              ?.type ||
+            !localDescription
+              ?.sdp
           ) {
             throw new Error(
               "Browser did not create a valid SDP answer."
             );
           }
 
-          /* -----------------------------------------------
-             9. SEND SDP ANSWER TO D-ID
-          ----------------------------------------------- */
+          /* ---------------------------------------------
+             9. SUBMIT SDP ANSWER
+          --------------------------------------------- */
 
           const answerResponse =
             await fetch(
-              `${BASE_URL}/api/avatar/sessions/${data.avatarSessionId}/answer`,
+              `${BASE_URL}/api/avatar/sessions/${sessionData.avatarSessionId}/answer`,
               {
-                method: "POST",
+                method:
+                  "POST",
 
                 credentials:
                   "include",
@@ -808,10 +1065,12 @@ export default function useAvatarStream() {
                   JSON.stringify({
                     answer: {
                       type:
-                        localDescription.type,
+                        localDescription
+                          .type,
 
                       sdp:
-                        localDescription.sdp,
+                        localDescription
+                          .sdp,
                     },
                   }),
               }
@@ -825,22 +1084,24 @@ export default function useAvatarStream() {
             "D-ID SDP ANSWER ACCEPTED"
           );
 
-          /*
-           * Do not mark video as playing here.
-           * Wait for ontrack/video.onplaying.
-           */
-          return data;
+          return sessionData;
         } catch (error) {
           console.error(
             "CREATE AVATAR SESSION ERROR:",
             error
           );
 
-          setAvatarConnected(false);
-          setAvatarPlaying(false);
           setAvatarError(
-            error.message ||
-              "Unable to create avatar stream."
+            error?.message ||
+              "Unable to start the avatar."
+          );
+
+          setAvatarConnected(
+            false
+          );
+
+          setAvatarPlaying(
+            false
           );
 
           await closeAvatar().catch(
@@ -849,18 +1110,22 @@ export default function useAvatarStream() {
 
           throw error;
         } finally {
-          setAvatarLoading(false);
+          setAvatarLoading(
+            false
+          );
         }
       },
       [
+        attachStreamToVideo,
         closeAvatar,
         playVideo,
+        sendIceCandidate,
         waitForIceGatheringComplete,
       ]
     );
 
   /* =======================================================
-     SPEAK
+     MAKE AVATAR SPEAK
   ======================================================= */
 
   const speak =
@@ -870,7 +1135,8 @@ export default function useAvatarStream() {
           avatarSessionIdRef.current;
 
         const normalizedText =
-          String(text || "").trim();
+          String(text || "")
+            .trim();
 
         if (
           !avatarSessionId ||
@@ -883,7 +1149,8 @@ export default function useAvatarStream() {
           await fetch(
             `${BASE_URL}/api/avatar/sessions/${avatarSessionId}/speak`,
             {
-              method: "POST",
+              method:
+                "POST",
 
               credentials:
                 "include",
@@ -905,15 +1172,20 @@ export default function useAvatarStream() {
           response
         );
 
+        console.log(
+          "D-ID SPEECH REQUEST ACCEPTED"
+        );
+
         /*
-         * Retry playback after D-ID starts
-         * producing speaking video frames.
+         * Speaking usually unmutes the video
+         * track. Retry play without reloading
+         * the video element.
          */
         window.setTimeout(
           () => {
             playVideo();
           },
-          150
+          200
         );
 
         return true;
@@ -922,7 +1194,7 @@ export default function useAvatarStream() {
     );
 
   /* =======================================================
-     CLEANUP
+     COMPONENT CLEANUP
   ======================================================= */
 
   useEffect(() => {
@@ -930,7 +1202,9 @@ export default function useAvatarStream() {
       const peerConnection =
         peerConnectionRef.current;
 
-      if (peerConnection) {
+      if (
+        peerConnection
+      ) {
         try {
           peerConnection.close();
         } catch {
