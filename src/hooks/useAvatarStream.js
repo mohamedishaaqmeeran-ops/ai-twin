@@ -277,6 +277,75 @@ export default function useAvatarStream() {
       return playPromiseRef.current;
     }, []);
 
+
+    const waitForVideoFrames = useCallback(
+  async ({
+    attempts = 40,
+    delay = 250,
+  } = {}) => {
+    for (
+      let attempt = 1;
+      attempt <= attempts;
+      attempt += 1
+    ) {
+      if (closedRef.current) {
+        return false;
+      }
+
+      const video = videoRef.current;
+
+      if (!video || !video.srcObject) {
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, delay)
+        );
+
+        continue;
+      }
+
+      const videoTracks =
+        video.srcObject.getVideoTracks();
+
+      const videoTrack =
+        videoTracks[0];
+
+      console.log(
+        "D-ID VIDEO FRAME CHECK:",
+        {
+          attempt,
+          readyState: video.readyState,
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          trackReadyState:
+            videoTrack?.readyState,
+          trackMuted:
+            videoTrack?.muted,
+        }
+      );
+
+      if (
+        video.readyState >=
+          HTMLMediaElement.HAVE_CURRENT_DATA &&
+        video.videoWidth > 0 &&
+        video.videoHeight > 0
+      ) {
+        return playVideo();
+      }
+
+      await new Promise((resolve) =>
+        window.setTimeout(resolve, delay)
+      );
+    }
+
+    setAvatarPlaying(false);
+
+    setAvatarError(
+      "The D-ID connection is active, but no avatar video frames were received."
+    );
+
+    return false;
+  },
+  [playVideo]
+);
   /* =======================================================
      WAIT FOR ICE GATHERING
   ======================================================= */
@@ -841,14 +910,27 @@ export default function useAvatarStream() {
                   }
                 };
 
-              event.track.onmute =
-                () => {
-                  console.log(
-                    "D-ID TRACK MUTED:",
-                    event.track
-                      .kind
-                  );
-                };
+             event.track.onunmute = () => {
+  console.log(
+    "D-ID TRACK UNMUTED:",
+    event.track.kind
+  );
+
+  if (
+    event.track.kind ===
+    "video"
+  ) {
+    waitForVideoFrames({
+      attempts: 40,
+      delay: 250,
+    }).catch((error) => {
+      console.error(
+        "D-ID VIDEO FRAME WAIT ERROR:",
+        error
+      );
+    });
+  }
+};
 
               event.track.onended =
                 () => {
@@ -1116,11 +1198,14 @@ export default function useAvatarStream() {
         }
       },
       [
-        attachStreamToVideo,
-        closeAvatar,
-        playVideo,
-        sendIceCandidate,
-        waitForIceGatheringComplete,
+        
+  attachStreamToVideo,
+  closeAvatar,
+  playVideo,
+  sendIceCandidate,
+  waitForIceGatheringComplete,
+  waitForVideoFrames,
+
       ]
     );
 
@@ -1215,17 +1300,18 @@ export default function useAvatarStream() {
   }, []);
 
   return {
-    videoRef,
+  videoRef,
 
-    avatarConnected,
-    avatarPlaying,
-    avatarLoading,
-    avatarError,
-    connectionState,
+  avatarConnected,
+  avatarPlaying,
+  avatarLoading,
+  avatarError,
+  connectionState,
 
-    createAvatarSession,
-    speak,
-    playVideo,
-    closeAvatar,
-  };
+  createAvatarSession,
+  speak,
+  playVideo,
+  waitForVideoFrames,
+  closeAvatar,
+};
 }

@@ -92,6 +92,14 @@ export default function TestTwin() {
   const avatar =
     useAvatarStream();
 
+    useEffect(() => {
+  window.avatarDebug = avatar;
+
+  return () => {
+    delete window.avatarDebug;
+  };
+}, [avatar]);
+
   const conversationEndRef =
     useRef(null);
 
@@ -602,68 +610,64 @@ export default function TestTwin() {
 
           {/* AVATAR VIDEO */}
 
-         <div className="relative mt-5 overflow-hidden rounded-3xl border border-border bg-black">
+      <div className="relative h-96 overflow-hidden rounded-3xl bg-black">
   <video
-    ref={avatar.videoRef}
-    autoPlay
-    playsInline
-    muted
-    onLoadedMetadata={() => {
-      console.log(
-        "AVATAR VIDEO METADATA LOADED"
-      );
+  ref={avatar.videoRef}
+  autoPlay
+  playsInline
+  muted
+  onLoadedMetadata={() => {
+    console.log(
+      "AVATAR VIDEO METADATA LOADED"
+    );
 
-      avatar
-        .playVideo()
-        .catch(() => {});
-    }}
-    onCanPlay={() => {
-      console.log(
-        "AVATAR VIDEO CAN PLAY"
-      );
+    avatar.waitForVideoFrames();
+  }}
+  onLoadedData={() => {
+    console.log(
+      "AVATAR VIDEO DATA LOADED"
+    );
 
-      avatar
-        .playVideo()
-        .catch(() => {});
-    }}
-    onPlaying={() => {
-      console.log(
-        "AVATAR VIDEO PLAYING"
-      );
-    }}
-    onPause={() => {
-      console.log(
-        "AVATAR VIDEO PAUSED"
-      );
-    }}
-    onWaiting={() => {
-      console.log(
-        "AVATAR VIDEO WAITING"
-      );
-    }}
-    onStalled={() => {
-      console.log(
-        "AVATAR VIDEO STALLED"
-      );
-    }}
-    onError={(event) => {
-      console.error(
-        "AVATAR VIDEO ELEMENT ERROR:",
-        event.currentTarget
-          .error
-      );
-    }}
-    onClick={() => {
-      avatar
-        .playVideo()
-        .catch(() => {});
-    }}
-    className={`h-96 w-full object-cover ${
-      avatar.avatarPlaying
-        ? "block"
-        : "absolute inset-0 opacity-0"
-    }`}
-  />
+    avatar.waitForVideoFrames();
+  }}
+  onCanPlay={() => {
+    console.log(
+      "AVATAR VIDEO CAN PLAY"
+    );
+
+    avatar.playVideo();
+  }}
+  onPlaying={() => {
+    console.log(
+      "AVATAR VIDEO PLAYING"
+    );
+  }}
+  onResize={(event) => {
+    console.log(
+      "AVATAR VIDEO SIZE:",
+      {
+        width:
+          event.currentTarget
+            .videoWidth,
+
+        height:
+          event.currentTarget
+            .videoHeight,
+      }
+    );
+  }}
+  onError={(event) => {
+    console.error(
+      "AVATAR VIDEO ERROR:",
+      event.currentTarget.error
+    );
+  }}
+  className={`absolute inset-0 h-full w-full object-cover transition-opacity ${
+    avatar.avatarPlaying
+      ? "opacity-100"
+      : "opacity-0"
+  }`}
+/>
 
   {!avatar.avatarPlaying && (
     <img
@@ -672,48 +676,9 @@ export default function TestTwin() {
         selectedTwin?.name ||
         "AI Twin"
       }
-      onError={(event) => {
-        event.currentTarget.src =
-          "/images/bb.png";
-      }}
-      className="h-96 w-full object-cover"
+      className="absolute inset-0 h-full w-full object-cover"
     />
   )}
-
-  {avatar.avatarLoading && (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/65 text-white">
-      <LoaderCircle className="h-9 w-9 animate-spin" />
-
-      <p className="mt-3 text-sm font-bold">
-        Starting avatar stream...
-      </p>
-    </div>
-  )}
-
-  {avatar.avatarConnected &&
-    !avatar.avatarPlaying &&
-    !avatar.avatarLoading && (
-      <button
-        type="button"
-        onClick={() => {
-          avatar
-            .playVideo()
-            .catch(() => {});
-        }}
-        className="absolute inset-x-5 bottom-5 rounded-lg bg-black/75 px-4 py-3 text-sm font-bold text-white backdrop-blur"
-      >
-        Avatar connected. Click to start video.
-      </button>
-    )}
-
-  {avatar.avatarPlaying &&
-    realtime.speaking && (
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-black/65 px-4 py-3 text-sm font-bold text-white">
-        <Waves className="h-5 w-5 animate-pulse" />
-
-        AI Twin is speaking
-      </div>
-    )}
 </div>
 
           {/* TWIN SELECT */}
