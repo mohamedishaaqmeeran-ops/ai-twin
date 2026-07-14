@@ -1,3 +1,4 @@
+
 import {
   useEffect,
   useMemo,
@@ -22,6 +23,7 @@ import {
   MessageSquare,
   Mic,
   MicOff,
+  Package,
   Phone,
   PhoneOff,
   Send,
@@ -29,12 +31,15 @@ import {
   Video,
   Volume2,
   VolumeX,
-  Waves,
 } from "lucide-react";
 
 import {
   fetchTwins,
 } from "../../features/twin/twinSlice";
+
+import {
+  fetchProducts,
+} from "../../features/product/productSlice";
 
 import useRealtimeTwin from "../../hooks/useRealtimeTwin";
 import useAvatarStream from "../../hooks/useAvatarStream";
@@ -67,6 +72,57 @@ const getTwinVoice = (twin) => {
   );
 };
 
+const getProductName = (
+  product
+) => {
+  return (
+    product?.name ||
+    product?.productName ||
+    product?.title ||
+    "Unnamed Product"
+  );
+};
+
+const getProductImage = (
+  product
+) => {
+  return (
+    product?.image ||
+    product?.imageUrl ||
+    product?.images?.[0] ||
+    null
+  );
+};
+
+const getProductPrice = (
+  product
+) => {
+  const price =
+    product?.price ??
+    product?.sellingPrice ??
+    product?.amount;
+
+  if (
+    price === null ||
+    price === undefined ||
+    price === ""
+  ) {
+    return "Price not added";
+  }
+
+  const currency =
+    product?.currency ||
+    "INR";
+
+  if (
+    currency === "INR"
+  ) {
+    return `₹${price}`;
+  }
+
+  return `${currency} ${price}`;
+};
+
 /* =========================================================
    PAGE
 ========================================================= */
@@ -79,6 +135,10 @@ export default function TestTwin() {
     searchParams,
   ] = useSearchParams();
 
+  /* =======================================================
+     REDUX DATA
+  ======================================================= */
+
   const {
     twins = [],
     loading: twinsLoading,
@@ -86,19 +146,55 @@ export default function TestTwin() {
     (state) => state.twin
   );
 
+  const productState =
+    useSelector(
+      (state) =>
+        state.product ||
+        state.products ||
+        {}
+    );
+
+  const products =
+    productState.products ||
+    productState.items ||
+    productState.data ||
+    [];
+
+  const productsLoading =
+    productState.loading ||
+    productState.isLoading ||
+    false;
+
+  const productsError =
+    productState.error ||
+    "";
+
+  /* =======================================================
+     HOOKS
+  ======================================================= */
+
   const realtime =
     useRealtimeTwin();
 
   const avatar =
     useAvatarStream();
 
-    useEffect(() => {
-  window.avatarDebug = avatar;
+  /* =======================================================
+     DEBUG
+  ======================================================= */
 
-  return () => {
-    delete window.avatarDebug;
-  };
-}, [avatar]);
+  useEffect(() => {
+    window.avatarDebug =
+      avatar;
+
+    return () => {
+      delete window.avatarDebug;
+    };
+  }, [avatar]);
+
+  /* =======================================================
+     REFS
+  ======================================================= */
 
   const conversationEndRef =
     useRef(null);
@@ -108,6 +204,10 @@ export default function TestTwin() {
 
   const connectingRef =
     useRef(false);
+
+  /* =======================================================
+     STATE
+  ======================================================= */
 
   const [
     selectedTwinId,
@@ -121,7 +221,11 @@ export default function TestTwin() {
   const [
     selectedProductId,
     setSelectedProductId,
-  ] = useState("");
+  ] = useState(
+    searchParams.get(
+      "productId"
+    ) || ""
+  );
 
   const [
     language,
@@ -139,11 +243,12 @@ export default function TestTwin() {
   ] = useState("");
 
   /* =======================================================
-     LOAD TWINS
+     LOAD TWINS AND PRODUCTS
   ======================================================= */
 
   useEffect(() => {
     dispatch(fetchTwins());
+    dispatch(fetchProducts());
   }, [dispatch]);
 
   /* =======================================================
@@ -162,6 +267,24 @@ export default function TestTwin() {
   }, [
     selectedTwinId,
     twins,
+  ]);
+
+  /* =======================================================
+     AUTO SELECT FIRST PRODUCT
+  ======================================================= */
+
+  useEffect(() => {
+    if (
+      !selectedProductId &&
+      products.length > 0
+    ) {
+      setSelectedProductId(
+        products[0]._id
+      );
+    }
+  }, [
+    selectedProductId,
+    products,
   ]);
 
   /* =======================================================
@@ -192,7 +315,8 @@ export default function TestTwin() {
     }
 
     const messages =
-      realtime.messages || [];
+      realtime.messages ||
+      [];
 
     const lastMessage =
       messages[
@@ -223,24 +347,25 @@ export default function TestTwin() {
       messageIdentity;
 
     avatar
-  .speak(
-    lastMessage.text,
-    language
-  )
-  .catch((error) => {
-    console.error(
-      "AVATAR SPEAK ERROR:",
-      error
-    );
+      .speak(
+        lastMessage.text,
+        language
+      )
+      .catch((error) => {
+        console.error(
+          "AVATAR SPEAK ERROR:",
+          error
+        );
 
-    setPageError(
-      error?.message ||
-        "Unable to make the avatar speak."
-    );
-  });
+        setPageError(
+          error?.message ||
+            "Unable to make the avatar speak."
+        );
+      });
   }, [
     avatar.avatarConnected,
     avatar.speak,
+    language,
     realtime.messages,
   ]);
 
@@ -267,13 +392,37 @@ export default function TestTwin() {
       return (
         twins.find(
           (twin) =>
-            twin._id ===
-            selectedTwinId
+            String(twin._id) ===
+            String(
+              selectedTwinId
+            )
         ) || null
       );
     }, [
       selectedTwinId,
       twins,
+    ]);
+
+  /* =======================================================
+     SELECTED PRODUCT
+  ======================================================= */
+
+  const selectedProduct =
+    useMemo(() => {
+      return (
+        products.find(
+          (product) =>
+            String(
+              product._id
+            ) ===
+            String(
+              selectedProductId
+            )
+        ) || null
+      );
+    }, [
+      products,
+      selectedProductId,
     ]);
 
   const twinImage =
@@ -285,6 +434,15 @@ export default function TestTwin() {
     getTwinVoice(
       selectedTwin
     );
+
+  const selectedProductImage =
+    getProductImage(
+      selectedProduct
+    );
+
+  /* =======================================================
+     CONNECTION STATE
+  ======================================================= */
 
   const connectionStarting =
     realtime.status ===
@@ -304,6 +462,7 @@ export default function TestTwin() {
 
   const visibleError =
     pageError ||
+    productsError ||
     realtime.error ||
     avatar.avatarError;
 
@@ -330,6 +489,24 @@ export default function TestTwin() {
           );
         }
 
+        /*
+         * Product selection is mandatory.
+         *
+         * This ensures every realtime session
+         * has one specific product scope.
+         */
+        if (!selectedProductId) {
+          throw new Error(
+            "Select a product before starting the AI Twin."
+          );
+        }
+
+        if (!selectedProduct) {
+          throw new Error(
+            "The selected product was not found."
+          );
+        }
+
         connectingRef.current =
           true;
 
@@ -340,8 +517,12 @@ export default function TestTwin() {
               selectedTwinId,
 
             productId:
-              selectedProductId ||
-              null,
+              selectedProductId,
+
+            productName:
+              getProductName(
+                selectedProduct
+              ),
 
             language,
           }
@@ -349,8 +530,11 @@ export default function TestTwin() {
 
         /*
          * Step 1:
-         * Create Gemini realtime session
-         * and browser WebSocket.
+         * Create Gemini realtime session.
+         *
+         * The backend must verify:
+         * - Twin belongs to req.user._id
+         * - Product belongs to req.user._id
          */
         const sessionResult =
           await realtime.connect({
@@ -358,8 +542,7 @@ export default function TestTwin() {
               selectedTwinId,
 
             productId:
-              selectedProductId ||
-              null,
+              selectedProductId,
 
             mode: "test",
 
@@ -367,7 +550,8 @@ export default function TestTwin() {
           });
 
         const realtimeSessionId =
-          sessionResult?.session?._id;
+          sessionResult?.session
+            ?._id;
 
         if (!realtimeSessionId) {
           throw new Error(
@@ -382,58 +566,75 @@ export default function TestTwin() {
 
         /*
          * Step 2:
-         * Create avatar WebRTC stream.
+         * Create D-ID WebRTC avatar stream.
          */
-       const avatarResult =
-  await avatar.createAvatarSession({
-    twinId: selectedTwinId,
-    realtimeSessionId,
-  });
+        const avatarResult =
+          await avatar
+            .createAvatarSession({
+              twinId:
+                selectedTwinId,
 
-console.log(
-  "Avatar session created:",
-  avatarResult
-);
+              realtimeSessionId,
+            });
 
-const warmupMessages = {
-  English:
-    "Hello. Your AI Twin is ready.",
+        console.log(
+          "Avatar session created:",
+          avatarResult
+        );
 
-  Tamil:
-    "வணக்கம். உங்கள் AI ட்வின் தயாராக உள்ளது.",
+        /*
+         * Step 3:
+         * Make D-ID speak a warmup message.
+         */
+        const warmupMessages = {
+          English:
+            `Hello. I am ready to answer questions about ${getProductName(
+              selectedProduct
+            )}.`,
 
-  Malayalam:
-    "നമസ്കാരം. നിങ്ങളുടെ എഐ ട്വിൻ തയ്യാറാണ്.",
+          Tamil:
+            `வணக்கம். ${getProductName(
+              selectedProduct
+            )} பற்றிய கேள்விகளுக்கு பதிலளிக்க நான் தயாராக இருக்கிறேன்.`,
 
-  Hindi:
-    "नमस्ते। आपका एआई ट्विन तैयार है।",
+          Malayalam:
+            `നമസ്കാരം. ${getProductName(
+              selectedProduct
+            )} സംബന്ധിച്ച ചോദ്യങ്ങൾക്ക് മറുപടി നൽകാൻ ഞാൻ തയ്യാറാണ്.`,
 
-  Arabic:
-    "مرحبًا. توأمك الذكي جاهز.",
-};
+          Hindi:
+            `नमस्ते। मैं ${getProductName(
+              selectedProduct
+            )} के बारे में आपके सवालों का जवाब देने के लिए तैयार हूँ।`,
 
-const warmupText =
-  warmupMessages[language] ||
-  warmupMessages.English;
+          Arabic:
+            `مرحبًا. أنا مستعد للإجابة عن أسئلتك حول ${getProductName(
+              selectedProduct
+            )}.`,
+        };
 
-console.log(
-  "SENDING D-ID WARMUP:",
-  {
-    language,
-    text: warmupText,
-  }
-);
+        const warmupText =
+          warmupMessages[
+            language
+          ] ||
+          warmupMessages.English;
 
-await avatar.speak(
-  warmupText,
-  language
-);
+        console.log(
+          "SENDING D-ID WARMUP:",
+          {
+            language,
+            text: warmupText,
+          }
+        );
 
-console.log(
-  "D-ID WARMUP ACCEPTED"
-);
+        await avatar.speak(
+          warmupText,
+          language
+        );
 
-       
+        console.log(
+          "D-ID WARMUP ACCEPTED"
+        );
       } catch (error) {
         console.error(
           "REALTIME CONNECT ERROR:",
@@ -445,10 +646,6 @@ console.log(
             "Unable to start the realtime AI Twin."
         );
 
-        /*
-         * Clean up a partially created
-         * realtime or avatar session.
-         */
         await avatar
           .closeAvatar()
           .catch(() => {});
@@ -515,9 +712,11 @@ console.log(
         if (
           realtime.recording
         ) {
-          await realtime.stopMicrophone();
+          await realtime
+            .stopMicrophone();
         } else {
-          await realtime.startMicrophone();
+          await realtime
+            .startMicrophone();
         }
       } catch (error) {
         console.error(
@@ -569,8 +768,10 @@ console.log(
   ======================================================= */
 
   if (
-    twinsLoading &&
-    twins.length === 0
+    (twinsLoading ||
+      productsLoading) &&
+    twins.length === 0 &&
+    products.length === 0
   ) {
     return (
       <div className="flex min-h-[450px] items-center justify-center">
@@ -591,7 +792,7 @@ console.log(
         <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 px-4 py-2 text-xs font-bold">
           <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
 
-          REALTIME AI TWIN
+          PRODUCT-TRAINED AI TWIN
         </span>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
@@ -602,13 +803,15 @@ console.log(
           </span>
         </h1>
 
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Ask questions through your
-          microphone or chat. Gemini
-          answers using your Twin’s
-          product and knowledge data,
-          while the avatar provides
-          lip-synced video.
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+          Select one of your
+          products and start the
+          realtime AI Twin. Gemini
+          must answer only from the
+          selected product and its
+          approved knowledge, while
+          D-ID provides the
+          lip-synced avatar video.
         </p>
 
         {visibleError && (
@@ -631,94 +834,107 @@ console.log(
               Twin Preview
             </h2>
 
-      <AvatarStatus
-  loading={
-    avatar.avatarLoading
-  }
-  connected={
-    avatar.avatarConnected
-  }
-  playing={
-    avatar.avatarPlaying
-  }
-  connectionState={
-    avatar.connectionState
-  }
-/>
+            <AvatarStatus
+              loading={
+                avatar.avatarLoading
+              }
+              connected={
+                avatar.avatarConnected
+              }
+              playing={
+                avatar.avatarPlaying
+              }
+              connectionState={
+                avatar.connectionState
+              }
+            />
           </div>
 
           {/* AVATAR VIDEO */}
 
-      <div className="relative h-96 overflow-hidden rounded-3xl bg-black">
-  <video
-  ref={avatar.videoRef}
-  autoPlay
-  playsInline
-  muted
-  onLoadedMetadata={() => {
-    console.log(
-      "AVATAR VIDEO METADATA LOADED"
-    );
+          <div className="relative mt-5 h-96 overflow-hidden rounded-3xl bg-black">
+            <video
+              ref={
+                avatar.videoRef
+              }
+              autoPlay
+              playsInline
+              muted
+              onLoadedMetadata={() => {
+                console.log(
+                  "AVATAR VIDEO METADATA LOADED"
+                );
 
-    avatar.waitForVideoFrames();
-  }}
-  onLoadedData={() => {
-    console.log(
-      "AVATAR VIDEO DATA LOADED"
-    );
+                avatar
+                  .waitForVideoFrames();
+              }}
+              onLoadedData={() => {
+                console.log(
+                  "AVATAR VIDEO DATA LOADED"
+                );
 
-    avatar.waitForVideoFrames();
-  }}
-  onCanPlay={() => {
-    console.log(
-      "AVATAR VIDEO CAN PLAY"
-    );
+                avatar
+                  .waitForVideoFrames();
+              }}
+              onCanPlay={() => {
+                console.log(
+                  "AVATAR VIDEO CAN PLAY"
+                );
 
-    avatar.playVideo();
-  }}
-  onPlaying={() => {
-    console.log(
-      "AVATAR VIDEO PLAYING"
-    );
-  }}
-  onResize={(event) => {
-    console.log(
-      "AVATAR VIDEO SIZE:",
-      {
-        width:
-          event.currentTarget
-            .videoWidth,
+                avatar.playVideo();
+              }}
+              onPlaying={() => {
+                console.log(
+                  "AVATAR VIDEO PLAYING"
+                );
+              }}
+              onResize={(
+                event
+              ) => {
+                console.log(
+                  "AVATAR VIDEO SIZE:",
+                  {
+                    width:
+                      event
+                        .currentTarget
+                        .videoWidth,
 
-        height:
-          event.currentTarget
-            .videoHeight,
-      }
-    );
-  }}
-  onError={(event) => {
-    console.error(
-      "AVATAR VIDEO ERROR:",
-      event.currentTarget.error
-    );
-  }}
-  className={`absolute inset-0 h-full w-full object-cover transition-opacity ${
-    avatar.avatarPlaying
-      ? "opacity-100"
-      : "opacity-0"
-  }`}
-/>
+                    height:
+                      event
+                        .currentTarget
+                        .videoHeight,
+                  }
+                );
+              }}
+              onError={(
+                event
+              ) => {
+                console.error(
+                  "AVATAR VIDEO ERROR:",
+                  event
+                    .currentTarget
+                    .error
+                );
+              }}
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity ${
+                avatar.avatarPlaying
+                  ? "opacity-100"
+                  : "opacity-0"
+              }`}
+            />
 
-  {!avatar.avatarPlaying && (
-    <img
-      src={twinImage}
-      alt={
-        selectedTwin?.name ||
-        "AI Twin"
-      }
-      className="absolute inset-0 h-full w-full object-cover"
-    />
-  )}
-</div>
+            {!avatar.avatarPlaying && (
+              <img
+                src={twinImage}
+                alt={
+                  selectedTwin
+                    ?.name ||
+                  "AI Twin"
+                }
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
+          </div>
 
           {/* TWIN SELECT */}
 
@@ -747,12 +963,9 @@ console.log(
               }}
               className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {twins.length ===
-                0 && (
-                <option value="">
-                  No AI Twins found
-                </option>
-              )}
+              <option value="">
+                Select an AI Twin
+              </option>
 
               {twins.map(
                 (twin) => (
@@ -770,6 +983,122 @@ console.log(
               )}
             </select>
           </label>
+
+          {/* PRODUCT SELECT */}
+
+          <label className="mt-4 block">
+            <span className="mb-2 flex items-center gap-2 text-sm font-black">
+              <Package className="h-4 w-4 text-[var(--brand-pink)]" />
+
+              Select Product
+            </span>
+
+            <select
+              value={
+                selectedProductId
+              }
+              disabled={
+                realtime.connected ||
+                connectionStarting ||
+                productsLoading
+              }
+              onChange={(
+                event
+              ) => {
+                setSelectedProductId(
+                  event.target.value
+                );
+
+                lastAvatarMessageIdRef.current =
+                  null;
+              }}
+              className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <option value="">
+                Select a product
+              </option>
+
+              {products.map(
+                (product) => (
+                  <option
+                    key={
+                      product._id
+                    }
+                    value={
+                      product._id
+                    }
+                  >
+                    {getProductName(
+                      product
+                    )}
+                  </option>
+                )
+              )}
+            </select>
+
+            {products.length ===
+              0 &&
+              !productsLoading && (
+                <p className="mt-2 text-xs font-bold text-amber-600">
+                  No products found.
+                  Add a product before
+                  testing the AI Twin.
+                </p>
+              )}
+
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              The AI Twin will be
+              restricted to this
+              product and its approved
+              training data.
+            </p>
+          </label>
+
+          {/* SELECTED PRODUCT CARD */}
+
+          {selectedProduct && (
+            <div className="mt-4 rounded-2xl border border-pink-200 bg-pink-50/50 p-4 dark:border-pink-900/30 dark:bg-pink-900/10">
+              <div className="flex items-center gap-3">
+                {selectedProductImage ? (
+                  <img
+                    src={
+                      selectedProductImage
+                    }
+                    alt={
+                      getProductName(
+                        selectedProduct
+                      )
+                    }
+                    className="h-14 w-14 rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="grid h-14 w-14 place-items-center rounded-xl bg-background">
+                    <Package className="h-6 w-6 text-[var(--brand-pink)]" />
+                  </div>
+                )}
+
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-black">
+                    {getProductName(
+                      selectedProduct
+                    )}
+                  </p>
+
+                  <p className="mt-1 text-xs font-bold text-[var(--brand-pink)]">
+                    {getProductPrice(
+                      selectedProduct
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-3 line-clamp-3 text-xs leading-5 text-muted-foreground">
+                {selectedProduct
+                  ?.description ||
+                  "No product description added."}
+              </p>
+            </div>
+          )}
 
           {/* LANGUAGE */}
 
@@ -828,12 +1157,23 @@ console.log(
             </p>
 
             <p className="mt-1 text-sm text-muted-foreground">
+              Product:{" "}
+
+              {selectedProduct
+                ? getProductName(
+                    selectedProduct
+                  )
+                : "Not selected"}
+            </p>
+
+            <p className="mt-1 text-sm text-muted-foreground">
               Language:{" "}
               {language}
             </p>
 
             <p className="mt-1 text-sm text-muted-foreground">
               Gemini:{" "}
+
               {sessionReady
                 ? "Ready"
                 : "Not connected"}
@@ -841,6 +1181,7 @@ console.log(
 
             <p className="mt-1 text-sm text-muted-foreground">
               Avatar:{" "}
+
               {avatar.avatarConnected
                 ? "Connected"
                 : avatar.avatarLoading
@@ -858,7 +1199,9 @@ console.log(
               type="button"
               disabled={
                 !selectedTwin ||
-                connectionStarting
+                !selectedProduct ||
+                connectionStarting ||
+                productsLoading
               }
               onClick={
                 handleConnect
@@ -875,7 +1218,7 @@ console.log(
                 <>
                   <Phone className="h-5 w-5" />
 
-                  Start Realtime Test
+                  Start Product Test
                 </>
               )}
             </button>
@@ -900,13 +1243,13 @@ console.log(
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <h2 className="text-2xl font-black brand-text">
-                Voice Conversation
+                Product Conversation
               </h2>
 
               <p className="mt-1 text-sm text-muted-foreground">
-                Ask through the
-                microphone or type a
-                message below.
+                Ask questions only
+                about the selected
+                product.
               </p>
             </div>
 
@@ -925,6 +1268,31 @@ console.log(
               }
             />
           </div>
+
+          {/* ACTIVE PRODUCT NOTICE */}
+
+          {selectedProduct && (
+            <div className="mt-5 flex items-start gap-3 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-pink-900/30 dark:bg-pink-900/10">
+              <Package className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
+
+              <div>
+                <p className="text-sm font-black">
+                  Active product:{" "}
+
+                  {getProductName(
+                    selectedProduct
+                  )}
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Gemini should refuse
+                  questions about
+                  products outside this
+                  selected product.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* MICROPHONE */}
 
@@ -959,7 +1327,7 @@ console.log(
                 ? "Tap microphone to speak"
                 : connectionStarting
                 ? "Starting realtime session..."
-                : "Start a realtime session"}
+                : "Start a product session"}
             </p>
 
             <p className="mt-2 text-sm text-muted-foreground">
@@ -994,14 +1362,17 @@ console.log(
                   <MessageSquare className="h-10 w-10 text-[var(--brand-pink)]" />
 
                   <p className="mt-3 font-black">
-                    Conversation appears
-                    here
+                    Product conversation
+                    appears here
                   </p>
 
                   <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-                    Ask about products,
-                    prices, policies,
-                    shipping or uploaded
+                    Ask about the
+                    selected product’s
+                    price, features,
+                    benefits, stock,
+                    shipping, policies
+                    or uploaded
                     knowledge.
                   </p>
                 </div>
@@ -1084,7 +1455,13 @@ console.log(
                   handleSendText();
                 }
               }}
-              placeholder="Type a question to test the AI Twin..."
+              placeholder={
+                selectedProduct
+                  ? `Ask about ${getProductName(
+                      selectedProduct
+                    )}...`
+                  : "Select a product first..."
+              }
               className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
             />
 
@@ -1135,6 +1512,14 @@ function ConnectionStatus({
     ) {
       label =
         "Creating session";
+    }
+
+    if (
+      connectionStage ===
+      "connecting-socket"
+    ) {
+      label =
+        "Connecting socket";
     }
 
     if (
@@ -1299,3 +1684,4 @@ function MessageBubble({
     </div>
   );
 }
+
