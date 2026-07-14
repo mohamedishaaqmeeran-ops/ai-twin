@@ -1,3 +1,4 @@
+
 import {
   useCallback,
   useEffect,
@@ -27,52 +28,18 @@ import useMicrophonePcm from "./useMicrophonePcm";
 import usePcmPlayer from "./usePcmPlayer";
 
 /* =========================================================
-   HELPERS
+   PRODUCTION CONFIGURATION
 ========================================================= */
 
-const getDefaultSocketUrl = () => {
-  const configuredUrl =
-    import.meta.env.VITE_REALTIME_WS_URL;
+const REALTIME_SOCKET_URL =
+  "wss://twinn-backend.onrender.com/ws/realtime";
 
-  if (configuredUrl) {
-    return configuredUrl;
-  }
+const REALTIME_READY_TIMEOUT =
+  30000;
 
-  const apiUrl =
-    import.meta.env.VITE_API_URL;
-
-  if (apiUrl) {
-    try {
-      const parsedUrl =
-        new URL(apiUrl);
-
-      const protocol =
-        parsedUrl.protocol === "https:"
-          ? "wss:"
-          : "ws:";
-
-      return `${protocol}//${parsedUrl.host}/ws/realtime`;
-    } catch (error) {
-      console.error(
-        "INVALID VITE_API_URL:",
-        error
-      );
-    }
-  }
-
-  if (
-    window.location.hostname ===
-      "localhost" ||
-    window.location.hostname ===
-      "127.0.0.1"
-  ) {
-    return "ws://localhost:8000/ws/realtime";
-  }
-
-  throw new Error(
-    "VITE_REALTIME_WS_URL is not configured for production."
-  );
-};
+/* =========================================================
+   HELPERS
+========================================================= */
 
 const getMessageEvent = (
   message
@@ -106,6 +73,10 @@ const appendTranscript = (
     return normalizedIncoming;
   }
 
+  /*
+   * Gemini may send cumulative
+   * transcription.
+   */
   if (
     normalizedIncoming.startsWith(
       normalizedCurrent
@@ -114,6 +85,10 @@ const appendTranscript = (
     return normalizedIncoming;
   }
 
+  /*
+   * Avoid duplicating the same
+   * fragment.
+   */
   if (
     normalizedCurrent.endsWith(
       normalizedIncoming
@@ -124,6 +99,32 @@ const appendTranscript = (
 
   return `${normalizedCurrent} ${normalizedIncoming}`;
 };
+
+const createDeferredPromise =
+  () => {
+    let resolve;
+    let reject;
+
+    const promise =
+      new Promise(
+        (
+          resolvePromise,
+          rejectPromise
+        ) => {
+          resolve =
+            resolvePromise;
+
+          reject =
+            rejectPromise;
+        }
+      );
+
+    return {
+      promise,
+      resolve,
+      reject,
+    };
+  };
 
 /* =========================================================
    HOOK
@@ -138,6 +139,10 @@ export default function useRealtimeTwin() {
       (state) =>
         state.realtime
     );
+
+  /* =======================================================
+     REFS
+  ======================================================= */
 
   const socketRef =
     useRef(null);
@@ -158,6 +163,12 @@ export default function useRealtimeTwin() {
     useRef(true);
 
   const connectionPromiseRef =
+    useRef(null);
+
+  const readyDeferredRef =
+    useRef(null);
+
+  const readyTimeoutRef =
     useRef(null);
 
   /* =======================================================
@@ -190,7 +201,77 @@ export default function useRealtimeTwin() {
   });
 
   /* =======================================================
-     SEND WEBSOCKET MESSAGE
+     CLEAR READY WAIT
+  ======================================================= */
+
+  const clearReadyWait =
+    useCallback(() => {
+      if (
+        readyTimeoutRef.current
+      ) {
+        clearTimeout(
+          readyTimeoutRef.current
+        );
+
+        readyTimeoutRef.current =
+          null;
+      }
+
+      readyDeferredRef.current =
+        null;
+    }, []);
+
+  /* =======================================================
+     REJECT READY WAIT
+  ======================================================= */
+
+  const rejectReadyWait =
+    useCallback(
+      (error) => {
+        const deferred =
+          readyDeferredRef.current;
+
+        if (deferred) {
+          deferred.reject(
+            error instanceof Error
+              ? error
+              : new Error(
+                  String(
+                    error ||
+                      "Realtime connection failed."
+                  )
+                )
+          );
+        }
+
+        clearReadyWait();
+      },
+      [clearReadyWait]
+    );
+
+  /* =======================================================
+     RESOLVE READY WAIT
+  ======================================================= */
+
+  const resolveReadyWait =
+    useCallback(
+      (value) => {
+        const deferred =
+          readyDeferredRef.current;
+
+        if (deferred) {
+          deferred.resolve(
+            value
+          );
+        }
+
+        clearReadyWait();
+      },
+      [clearReadyWait]
+    );
+
+  /* =======================================================
+     SEND WEBSOCKET EVENT
   ======================================================= */
 
   const sendSocketEvent =
@@ -310,57 +391,7 @@ export default function useRealtimeTwin() {
     }, [dispatch]);
 
   /* =======================================================
-     DISCONNECT SOCKET
-  ======================================================= */
-
-  const disconnectSocket =
-    useCallback(() => {
-      const socket =
-        socketRef.current;
-
-      if (!socket) {
-        return;
-      }
-
-      socket.onopen =
-        null;
-
-      socket.onmessage =
-        null;
-
-      socket.onerror =
-        null;
-
-      socket.onclose =
-        null;
-
-      if (
-        socket.readyState ===
-          WebSocket.OPEN ||
-        socket.readyState ===
-          WebSocket.CONNECTING
-      ) {
-        socket.close(
-          1000,
-          "Client disconnected"
-        );
-      }
-
-      socketRef.current =
-        null;
-
-      connectionPromiseRef.current =
-        null;
-
-      dispatch(
-        setRealtimeConnected(
-          false
-        )
-      );
-    }, [dispatch]);
-
-  /* =======================================================
-     HANDLE COMPLETED CONVERSATION TURN
+     COMPLETE TURN
   ======================================================= */
 
   const completeConversationTurn =
@@ -399,6 +430,63 @@ export default function useRealtimeTwin() {
     ]);
 
   /* =======================================================
+     DISCONNECT SOCKET
+  ======================================================= */
+
+  const disconnectSocket =
+    useCallback(
+      ({
+        code = 1000,
+        reason =
+          "Client disconnected",
+      } = {}) => {
+        const socket =
+          socketRef.current;
+
+        if (!socket) {
+          return;
+        }
+
+        socket.onopen =
+          null;
+
+        socket.onmessage =
+          null;
+
+        socket.onerror =
+          null;
+
+        socket.onclose =
+          null;
+
+        if (
+          socket.readyState ===
+            WebSocket.OPEN ||
+          socket.readyState ===
+            WebSocket.CONNECTING
+        ) {
+          socket.close(
+            code,
+            reason
+          );
+        }
+
+        socketRef.current =
+          null;
+
+        connectionPromiseRef.current =
+          null;
+
+        dispatch(
+          setRealtimeConnected(
+            false
+          )
+        );
+      },
+      [dispatch]
+    );
+
+  /* =======================================================
      CONNECT
   ======================================================= */
 
@@ -422,6 +510,9 @@ export default function useRealtimeTwin() {
           );
         }
 
+        /*
+         * Prevent duplicate connections.
+         */
         if (
           socketRef.current &&
           [
@@ -466,17 +557,8 @@ export default function useRealtimeTwin() {
             );
 
             /*
-             * Expected API response:
-             *
-             * {
-             *   success: true,
-             *   session: {
-             *     _id,
-             *     socketToken,
-             *     ...
-             *   },
-             *   socketUrl?: "wss://..."
-             * }
+             * Create backend realtime
+             * session.
              */
             const result =
               await dispatch(
@@ -502,11 +584,6 @@ export default function useRealtimeTwin() {
               result?.socketToken ||
               session?.socketToken;
 
-            const socketUrl =
-              result?.socketUrl ||
-              session?.socketUrl ||
-              getDefaultSocketUrl();
-
             if (!sessionId) {
               throw new Error(
                 "Realtime session ID was not returned."
@@ -516,12 +593,6 @@ export default function useRealtimeTwin() {
             if (!socketToken) {
               throw new Error(
                 "Realtime socket token was not returned."
-              );
-            }
-
-            if (!socketUrl) {
-              throw new Error(
-                "Realtime WebSocket URL is not configured."
               );
             }
 
@@ -537,23 +608,9 @@ export default function useRealtimeTwin() {
               )
             );
 
-            const separator =
-              socketUrl.includes(
-                "?"
-              )
-                ? "&"
-                : "?";
-
-            /*
-             * Backend expects:
-             *
-             * /ws/realtime
-             * ?sessionId=...
-             * &socketToken=...
-             */
             const completeUrl =
-              `${socketUrl}${separator}` +
-              `sessionId=${encodeURIComponent(
+              `${REALTIME_SOCKET_URL}` +
+              `?sessionId=${encodeURIComponent(
                 sessionId
               )}` +
               `&socketToken=${encodeURIComponent(
@@ -568,6 +625,48 @@ export default function useRealtimeTwin() {
               )
             );
 
+            const readyDeferred =
+              createDeferredPromise();
+
+            readyDeferredRef.current =
+              readyDeferred;
+
+            readyTimeoutRef.current =
+              setTimeout(
+                () => {
+                  rejectReadyWait(
+                    new Error(
+                      "Realtime connection timed out while waiting for Gemini."
+                    )
+                  );
+
+                  disconnectSocket({
+                    code: 1000,
+                    reason:
+                      "Realtime timeout",
+                  });
+
+                  dispatch(
+                    setRealtimeConnected(
+                      false
+                    )
+                  );
+
+                  dispatch(
+                    setConnectionStage(
+                      "failed"
+                    )
+                  );
+
+                  dispatch(
+                    setRealtimeError(
+                      "Realtime connection timed out."
+                    )
+                  );
+                },
+                REALTIME_READY_TIMEOUT
+              );
+
             const socket =
               new WebSocket(
                 completeUrl
@@ -575,6 +674,10 @@ export default function useRealtimeTwin() {
 
             socketRef.current =
               socket;
+
+            /* =============================================
+               SOCKET OPEN
+            ============================================= */
 
             socket.onopen =
               () => {
@@ -594,10 +697,6 @@ export default function useRealtimeTwin() {
                   )
                 );
 
-                /*
-                 * Send both event and type
-                 * for compatibility.
-                 */
                 sendSocketEventRef.current(
                   {
                     event:
@@ -608,6 +707,10 @@ export default function useRealtimeTwin() {
                   }
                 );
               };
+
+            /* =============================================
+               SOCKET MESSAGE
+            ============================================= */
 
             socket.onmessage =
               async (
@@ -640,6 +743,7 @@ export default function useRealtimeTwin() {
                     messageEvent
                   ) {
                     case "socket:connected":
+                    case "socket.connected":
                     case "gemini.connected": {
                       dispatch(
                         setConnectionStage(
@@ -688,6 +792,22 @@ export default function useRealtimeTwin() {
                           null
                         )
                       );
+
+                      resolveReadyWait({
+                        ...result,
+
+                        session: {
+                          ...session,
+
+                          _id:
+                            sessionId,
+
+                          socketToken,
+                        },
+
+                        readyMessage:
+                          message,
+                      });
 
                       break;
                     }
@@ -797,12 +917,6 @@ export default function useRealtimeTwin() {
                     case "conversation.interrupted": {
                       stopPlayback();
 
-                      dispatch(
-                        setAssistantSpeaking(
-                          false
-                        )
-                      );
-
                       assistantTranscriptRef.current =
                         "";
 
@@ -812,15 +926,33 @@ export default function useRealtimeTwin() {
                         )
                       );
 
+                      dispatch(
+                        setAssistantSpeaking(
+                          false
+                        )
+                      );
+
                       break;
                     }
 
                     case "session:error":
                     case "session.error":
                     case "gemini.error": {
+                      const errorMessage =
+                        message.message ||
+                        message.data
+                          ?.message ||
+                        "Realtime session error.";
+
                       console.error(
                         "REALTIME SERVER ERROR:",
                         message
+                      );
+
+                      rejectReadyWait(
+                        new Error(
+                          errorMessage
+                        )
                       );
 
                       dispatch(
@@ -837,10 +969,7 @@ export default function useRealtimeTwin() {
 
                       dispatch(
                         setRealtimeError(
-                          message.message ||
-                            message.data
-                              ?.message ||
-                            "Realtime session error."
+                          errorMessage
                         )
                       );
 
@@ -849,9 +978,20 @@ export default function useRealtimeTwin() {
 
                     case "gemini:closed":
                     case "gemini.closed": {
+                      const closeMessage =
+                        message.reason ||
+                        message.message ||
+                        "Gemini Live closed.";
+
                       console.error(
                         "GEMINI CLOSED:",
                         message
+                      );
+
+                      rejectReadyWait(
+                        new Error(
+                          closeMessage
+                        )
                       );
 
                       dispatch(
@@ -868,9 +1008,7 @@ export default function useRealtimeTwin() {
 
                       dispatch(
                         setRealtimeError(
-                          message.reason ||
-                            message.message ||
-                            "Gemini Live closed."
+                          closeMessage
                         )
                       );
 
@@ -892,6 +1030,10 @@ export default function useRealtimeTwin() {
                     error
                   );
 
+                  rejectReadyWait(
+                    error
+                  );
+
                   dispatch(
                     setRealtimeError(
                       error?.message ||
@@ -900,6 +1042,10 @@ export default function useRealtimeTwin() {
                   );
                 }
               };
+
+            /* =============================================
+               SOCKET ERROR
+            ============================================= */
 
             socket.onerror =
               (event) => {
@@ -913,6 +1059,15 @@ export default function useRealtimeTwin() {
                 ) {
                   return;
                 }
+
+                const error =
+                  new Error(
+                    "WebSocket connection failed."
+                  );
+
+                rejectReadyWait(
+                  error
+                );
 
                 dispatch(
                   setRealtimeConnected(
@@ -928,10 +1083,14 @@ export default function useRealtimeTwin() {
 
                 dispatch(
                   setRealtimeError(
-                    "WebSocket connection failed."
+                    error.message
                   )
                 );
               };
+
+            /* =============================================
+               SOCKET CLOSE
+            ============================================= */
 
             socket.onclose =
               (event) => {
@@ -979,31 +1138,47 @@ export default function useRealtimeTwin() {
                   )
                 );
 
+                const normalClose =
+                  event.code ===
+                  1000;
+
                 dispatch(
                   setConnectionStage(
-                    event.code ===
-                      1000
+                    normalClose
                       ? "closed"
                       : "failed"
                   )
                 );
 
-                if (
-                  event.code !==
-                  1000
-                ) {
+                if (!normalClose) {
+                  const closeMessage =
+                    `Realtime connection closed (${event.code}). ${
+                      event.reason ||
+                      ""
+                    }`.trim();
+
+                  rejectReadyWait(
+                    new Error(
+                      closeMessage
+                    )
+                  );
+
                   dispatch(
                     setRealtimeError(
-                      `Realtime connection closed (${event.code}). ${
-                        event.reason ||
-                        ""
-                      }`.trim()
+                      closeMessage
                     )
                   );
                 }
               };
 
-            return result;
+            /*
+             * Do not return immediately.
+             *
+             * Wait until backend sends
+             * session:ready.
+             */
+            return await readyDeferred
+              .promise;
           })();
 
         connectionPromiseRef.current =
@@ -1040,8 +1215,11 @@ export default function useRealtimeTwin() {
       [
         completeConversationTurn,
         dispatch,
+        disconnectSocket,
         playChunk,
+        rejectReadyWait,
         resetTranscripts,
+        resolveReadyWait,
         stopPlayback,
       ]
     );
@@ -1185,7 +1363,8 @@ export default function useRealtimeTwin() {
         }
 
         /*
-         * Display typed input immediately.
+         * Display typed messages
+         * immediately.
          */
         dispatch(
           appendRealtimeMessage({
@@ -1264,7 +1443,13 @@ export default function useRealtimeTwin() {
         const sessionId =
           sessionIdRef.current;
 
-        disconnectSocket();
+        clearReadyWait();
+
+        disconnectSocket({
+          code: 1000,
+          reason:
+            "User ended session",
+        });
 
         if (sessionId) {
           try {
@@ -1319,6 +1504,7 @@ export default function useRealtimeTwin() {
         );
       },
       [
+        clearReadyWait,
         dispatch,
         disconnectSocket,
         resetTranscripts,
@@ -1340,10 +1526,12 @@ export default function useRealtimeTwin() {
       mountedRef.current =
         false;
 
+      clearReadyWait();
+
       try {
         stopMicrophoneCapture();
       } catch {
-        // Ignore cleanup errors.
+        // Ignore cleanup error.
       }
 
       stopPlayback();
@@ -1351,7 +1539,7 @@ export default function useRealtimeTwin() {
       try {
         closePlayer();
       } catch {
-        // Ignore cleanup errors.
+        // Ignore cleanup error.
       }
 
       const socket =
@@ -1385,6 +1573,7 @@ export default function useRealtimeTwin() {
         null;
     };
   }, [
+    clearReadyWait,
     closePlayer,
     stopMicrophoneCapture,
     stopPlayback,
