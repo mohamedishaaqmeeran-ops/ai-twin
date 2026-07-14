@@ -389,41 +389,72 @@ export default function useRealtimeTwin() {
               }
 
               case "transcript:user": {
-                const transcript =
-                  String(
-                    message.text || ""
-                  );
+  const incomingText =
+    String(
+      message.text || ""
+    );
 
-                userTranscriptRef.current =
-                  transcript;
+  if (!incomingText) {
+    break;
+  }
 
-                dispatch(
-                  setUserTranscript(
-                    transcript
-                  )
-                );
+  const currentText =
+    userTranscriptRef.current;
 
-                break;
-              }
+  const updatedText =
+    incomingText.startsWith(
+      currentText
+    )
+      ? incomingText
+      : `${currentText}${currentText ? " " : ""}${incomingText}`;
 
-              case "transcript:assistant": {
-                const transcript =
-                  String(
-                    message.text || ""
-                  );
+  userTranscriptRef.current =
+    updatedText;
 
-                assistantTranscriptRef.current =
-                  transcript;
+  dispatch(
+    setUserTranscript(
+      updatedText
+    )
+  );
 
-                dispatch(
-                  setAssistantTranscript(
-                    transcript
-                  )
-                );
+  break;
+}
 
-                break;
-              }
+             case "transcript:assistant": {
+  const incomingText =
+    String(
+      message.text || ""
+    );
 
+  if (!incomingText) {
+    break;
+  }
+
+  const currentText =
+    assistantTranscriptRef.current;
+
+  /*
+   * Gemini can send either cumulative text
+   * or small transcription fragments.
+   */
+  const updatedText =
+    incomingText.startsWith(
+      currentText
+    )
+      ? incomingText
+      : `${currentText}${currentText ? " " : ""}${incomingText}`;
+
+  assistantTranscriptRef.current =
+    updatedText;
+
+  dispatch(
+    setAssistantTranscript(
+      updatedText
+    )
+  );
+
+  break;
+}
               case "conversation:turn-complete": {
                 const userText =
                   userTranscriptRef.current.trim();
@@ -703,29 +734,72 @@ export default function useRealtimeTwin() {
     ]);
 
   const sendText =
-    useCallback(
-      (text) => {
-        const normalized =
-          String(text || "").trim();
+  useCallback(
+    (text) => {
+      const normalized =
+        String(text || "").trim();
 
-        if (
-          !normalized ||
-          realtime.connectionStage !==
-            "ready"
-        ) {
-          return false;
-        }
+      if (!normalized) {
+        return false;
+      }
 
-        return sendSocketEvent({
+      if (
+        realtime.connectionStage !==
+          "ready" ||
+        !realtime.connected
+      ) {
+        dispatch(
+          setRealtimeError(
+            "Start the realtime session before sending a message."
+          )
+        );
+
+        return false;
+      }
+
+      const sent =
+        sendSocketEvent({
           event: "text:input",
           text: normalized,
         });
-      },
-      [
-        realtime.connectionStage,
-        sendSocketEvent,
-      ]
-    );
+
+      if (!sent) {
+        dispatch(
+          setRealtimeError(
+            "Unable to send the message. WebSocket is not connected."
+          )
+        );
+
+        return false;
+      }
+
+      /*
+       * Typed messages are displayed immediately.
+       * Gemini may not return inputTranscription
+       * for text input.
+       */
+      dispatch(
+        appendRealtimeMessage({
+          role: "user",
+          text: normalized,
+        })
+      );
+
+      dispatch(
+        setUserTranscript("")
+      );
+
+      userTranscriptRef.current = "";
+
+      return true;
+    },
+    [
+      dispatch,
+      realtime.connected,
+      realtime.connectionStage,
+      sendSocketEvent,
+    ]
+  );
 
   const interrupt =
     useCallback(() => {

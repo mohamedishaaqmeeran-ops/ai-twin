@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -79,6 +80,19 @@ export default function TestTwin() {
   const [
     searchParams,
   ] = useSearchParams();
+  const conversationEndRef =
+  useRef(null);
+
+  useEffect(() => {
+  conversationEndRef.current?.scrollIntoView({
+    behavior: "smooth",
+    block: "end",
+  });
+}, [
+  realtime.messages,
+  realtime.userTranscript,
+  realtime.assistantTranscript,
+]);
 
   const {
     twins = [],
@@ -225,24 +239,23 @@ export default function TestTwin() {
      TEXT MESSAGE
   ======================================================= */
 
-  const handleSendText =
-    () => {
-      const normalized =
-        textQuestion.trim();
+  const handleSendText = () => {
+  const normalized =
+    textQuestion.trim();
 
-      if (!normalized) {
-        return;
-      }
+  if (!normalized) {
+    return;
+  }
 
-      const sent =
-        realtime.sendText(
-          normalized
-        );
+  const sent =
+    realtime.sendText(
+      normalized
+    );
 
-      if (sent) {
-        setTextQuestion("");
-      }
-    };
+  if (sent) {
+    setTextQuestion("");
+  }
+};
 
   if (
     twinsLoading &&
@@ -617,6 +630,7 @@ export default function TestTwin() {
                 live
               />
             )}
+            
 
             {realtime.assistantTranscript && (
               <MessageBubble
@@ -627,51 +641,52 @@ export default function TestTwin() {
                 live
               />
             )}
+            
+
+<div
+  ref={conversationEndRef}
+/>
           </div>
 
           {/* TEXT INPUT */}
 
           <div className="mt-5 flex gap-3">
             <input
-              value={
-                textQuestion
-              }
-              disabled={
-                !realtime.connected
-              }
-              onChange={(event) =>
-                setTextQuestion(
-                  event.target.value
-                )
-              }
-              onKeyDown={(event) => {
-                if (
-                  event.key ===
-                    "Enter" &&
-                  !event.shiftKey
-                ) {
-                  event.preventDefault();
-
-                  handleSendText();
-                }
-              }}
-              placeholder="Type a question to test the AI Twin..."
-              className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
-            />
+  value={textQuestion}
+  disabled={
+    realtime.connectionStage !==
+    "ready"
+  }
+  onChange={(event) =>
+    setTextQuestion(
+      event.target.value
+    )
+  }
+  onKeyDown={(event) => {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey
+    ) {
+      event.preventDefault();
+      handleSendText();
+    }
+  }}
+  placeholder="Type a question to test the AI Twin..."
+  className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium outline-none"
+/>
 
             <button
-              type="button"
-              disabled={
-                !realtime.connected ||
-                !textQuestion.trim()
-              }
-              onClick={
-                handleSendText
-              }
-              className="brand-gradient grid h-12 w-12 shrink-0 place-items-center rounded-[5px] text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Send className="h-4 w-4" />
-            </button>
+  type="button"
+  disabled={
+    realtime.connectionStage !==
+      "ready" ||
+    !textQuestion.trim()
+  }
+  onClick={handleSendText}
+  className="brand-gradient grid h-12 w-12 shrink-0 place-items-center rounded-[5px] text-white disabled:cursor-not-allowed disabled:opacity-50"
+>
+  <Send className="h-4 w-4" />
+</button>
           </div>
         </section>
       </section>
