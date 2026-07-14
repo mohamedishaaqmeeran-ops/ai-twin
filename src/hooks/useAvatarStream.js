@@ -1199,8 +1199,7 @@ export default function useAvatarStream() {
   /* =======================================================
      MAKE AVATAR SPEAK
   ======================================================= */
-
-  const speak =
+const speak =
   useCallback(
     async (
       text,
@@ -1210,24 +1209,27 @@ export default function useAvatarStream() {
         avatarSessionIdRef.current;
 
       const normalizedText =
-        String(
-          text || ""
-        ).trim();
+        String(text || "").trim();
 
-      if (
-        !avatarSessionId ||
-        !normalizedText
-      ) {
-        return false;
+      if (!avatarSessionId) {
+        throw new Error(
+          "Avatar session is not available."
+        );
+      }
+
+      if (!normalizedText) {
+        throw new Error(
+          "Avatar speech text is required."
+        );
       }
 
       console.log(
-        "CALLING AVATAR SPEAK:",
+        "CALLING D-ID SPEAK:",
         {
           avatarSessionId,
           language,
-          text:
-            normalizedText,
+          textLength:
+            normalizedText.length,
         }
       );
 
@@ -1236,48 +1238,49 @@ export default function useAvatarStream() {
           `${BASE_URL}/api/avatar/sessions/${avatarSessionId}/speak`,
           {
             method: "POST",
-            credentials:
-              "include",
+            credentials: "include",
 
             headers: {
               "Content-Type":
                 "application/json",
             },
 
-            body:
-              JSON.stringify({
-                text:
-                  normalizedText,
-                language,
-              }),
+            body: JSON.stringify({
+              text:
+                normalizedText,
+              language,
+            }),
           }
         );
 
-      const data =
+      const result =
         await parseResponse(
           response
         );
 
       console.log(
         "D-ID SPEECH REQUEST ACCEPTED:",
-        data
+        result
       );
 
-      waitForVideoFrames({
-        attempts: 80,
-        delay: 250,
-      }).catch((error) => {
-        console.error(
-          "D-ID FRAME WAIT ERROR:",
-          error
-        );
-      });
+      window.setTimeout(
+        () => {
+          waitForVideoFrames({
+            attempts: 100,
+            delay: 250,
+          }).catch((error) => {
+            console.error(
+              "D-ID FRAME WAIT ERROR:",
+              error
+            );
+          });
+        },
+        300
+      );
 
       return true;
     },
-    [
-      waitForVideoFrames,
-    ]
+    [waitForVideoFrames]
   );
 
   /* =======================================================

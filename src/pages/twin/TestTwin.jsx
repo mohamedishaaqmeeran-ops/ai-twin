@@ -384,18 +384,56 @@ export default function TestTwin() {
          * Step 2:
          * Create avatar WebRTC stream.
          */
-        const avatarResult =
-          await avatar.createAvatarSession({
-            twinId:
-              selectedTwinId,
+       const avatarResult =
+  await avatar.createAvatarSession({
+    twinId: selectedTwinId,
+    realtimeSessionId,
+  });
 
-            realtimeSessionId,
-          });
+console.log(
+  "Avatar session created:",
+  avatarResult
+);
 
-        console.log(
-          "Avatar session created:",
-          avatarResult
-        );
+const warmupMessages = {
+  English:
+    "Hello. Your AI Twin is ready.",
+
+  Tamil:
+    "வணக்கம். உங்கள் AI ட்வின் தயாராக உள்ளது.",
+
+  Malayalam:
+    "നമസ്കാരം. നിങ്ങളുടെ എഐ ട്വിൻ തയ്യാറാണ്.",
+
+  Hindi:
+    "नमस्ते। आपका एआई ट्विन तैयार है।",
+
+  Arabic:
+    "مرحبًا. توأمك الذكي جاهز.",
+};
+
+const warmupText =
+  warmupMessages[language] ||
+  warmupMessages.English;
+
+console.log(
+  "SENDING D-ID WARMUP:",
+  {
+    language,
+    text: warmupText,
+  }
+);
+
+await avatar.speak(
+  warmupText,
+  language
+);
+
+console.log(
+  "D-ID WARMUP ACCEPTED"
+);
+
+       
       } catch (error) {
         console.error(
           "REALTIME CONNECT ERROR:",
