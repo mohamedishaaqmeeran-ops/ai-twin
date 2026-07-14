@@ -26,6 +26,7 @@ import {
   PhoneOff,
   Send,
   Sparkles,
+  Video,
   Volume2,
   VolumeX,
   Waves,
@@ -36,14 +37,13 @@ import {
 } from "../../features/twin/twinSlice";
 
 import useRealtimeTwin from "../../hooks/useRealtimeTwin";
+import useAvatarStream from "../../hooks/useAvatarStream";
 
 /* =========================================================
    HELPERS
 ========================================================= */
 
-const getTwinImage = (
-  twin
-) => {
+const getTwinImage = (twin) => {
   return (
     twin?.appearance?.avatarUrl ||
     twin?.image ||
@@ -51,9 +51,7 @@ const getTwinImage = (
   );
 };
 
-const getTwinVoice = (
-  twin
-) => {
+const getTwinVoice = (twin) => {
   if (
     typeof twin?.voice ===
     "string"
@@ -74,210 +72,469 @@ const getTwinVoice = (
 ========================================================= */
 
 export default function TestTwin() {
- const dispatch =
-  useDispatch();
+  const dispatch =
+    useDispatch();
 
-const [
-  searchParams,
-] = useSearchParams();
+  const [
+    searchParams,
+  ] = useSearchParams();
 
-const {
-  twins = [],
-  loading: twinsLoading,
-} = useSelector(
-  (state) => state.twin
-);
+  const {
+    twins = [],
+    loading: twinsLoading,
+  } = useSelector(
+    (state) => state.twin
+  );
 
-const realtime =
-  useRealtimeTwin();
+  const realtime =
+    useRealtimeTwin();
 
-const conversationEndRef =
-  useRef(null);
+  const avatar =
+    useAvatarStream();
 
-const [
-  selectedTwinId,
-  setSelectedTwinId,
-] = useState(
-  searchParams.get(
-    "twinId"
-  ) || ""
-);
+  const conversationEndRef =
+    useRef(null);
 
-const [
-  selectedProductId,
-  setSelectedProductId,
-] = useState("");
+  const lastAvatarMessageIdRef =
+    useRef(null);
 
-const [
-  language,
-  setLanguage,
-] = useState("English");
+  const connectingRef =
+    useRef(false);
 
-const [
-  textQuestion,
-  setTextQuestion,
-] = useState("");
+  const [
+    selectedTwinId,
+    setSelectedTwinId,
+  ] = useState(
+    searchParams.get(
+      "twinId"
+    ) || ""
+  );
 
-useEffect(() => {
-  conversationEndRef.current?.scrollIntoView({
-    behavior: "smooth",
-    block: "end",
-  });
-}, [
-  realtime.messages,
-  realtime.userTranscript,
-  realtime.assistantTranscript,
-]);
+  const [
+    selectedProductId,
+    setSelectedProductId,
+  ] = useState("");
 
-useEffect(() => {
-  dispatch(fetchTwins());
-}, [dispatch]);
+  const [
+    language,
+    setLanguage,
+  ] = useState("English");
 
-useEffect(() => {
-  if (
-    !selectedTwinId &&
-    twins.length > 0
-  ) {
-    setSelectedTwinId(
-      twins[0]._id
-    );
-  }
-}, [
-  selectedTwinId,
-  twins,
-]);
+  const [
+    textQuestion,
+    setTextQuestion,
+  ] = useState("");
 
-const selectedTwin =
-  useMemo(() => {
-    return (
-      twins.find(
-        (twin) =>
-          twin._id ===
-          selectedTwinId
-      ) || null
-    );
+  const [
+    pageError,
+    setPageError,
+  ] = useState("");
+
+  /* =======================================================
+     LOAD TWINS
+  ======================================================= */
+
+  useEffect(() => {
+    dispatch(fetchTwins());
+  }, [dispatch]);
+
+  /* =======================================================
+     AUTO SELECT FIRST TWIN
+  ======================================================= */
+
+  useEffect(() => {
+    if (
+      !selectedTwinId &&
+      twins.length > 0
+    ) {
+      setSelectedTwinId(
+        twins[0]._id
+      );
+    }
   }, [
     selectedTwinId,
     twins,
   ]);
 
-const twinImage =
-  getTwinImage(
-    selectedTwin
-  );
+  /* =======================================================
+     AUTO SCROLL CHAT
+  ======================================================= */
 
-const twinVoice =
-  getTwinVoice(
-    selectedTwin
-  );
+  useEffect(() => {
+    conversationEndRef.current
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+  }, [
+    realtime.messages,
+    realtime.userTranscript,
+    realtime.assistantTranscript,
+  ]);
 
-/* =======================================================
-   CONNECT
-======================================================= */
+  /* =======================================================
+     MAKE AVATAR SPEAK COMPLETED AI RESPONSE
+  ======================================================= */
 
-const handleConnect =
-  async () => {
-    try {
-      if (!selectedTwinId) {
-        throw new Error(
-          "Select an AI Twin first."
+  useEffect(() => {
+    if (
+      !avatar.avatarConnected
+    ) {
+      return;
+    }
+
+    const messages =
+      realtime.messages || [];
+
+    const lastMessage =
+      messages[
+        messages.length - 1
+      ];
+
+    if (
+      !lastMessage ||
+      lastMessage.role !==
+        "assistant" ||
+      !lastMessage.text
+    ) {
+      return;
+    }
+
+    const messageIdentity =
+      lastMessage.id ||
+      `${lastMessage.createdAt}-${lastMessage.text}`;
+
+    if (
+      lastAvatarMessageIdRef.current ===
+      messageIdentity
+    ) {
+      return;
+    }
+
+    lastAvatarMessageIdRef.current =
+      messageIdentity;
+
+    avatar
+      .speak(
+        lastMessage.text
+      )
+      .catch((error) => {
+        console.error(
+          "AVATAR SPEAK ERROR:",
+          error
         );
-      }
 
-      console.log(
-        "Starting realtime session:",
-        {
-          twinId:
-            selectedTwinId,
+        setPageError(
+          error?.message ||
+            "Unable to make the avatar speak."
+        );
+      });
+  }, [
+    avatar.avatarConnected,
+    avatar.speak,
+    realtime.messages,
+  ]);
 
-          productId:
-            selectedProductId ||
-            null,
+  /* =======================================================
+     CLEANUP ON UNMOUNT
+  ======================================================= */
 
-          language,
-        }
+  useEffect(() => {
+    return () => {
+      avatar
+        .closeAvatar()
+        .catch(() => {});
+    };
+  }, [
+    avatar.closeAvatar,
+  ]);
+
+  /* =======================================================
+     SELECTED TWIN
+  ======================================================= */
+
+  const selectedTwin =
+    useMemo(() => {
+      return (
+        twins.find(
+          (twin) =>
+            twin._id ===
+            selectedTwinId
+        ) || null
       );
+    }, [
+      selectedTwinId,
+      twins,
+    ]);
 
-      const result =
-        await realtime.connect({
-          twinId:
-            selectedTwinId,
-
-          productId:
-            selectedProductId ||
-            null,
-
-          mode: "test",
-
-          language,
-        });
-
-      console.log(
-        "Realtime session created:",
-        result
-      );
-    } catch (error) {
-      console.error(
-        "REALTIME CONNECT ERROR:",
-        error
-      );
-    }
-  };
-
-/* =======================================================
-   MICROPHONE
-======================================================= */
-
-const handleMicrophone =
-  async () => {
-    try {
-      if (
-        realtime.recording
-      ) {
-        await realtime.stopMicrophone();
-      } else {
-        await realtime.startMicrophone();
-      }
-    } catch (error) {
-      console.error(
-        "MICROPHONE ERROR:",
-        error
-      );
-    }
-  };
-
-/* =======================================================
-   TEXT MESSAGE
-======================================================= */
-
-const handleSendText = () => {
-  const normalized =
-    textQuestion.trim();
-
-  if (!normalized) {
-    return;
-  }
-
-  const sent =
-    realtime.sendText(
-      normalized
+  const twinImage =
+    getTwinImage(
+      selectedTwin
     );
 
-  if (sent) {
-    setTextQuestion("");
-  }
-};
+  const twinVoice =
+    getTwinVoice(
+      selectedTwin
+    );
 
-if (
-  twinsLoading &&
-  twins.length === 0
-) {
-  return (
-    <div className="flex min-h-[450px] items-center justify-center">
-      <LoaderCircle className="h-10 w-10 animate-spin text-[var(--brand-pink)]" />
-    </div>
-  );
-}
+  const connectionStarting =
+    realtime.status ===
+      "creating" ||
+    realtime.connectionStage ===
+      "creating-session" ||
+    realtime.connectionStage ===
+      "connecting-socket" ||
+    realtime.connectionStage ===
+      "initializing-gemini" ||
+    avatar.avatarLoading;
+
+  const sessionReady =
+    realtime.connected &&
+    realtime.connectionStage ===
+      "ready";
+
+  const visibleError =
+    pageError ||
+    realtime.error ||
+    avatar.avatarError;
+
+  /* =======================================================
+     CONNECT REALTIME + AVATAR
+  ======================================================= */
+
+  const handleConnect =
+    async () => {
+      if (
+        connectingRef.current ||
+        connectionStarting ||
+        realtime.connected
+      ) {
+        return;
+      }
+
+      try {
+        setPageError("");
+
+        if (!selectedTwinId) {
+          throw new Error(
+            "Select an AI Twin first."
+          );
+        }
+
+        connectingRef.current =
+          true;
+
+        console.log(
+          "Starting realtime session:",
+          {
+            twinId:
+              selectedTwinId,
+
+            productId:
+              selectedProductId ||
+              null,
+
+            language,
+          }
+        );
+
+        /*
+         * Step 1:
+         * Create Gemini realtime session
+         * and browser WebSocket.
+         */
+        const sessionResult =
+          await realtime.connect({
+            twinId:
+              selectedTwinId,
+
+            productId:
+              selectedProductId ||
+              null,
+
+            mode: "test",
+
+            language,
+          });
+
+        const realtimeSessionId =
+          sessionResult?.session?._id;
+
+        if (!realtimeSessionId) {
+          throw new Error(
+            "Realtime session ID was not returned."
+          );
+        }
+
+        console.log(
+          "Realtime session created:",
+          realtimeSessionId
+        );
+
+        /*
+         * Step 2:
+         * Create avatar WebRTC stream.
+         */
+        const avatarResult =
+          await avatar.createAvatarSession({
+            twinId:
+              selectedTwinId,
+
+            realtimeSessionId,
+          });
+
+        console.log(
+          "Avatar session created:",
+          avatarResult
+        );
+      } catch (error) {
+        console.error(
+          "REALTIME CONNECT ERROR:",
+          error
+        );
+
+        setPageError(
+          error?.message ||
+            "Unable to start the realtime AI Twin."
+        );
+
+        /*
+         * Clean up a partially created
+         * realtime or avatar session.
+         */
+        await avatar
+          .closeAvatar()
+          .catch(() => {});
+
+        await realtime
+          .disconnect()
+          .catch(() => {});
+      } finally {
+        connectingRef.current =
+          false;
+      }
+    };
+
+  /* =======================================================
+     DISCONNECT REALTIME + AVATAR
+  ======================================================= */
+
+  const handleDisconnect =
+    async () => {
+      try {
+        setPageError("");
+
+        await avatar
+          .closeAvatar()
+          .catch((error) => {
+            console.error(
+              "AVATAR CLOSE ERROR:",
+              error
+            );
+          });
+
+        await realtime
+          .disconnect()
+          .catch((error) => {
+            console.error(
+              "REALTIME DISCONNECT ERROR:",
+              error
+            );
+          });
+      } finally {
+        lastAvatarMessageIdRef.current =
+          null;
+
+        connectingRef.current =
+          false;
+      }
+    };
+
+  /* =======================================================
+     MICROPHONE
+  ======================================================= */
+
+  const handleMicrophone =
+    async () => {
+      try {
+        setPageError("");
+
+        if (!sessionReady) {
+          throw new Error(
+            "Wait until Gemini Live is connected."
+          );
+        }
+
+        if (
+          realtime.recording
+        ) {
+          await realtime.stopMicrophone();
+        } else {
+          await realtime.startMicrophone();
+        }
+      } catch (error) {
+        console.error(
+          "MICROPHONE ERROR:",
+          error
+        );
+
+        setPageError(
+          error?.message ||
+            "Unable to access the microphone."
+        );
+      }
+    };
+
+  /* =======================================================
+     TEXT MESSAGE
+  ======================================================= */
+
+  const handleSendText =
+    () => {
+      const normalized =
+        textQuestion.trim();
+
+      if (!normalized) {
+        return;
+      }
+
+      if (!sessionReady) {
+        setPageError(
+          "Start the realtime session before sending a message."
+        );
+
+        return;
+      }
+
+      const sent =
+        realtime.sendText(
+          normalized
+        );
+
+      if (sent) {
+        setTextQuestion("");
+        setPageError("");
+      }
+    };
+
+  /* =======================================================
+     LOADING
+  ======================================================= */
+
+  if (
+    twinsLoading &&
+    twins.length === 0
+  ) {
+    return (
+      <div className="flex min-h-[450px] items-center justify-center">
+        <LoaderCircle className="h-10 w-10 animate-spin text-[var(--brand-pink)]" />
+      </div>
+    );
+  }
+
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
     <div className="space-y-6 bg-background text-foreground">
@@ -300,46 +557,85 @@ if (
 
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
           Ask questions through your
-          microphone and hear your AI Twin
-          respond using Gemini Live.
+          microphone or chat. Gemini
+          answers using your Twin’s
+          product and knowledge data,
+          while the avatar provides
+          lip-synced video.
         </p>
 
-        {realtime.error && (
+        {visibleError && (
           <div className="mt-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 dark:border-red-900/30 dark:bg-red-900/10 dark:text-red-300">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
 
-            {realtime.error}
+            <span>
+              {visibleError}
+            </span>
           </div>
         )}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[380px_1fr]">
-        {/* LEFT PREVIEW */}
+        {/* LEFT SIDE */}
 
         <aside className="h-fit rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black brand-text">
-            Twin Preview
-          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-black brand-text">
+              Twin Preview
+            </h2>
 
-          <div className="relative mt-5 overflow-hidden rounded-3xl border border-border bg-pink-50 dark:bg-white/10">
-            <img
-              src={twinImage}
-              alt={
-                selectedTwin?.name ||
-                "AI Twin"
+            <AvatarStatus
+              loading={
+                avatar.avatarLoading
               }
-              onError={(
-                event
-              ) => {
-                event.currentTarget.src =
-                  "/images/bb.png";
-              }}
-              className={`h-96 w-full object-cover transition duration-300 ${
-                realtime.speaking
-                  ? "scale-[1.02]"
-                  : ""
+              connected={
+                avatar.avatarConnected
+              }
+            />
+          </div>
+
+          {/* AVATAR VIDEO */}
+
+          <div className="relative mt-5 overflow-hidden rounded-3xl border border-border bg-black">
+            <video
+              ref={
+                avatar.videoRef
+              }
+              autoPlay
+              playsInline
+              className={`h-96 w-full object-cover ${
+                avatar.avatarConnected
+                  ? "block"
+                  : "hidden"
               }`}
             />
+
+            {!avatar.avatarConnected && (
+              <img
+                src={twinImage}
+                alt={
+                  selectedTwin?.name ||
+                  "AI Twin"
+                }
+                onError={(
+                  event
+                ) => {
+                  event.currentTarget.src =
+                    "/images/bb.png";
+                }}
+                className="h-96 w-full object-cover"
+              />
+            )}
+
+            {avatar.avatarLoading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/65 text-white">
+                <LoaderCircle className="h-9 w-9 animate-spin" />
+
+                <p className="mt-3 text-sm font-bold">
+                  Starting avatar stream...
+                </p>
+              </div>
+            )}
 
             {realtime.speaking && (
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-black/65 px-4 py-3 text-sm font-bold text-white">
@@ -349,6 +645,8 @@ if (
               </div>
             )}
           </div>
+
+          {/* TWIN SELECT */}
 
           <label className="mt-5 block">
             <span className="mb-2 block text-sm font-black">
@@ -360,13 +658,19 @@ if (
                 selectedTwinId
               }
               disabled={
-                realtime.connected
+                realtime.connected ||
+                connectionStarting
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) => {
                 setSelectedTwinId(
                   event.target.value
-                )
-              }
+                );
+
+                lastAvatarMessageIdRef.current =
+                  null;
+              }}
               className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-bold outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {twins.length ===
@@ -393,6 +697,8 @@ if (
             </select>
           </label>
 
+          {/* LANGUAGE */}
+
           <label className="mt-4 block">
             <span className="mb-2 block text-sm font-black">
               Language
@@ -401,9 +707,12 @@ if (
             <select
               value={language}
               disabled={
-                realtime.connected
+                realtime.connected ||
+                connectionStarting
               }
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 setLanguage(
                   event.target.value
                 )
@@ -432,6 +741,8 @@ if (
             </select>
           </label>
 
+          {/* TWIN DETAILS */}
+
           <div className="mt-5 rounded-2xl border border-border bg-background p-4">
             <p className="text-lg font-black">
               {selectedTwin?.name ||
@@ -446,38 +757,59 @@ if (
               Language:{" "}
               {language}
             </p>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Gemini:{" "}
+              {sessionReady
+                ? "Ready"
+                : "Not connected"}
+            </p>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Avatar:{" "}
+              {avatar.avatarConnected
+                ? "Connected"
+                : avatar.avatarLoading
+                ? "Starting"
+                : "Not connected"}
+            </p>
           </div>
 
-          {!realtime.connected ? (
+          {/* START / END */}
+
+          {!realtime.connected &&
+          realtime.connectionStage !==
+            "ready" ? (
             <button
               type="button"
               disabled={
                 !selectedTwin ||
-                realtime.status ===
-                  "creating"
+                connectionStarting
               }
               onClick={
                 handleConnect
               }
               className="brand-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {realtime.status ===
-              "creating" ? (
-                <LoaderCircle className="h-5 w-5 animate-spin" />
-              ) : (
-                <Phone className="h-5 w-5" />
-              )}
+              {connectionStarting ? (
+                <>
+                  <LoaderCircle className="h-5 w-5 animate-spin" />
 
-              {realtime.status ===
-              "creating"
-                ? "Connecting..."
-                : "Start Realtime Test"}
+                  Starting AI Twin...
+                </>
+              ) : (
+                <>
+                  <Phone className="h-5 w-5" />
+
+                  Start Realtime Test
+                </>
+              )}
             </button>
           ) : (
             <button
               type="button"
               onClick={
-                realtime.disconnect
+                handleDisconnect
               }
               className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-[5px] bg-red-500 text-sm font-bold text-white hover:bg-red-600"
             >
@@ -488,7 +820,7 @@ if (
           )}
         </aside>
 
-        {/* RIGHT CONVERSATION */}
+        {/* RIGHT SIDE */}
 
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -498,15 +830,18 @@ if (
               </h2>
 
               <p className="mt-1 text-sm text-muted-foreground">
-                Start a session and tap
-                the microphone to ask a
-                question.
+                Ask through the
+                microphone or type a
+                message below.
               </p>
             </div>
 
             <ConnectionStatus
               connected={
                 realtime.connected
+              }
+              connectionStage={
+                realtime.connectionStage
               }
               recording={
                 realtime.recording
@@ -520,81 +855,61 @@ if (
           {/* MICROPHONE */}
 
           <div className="mt-6 flex flex-col items-center justify-center rounded-3xl border border-border bg-background p-8 text-center">
-  {!realtime.connected ? (
-    <>
-      <button
-        type="button"
-        disabled={
-          !selectedTwinId ||
-          realtime.status === "creating"
-        }
-        onClick={handleConnect}
-        className="brand-gradient flex h-12 min-w-[220px] items-center justify-center gap-2 rounded-[5px] px-6 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {realtime.status === "creating" ? (
-          <>
-            <LoaderCircle className="h-5 w-5 animate-spin" />
-            Connecting...
-          </>
-        ) : (
-          <>
-            <Phone className="h-5 w-5" />
-            Start Realtime Session
-          </>
-        )}
-      </button>
+            <button
+              type="button"
+              disabled={
+                !sessionReady
+              }
+              onClick={
+                handleMicrophone
+              }
+              className={`grid h-28 w-28 place-items-center rounded-full text-white shadow-xl transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                realtime.recording
+                  ? "bg-red-500 hover:bg-red-600"
+                  : "brand-gradient hover:opacity-90"
+              }`}
+            >
+              {realtime.recording ? (
+                <MicOff className="h-10 w-10" />
+              ) : (
+                <Mic className="h-10 w-10" />
+              )}
+            </button>
 
-      <p className="mt-5 text-lg font-black">
-        Start a realtime session
-      </p>
+            <p className="mt-5 text-lg font-black">
+              {realtime.recording
+                ? "Listening..."
+                : realtime.speaking
+                ? "AI Twin is speaking..."
+                : sessionReady
+                ? "Tap microphone to speak"
+                : connectionStarting
+                ? "Starting realtime session..."
+                : "Start a realtime session"}
+            </p>
 
-      <p className="mt-2 text-sm text-muted-foreground">
-        Connect your AI Twin before enabling the microphone.
-      </p>
-    </>
-  ) : (
-    <>
-      <button
-        type="button"
-        onClick={handleMicrophone}
-        className={`grid h-28 w-28 place-items-center rounded-full text-white shadow-xl transition ${
-          realtime.recording
-            ? "bg-red-500 hover:bg-red-600"
-            : "brand-gradient hover:opacity-90"
-        }`}
-      >
-        {realtime.recording ? (
-          <MicOff className="h-10 w-10" />
-        ) : (
-          <Mic className="h-10 w-10" />
-        )}
-      </button>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Microphone permission:{" "}
 
-      <p className="mt-5 text-lg font-black">
-        {realtime.recording
-          ? "Listening..."
-          : realtime.speaking
-          ? "AI Twin is speaking..."
-          : "Tap microphone to speak"}
-      </p>
+              {realtime.permission}
+            </p>
 
-      <p className="mt-2 text-sm text-muted-foreground">
-        Microphone permission: {realtime.permission}
-      </p>
+            {realtime.speaking && (
+              <button
+                type="button"
+                onClick={
+                  realtime.interrupt
+                }
+                className="mt-4 flex items-center gap-2 rounded-[5px] border border-red-500 px-4 py-2 text-sm font-bold text-red-500"
+              >
+                <VolumeX className="h-4 w-4" />
 
-      <button
-        type="button"
-        onClick={realtime.disconnect}
-        className="mt-5 flex items-center gap-2 rounded-[5px] border border-red-500 px-5 py-2 text-sm font-bold text-red-500"
-      >
-        <PhoneOff className="h-4 w-4" />
-        End Session
-      </button>
-    </>
-  )}
-</div>
+                Interrupt AI
+              </button>
+            )}
+          </div>
 
-          {/* CONVERSATION */}
+          {/* CHAT */}
 
           <div className="mt-6 h-[380px] overflow-y-auto rounded-3xl border border-border bg-background p-5">
             {realtime.messages
@@ -610,18 +925,24 @@ if (
                   </p>
 
                   <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
-                    Ask questions about
-                    products, prices,
-                    policies, shipping or
-                    uploaded knowledge.
+                    Ask about products,
+                    prices, policies,
+                    shipping or uploaded
+                    knowledge.
                   </p>
                 </div>
               )}
 
             {realtime.messages.map(
-              (message) => (
+              (
+                message,
+                index
+              ) => (
                 <MessageBubble
-                  key={message.id}
+                  key={
+                    message.id ||
+                    `${message.createdAt}-${index}`
+                  }
                   role={
                     message.role
                   }
@@ -641,7 +962,6 @@ if (
                 live
               />
             )}
-            
 
             {realtime.assistantTranscript && (
               <MessageBubble
@@ -652,52 +972,61 @@ if (
                 live
               />
             )}
-            
 
-<div
-  ref={conversationEndRef}
-/>
+            <div
+              ref={
+                conversationEndRef
+              }
+            />
           </div>
 
           {/* TEXT INPUT */}
 
           <div className="mt-5 flex gap-3">
             <input
-  value={textQuestion}
-  disabled={
-    realtime.connectionStage !==
-    "ready"
-  }
-  onChange={(event) =>
-    setTextQuestion(
-      event.target.value
-    )
-  }
-  onKeyDown={(event) => {
-    if (
-      event.key === "Enter" &&
-      !event.shiftKey
-    ) {
-      event.preventDefault();
-      handleSendText();
-    }
-  }}
-  placeholder="Type a question to test the AI Twin..."
-  className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium outline-none"
-/>
+              value={
+                textQuestion
+              }
+              disabled={
+                !sessionReady
+              }
+              onChange={(
+                event
+              ) =>
+                setTextQuestion(
+                  event.target.value
+                )
+              }
+              onKeyDown={(
+                event
+              ) => {
+                if (
+                  event.key ===
+                    "Enter" &&
+                  !event.shiftKey
+                ) {
+                  event.preventDefault();
+
+                  handleSendText();
+                }
+              }}
+              placeholder="Type a question to test the AI Twin..."
+              className="w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium outline-none focus:border-[var(--brand-pink)] disabled:cursor-not-allowed disabled:opacity-60"
+            />
 
             <button
-  type="button"
-  disabled={
-    realtime.connectionStage !==
-      "ready" ||
-    !textQuestion.trim()
-  }
-  onClick={handleSendText}
-  className="brand-gradient grid h-12 w-12 shrink-0 place-items-center rounded-[5px] text-white disabled:cursor-not-allowed disabled:opacity-50"
->
-  <Send className="h-4 w-4" />
-</button>
+              type="button"
+              disabled={
+                !sessionReady ||
+                !textQuestion.trim()
+              }
+              onClick={
+                handleSendText
+              }
+              className="brand-gradient grid h-12 w-12 shrink-0 place-items-center rounded-[5px] text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+            </button>
           </div>
         </section>
       </section>
@@ -711,10 +1040,51 @@ if (
 
 function ConnectionStatus({
   connected,
+  connectionStage,
   recording,
   speaking,
 }) {
-  if (!connected) {
+  if (
+    connectionStage ===
+      "creating-session" ||
+    connectionStage ===
+      "connecting-socket" ||
+    connectionStage ===
+      "initializing-gemini"
+  ) {
+    let label =
+      "Connecting";
+
+    if (
+      connectionStage ===
+      "creating-session"
+    ) {
+      label =
+        "Creating session";
+    }
+
+    if (
+      connectionStage ===
+      "initializing-gemini"
+    ) {
+      label =
+        "Starting Gemini";
+    }
+
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-4 py-2 text-xs font-black text-amber-700 dark:bg-amber-900/20 dark:text-amber-300">
+        <LoaderCircle className="h-4 w-4 animate-spin" />
+
+        {label}
+      </span>
+    );
+  }
+
+  if (
+    !connected ||
+    connectionStage !==
+      "ready"
+  ) {
     return (
       <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2 text-xs font-black text-gray-600 dark:bg-white/10 dark:text-gray-300">
         <AlertCircle className="h-4 w-4" />
@@ -749,6 +1119,43 @@ function ConnectionStatus({
       <CheckCircle2 className="h-4 w-4" />
 
       Connected
+    </span>
+  );
+}
+
+/* =========================================================
+   AVATAR STATUS
+========================================================= */
+
+function AvatarStatus({
+  loading,
+  connected,
+}) {
+  if (loading) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-[11px] font-black text-amber-700">
+        <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+
+        Starting
+      </span>
+    );
+  }
+
+  if (connected) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1.5 text-[11px] font-black text-green-700">
+        <Video className="h-3.5 w-3.5" />
+
+        Avatar Live
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-[11px] font-black text-gray-600">
+      <Video className="h-3.5 w-3.5" />
+
+      Static
     </span>
   );
 }
