@@ -74,16 +74,51 @@ const getTwinVoice = (
 ========================================================= */
 
 export default function TestTwin() {
-  const dispatch =
-    useDispatch();
+ const dispatch =
+  useDispatch();
 
-  const [
-    searchParams,
-  ] = useSearchParams();
-  const conversationEndRef =
+const [
+  searchParams,
+] = useSearchParams();
+
+const {
+  twins = [],
+  loading: twinsLoading,
+} = useSelector(
+  (state) => state.twin
+);
+
+const realtime =
+  useRealtimeTwin();
+
+const conversationEndRef =
   useRef(null);
 
-  useEffect(() => {
+const [
+  selectedTwinId,
+  setSelectedTwinId,
+] = useState(
+  searchParams.get(
+    "twinId"
+  ) || ""
+);
+
+const [
+  selectedProductId,
+  setSelectedProductId,
+] = useState("");
+
+const [
+  language,
+  setLanguage,
+] = useState("English");
+
+const [
+  textQuestion,
+  setTextQuestion,
+] = useState("");
+
+useEffect(() => {
   conversationEndRef.current?.scrollIntoView({
     behavior: "smooth",
     block: "end",
@@ -94,152 +129,128 @@ export default function TestTwin() {
   realtime.assistantTranscript,
 ]);
 
-  const {
-    twins = [],
-    loading: twinsLoading,
-  } = useSelector(
-    (state) => state.twin
-  );
+useEffect(() => {
+  dispatch(fetchTwins());
+}, [dispatch]);
 
-  const realtime =
-    useRealtimeTwin();
+useEffect(() => {
+  if (
+    !selectedTwinId &&
+    twins.length > 0
+  ) {
+    setSelectedTwinId(
+      twins[0]._id
+    );
+  }
+}, [
+  selectedTwinId,
+  twins,
+]);
 
-  const [
-    selectedTwinId,
-    setSelectedTwinId,
-  ] = useState(
-    searchParams.get(
-      "twinId"
-    ) || ""
-  );
-
-  const [
-    selectedProductId,
-    setSelectedProductId,
-  ] = useState("");
-
-  const [
-    language,
-    setLanguage,
-  ] = useState("English");
-
-  const [
-    textQuestion,
-    setTextQuestion,
-  ] = useState("");
-
-  useEffect(() => {
-    dispatch(fetchTwins());
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (
-      !selectedTwinId &&
-      twins.length > 0
-    ) {
-      setSelectedTwinId(
-        twins[0]._id
-      );
-    }
+const selectedTwin =
+  useMemo(() => {
+    return (
+      twins.find(
+        (twin) =>
+          twin._id ===
+          selectedTwinId
+      ) || null
+    );
   }, [
     selectedTwinId,
     twins,
   ]);
 
-  const selectedTwin =
-    useMemo(() => {
-      return (
-        twins.find(
-          (twin) =>
-            twin._id ===
-            selectedTwinId
-        ) || null
-      );
-    }, [
-      selectedTwinId,
-      twins,
-    ]);
+const twinImage =
+  getTwinImage(
+    selectedTwin
+  );
 
-  const twinImage =
-    getTwinImage(
-      selectedTwin
-    );
+const twinVoice =
+  getTwinVoice(
+    selectedTwin
+  );
 
-  const twinVoice =
-    getTwinVoice(
-      selectedTwin
-    );
+/* =======================================================
+   CONNECT
+======================================================= */
 
-  /* =======================================================
-     CONNECT
-  ======================================================= */
-
- const handleConnect = async () => {
-  try {
-    if (!selectedTwinId) {
-      throw new Error(
-        "Select an AI Twin first."
-      );
-    }
-
-    console.log(
-      "Starting realtime session:",
-      {
-        twinId: selectedTwinId,
-        productId:
-          selectedProductId || null,
-        language,
-      }
-    );
-
-    const result =
-      await realtime.connect({
-        twinId: selectedTwinId,
-        productId:
-          selectedProductId || null,
-        mode: "test",
-        language,
-      });
-
-    console.log(
-      "Realtime session connected:",
-      result
-    );
-  } catch (error) {
-    console.error(
-      "REALTIME CONNECT ERROR:",
-      error
-    );
-  }
-};
-
-  /* =======================================================
-     MICROPHONE
-  ======================================================= */
-
-  const handleMicrophone =
-    async () => {
-      try {
-        if (
-          realtime.recording
-        ) {
-          await realtime.stopMicrophone();
-        } else {
-          await realtime.startMicrophone();
-        }
-      } catch (error) {
-        console.error(
-          "MICROPHONE ERROR:",
-          error
+const handleConnect =
+  async () => {
+    try {
+      if (!selectedTwinId) {
+        throw new Error(
+          "Select an AI Twin first."
         );
       }
-    };
 
-  /* =======================================================
-     TEXT MESSAGE
-  ======================================================= */
+      console.log(
+        "Starting realtime session:",
+        {
+          twinId:
+            selectedTwinId,
 
-  const handleSendText = () => {
+          productId:
+            selectedProductId ||
+            null,
+
+          language,
+        }
+      );
+
+      const result =
+        await realtime.connect({
+          twinId:
+            selectedTwinId,
+
+          productId:
+            selectedProductId ||
+            null,
+
+          mode: "test",
+
+          language,
+        });
+
+      console.log(
+        "Realtime session created:",
+        result
+      );
+    } catch (error) {
+      console.error(
+        "REALTIME CONNECT ERROR:",
+        error
+      );
+    }
+  };
+
+/* =======================================================
+   MICROPHONE
+======================================================= */
+
+const handleMicrophone =
+  async () => {
+    try {
+      if (
+        realtime.recording
+      ) {
+        await realtime.stopMicrophone();
+      } else {
+        await realtime.startMicrophone();
+      }
+    } catch (error) {
+      console.error(
+        "MICROPHONE ERROR:",
+        error
+      );
+    }
+  };
+
+/* =======================================================
+   TEXT MESSAGE
+======================================================= */
+
+const handleSendText = () => {
   const normalized =
     textQuestion.trim();
 
@@ -257,16 +268,16 @@ export default function TestTwin() {
   }
 };
 
-  if (
-    twinsLoading &&
-    twins.length === 0
-  ) {
-    return (
-      <div className="flex min-h-[450px] items-center justify-center">
-        <LoaderCircle className="h-10 w-10 animate-spin text-[var(--brand-pink)]" />
-      </div>
-    );
-  }
+if (
+  twinsLoading &&
+  twins.length === 0
+) {
+  return (
+    <div className="flex min-h-[450px] items-center justify-center">
+      <LoaderCircle className="h-10 w-10 animate-spin text-[var(--brand-pink)]" />
+    </div>
+  );
+}
 
   return (
     <div className="space-y-6 bg-background text-foreground">
