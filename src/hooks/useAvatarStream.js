@@ -885,52 +885,39 @@ export default function useAvatarStream() {
                 remoteStream
               );
 
-              event.track.onunmute =
-                () => {
-                  console.log(
-                    "D-ID TRACK UNMUTED:",
-                    event.track
-                      .kind
-                  );
+             event.track.onunmute =
+  () => {
+    console.log(
+      "D-ID TRACK UNMUTED:",
+      event.track.kind
+    );
 
-                  /*
-                   * Do not assign srcObject again.
-                   */
-                  if (
-                    event.track
-                      .kind ===
-                    "video"
-                  ) {
-                    window.setTimeout(
-                      () => {
-                        playVideo();
-                      },
-                      100
-                    );
-                  }
-                };
+    if (
+      event.track.kind !==
+      "video"
+    ) {
+      return;
+    }
 
-             event.track.onunmute = () => {
-  console.log(
-    "D-ID TRACK UNMUTED:",
-    event.track.kind
-  );
+    window.setTimeout(
+      () => {
+        waitForVideoFrames({
+          attempts: 80,
+          delay: 250,
+        }).catch(
+          (error) => {
+            console.error(
+              "D-ID VIDEO FRAME WAIT ERROR:",
+              error
+            );
+          }
+        );
+      },
+      300
+    );
+  };
 
-  if (
-    event.track.kind ===
-    "video"
-  ) {
-    waitForVideoFrames({
-      attempts: 40,
-      delay: 250,
-    }).catch((error) => {
-      console.error(
-        "D-ID VIDEO FRAME WAIT ERROR:",
-        error
-      );
-    });
-  }
-};
+     
 
               event.track.onended =
                 () => {
@@ -1214,69 +1201,84 @@ export default function useAvatarStream() {
   ======================================================= */
 
   const speak =
-    useCallback(
-      async (text) => {
-        const avatarSessionId =
-          avatarSessionIdRef.current;
+  useCallback(
+    async (
+      text,
+      language = "English"
+    ) => {
+      const avatarSessionId =
+        avatarSessionIdRef.current;
 
-        const normalizedText =
-          String(text || "")
-            .trim();
+      const normalizedText =
+        String(
+          text || ""
+        ).trim();
 
-        if (
-          !avatarSessionId ||
-          !normalizedText
-        ) {
-          return false;
+      if (
+        !avatarSessionId ||
+        !normalizedText
+      ) {
+        return false;
+      }
+
+      console.log(
+        "CALLING AVATAR SPEAK:",
+        {
+          avatarSessionId,
+          language,
+          text:
+            normalizedText,
         }
+      );
 
-        const response =
-          await fetch(
-            `${BASE_URL}/api/avatar/sessions/${avatarSessionId}/speak`,
-            {
-              method:
-                "POST",
+      const response =
+        await fetch(
+          `${BASE_URL}/api/avatar/sessions/${avatarSessionId}/speak`,
+          {
+            method: "POST",
+            credentials:
+              "include",
 
-              credentials:
-                "include",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
+            body:
+              JSON.stringify({
+                text:
+                  normalizedText,
+                language,
+              }),
+          }
+        );
 
-              body:
-                JSON.stringify({
-                  text:
-                    normalizedText,
-                }),
-            }
-          );
-
+      const data =
         await parseResponse(
           response
         );
 
-        console.log(
-          "D-ID SPEECH REQUEST ACCEPTED"
-        );
+      console.log(
+        "D-ID SPEECH REQUEST ACCEPTED:",
+        data
+      );
 
-        /*
-         * Speaking usually unmutes the video
-         * track. Retry play without reloading
-         * the video element.
-         */
-        window.setTimeout(
-          () => {
-            playVideo();
-          },
-          200
+      waitForVideoFrames({
+        attempts: 80,
+        delay: 250,
+      }).catch((error) => {
+        console.error(
+          "D-ID FRAME WAIT ERROR:",
+          error
         );
+      });
 
-        return true;
-      },
-      [playVideo]
-    );
+      return true;
+    },
+    [
+      waitForVideoFrames,
+    ]
+  );
 
   /* =======================================================
      COMPONENT CLEANUP

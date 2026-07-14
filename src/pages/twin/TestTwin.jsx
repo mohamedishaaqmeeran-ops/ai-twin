@@ -223,20 +223,21 @@ export default function TestTwin() {
       messageIdentity;
 
     avatar
-      .speak(
-        lastMessage.text
-      )
-      .catch((error) => {
-        console.error(
-          "AVATAR SPEAK ERROR:",
-          error
-        );
+  .speak(
+    lastMessage.text,
+    language
+  )
+  .catch((error) => {
+    console.error(
+      "AVATAR SPEAK ERROR:",
+      error
+    );
 
-        setPageError(
-          error?.message ||
-            "Unable to make the avatar speak."
-        );
-      });
+    setPageError(
+      error?.message ||
+        "Unable to make the avatar speak."
+    );
+  });
   }, [
     avatar.avatarConnected,
     avatar.speak,
