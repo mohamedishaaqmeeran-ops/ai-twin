@@ -314,28 +314,49 @@ export default function useRealtimeTwin() {
   ======================================================= */
 
   const handleAudioChunk =
-    useCallback(
-      ({
-        base64,
-        mimeType,
-      }) => {
-        sendSocketEventRef.current(
-          {
-            event:
-              "audio:input",
+  useCallback(
+    ({
+      base64,
+      mimeType,
+    }) => {
+      if (!base64) {
+        return;
+      }
 
-            type:
-              "audio:input",
+      console.log(
+        "MIC AUDIO CHUNK:",
+        {
+          length:
+            base64.length,
 
-            audio:
-              base64,
+          mimeType,
+        }
+      );
 
-            mimeType,
-          }
+      const sent =
+        sendSocketEventRef.current({
+          event:
+            "audio:input",
+
+          type:
+            "audio:input",
+
+          audio:
+            base64,
+
+          mimeType:
+            mimeType ||
+            "audio/pcm;rate=16000",
+        });
+
+      if (!sent) {
+        console.warn(
+          "MIC AUDIO CHUNK NOT SENT: WebSocket is unavailable."
         );
-      },
-      []
-    );
+      }
+    },
+    []
+  );
 
   const handleMicrophoneError =
     useCallback(

@@ -5,89 +5,419 @@ import {
   useState,
 } from "react";
 
-const base64ToArrayBuffer = (base64) => {
-  const binary = window.atob(base64);
+/* =========================================================
+   CONFIG
+========================================================= */
 
-  const bytes = new Uint8Array(
-    binary.length
-  );
+const TARGET_SAMPLE_RATE =
+  16000;
 
-  for (
-    let index = 0;
-    index < binary.length;
-    index += 1
-  ) {
-    bytes[index] =
-      binary.charCodeAt(index);
-  }
+const PROCESSOR_BUFFER_SIZE =
+  4096;
 
-  return bytes.buffer;
-};
+/* =========================================================
+   HELPERS
+========================================================= */
 
-const pcm16ToFloat32 = (
-  arrayBuffer
+const float32ToPcm16 = (
+  floatSamples
 ) => {
   const pcm =
-    new Int16Array(arrayBuffer);
-
-  const output =
-    new Float32Array(pcm.length);
+    new Int16Array(
+      floatSamples.length
+    );
 
   for (
     let index = 0;
-    index < pcm.length;
+    index <
+    floatSamples.length;
     index += 1
   ) {
-    output[index] =
-      pcm[index] / 32768;
+    const sample =
+      Math.max(
+        -1,
+        Math.min(
+          1,
+          floatSamples[index]
+        )
+      );
+
+    pcm[index] =
+      sample < 0
+        ? sample * 32768
+        : sample * 32767;
+  }
+
+  return pcm;
+};
+
+const arrayBufferToBase64 = (
+  arrayBuffer
+) => {
+  const bytes =
+    new Uint8Array(
+      arrayBuffer
+    );
+
+  const chunkSize =
+    0x8000;
+
+  let binary = "";
+
+  for (
+    let offset = 0;
+    offset < bytes.length;
+    offset += chunkSize
+  ) {
+    const chunk =
+      bytes.subarray(
+        offset,
+        offset + chunkSize
+      );
+
+    binary +=
+      String.fromCharCode(
+        ...chunk
+      );
+  }
+
+  return window.btoa(
+    binary
+  );
+};
+
+const downsampleBuffer = (
+  input,
+  inputSampleRate,
+  outputSampleRate
+) => {
+  if (
+    outputSampleRate ===
+    inputSampleRate
+  ) {
+    return input;
+  }
+
+  if (
+    outputSampleRate >
+    inputSampleRate
+  ) {
+    throw new Error(
+      "Output sample rate cannot exceed input sample rate."
+    );
+  }
+
+  const sampleRateRatio =
+    inputSampleRate /
+    outputSampleRate;
+
+  const outputLength =
+    Math.round(
+      input.length /
+      sampleRateRatio
+    );
+
+  const output =
+    new Float32Array(
+      outputLength
+    );
+
+  let outputIndex = 0;
+  let inputOffset = 0;
+
+  while (
+    outputIndex <
+    output.length
+  ) {
+    const nextInputOffset =
+      Math.round(
+        (
+          outputIndex +
+          1
+        ) *
+          sampleRateRatio
+      );
+
+    let accumulatedValue =
+      0;
+
+    let accumulatedCount =
+      0;
+
+    for (
+      let index =
+        inputOffset;
+      index <
+      nextInputOffset &&
+      index <
+      input.length;
+      index += 1
+    ) {
+      accumulatedValue +=
+        input[index];
+
+      accumulatedCount += 1;
+    }
+
+    output[
+      outputIndex
+    ] =
+      accumulatedCount > 0
+        ? accumulatedValue /
+          accumulatedCount
+        : 0;
+
+    outputIndex += 1;
+
+    inputOffset =
+      nextInputOffset;
   }
 
   return output;
 };
 
-export default function usePcmPlayer({
-  defaultSampleRate = 24000,
-  onSpeakingChange,
+/* =========================================================
+   HOOK
+========================================================= */
+
+export default function useMicrophonePcm({
+  onAudioChunk,
+  onError,
 } = {}) {
-  const [speaking, setSpeaking] =
-    useState(false);
+  const [
+    recording,
+    setRecording,
+  ] = useState(false);
+
+  const [
+    permission,
+    setPermission,
+  ] = useState("prompt");
+
+  const mediaStreamRef =
+    useRef(null);
 
   const audioContextRef =
     useRef(null);
 
-  const nextStartTimeRef =
-    useRef(0);
+  const sourceNodeRef =
+    useRef(null);
 
-  const activeSourcesRef =
-    useRef(new Set());
+  const processorNodeRef =
+    useRef(null);
 
-  /*
-   * Store changing callback in a ref.
-   * This prevents play/cleanup functions
-   * from changing on every React render.
-   */
-  const onSpeakingChangeRef =
-    useRef(onSpeakingChange);
+  const silentGainNodeRef =
+    useRef(null);
+
+  const recordingRef =
+    useRef(false);
+
+  const onAudioChunkRef =
+    useRef(onAudioChunk);
+
+  const onErrorRef =
+    useRef(onError);
+
+  /* =======================================================
+     KEEP CALLBACKS CURRENT
+  ======================================================= */
 
   useEffect(() => {
-    onSpeakingChangeRef.current =
-      onSpeakingChange;
-  }, [onSpeakingChange]);
+    onAudioChunkRef.current =
+      onAudioChunk;
+  }, [onAudioChunk]);
 
-  const updateSpeaking =
-    useCallback((value) => {
-      setSpeaking(value);
+  useEffect(() => {
+    onErrorRef.current =
+      onError;
+  }, [onError]);
 
-      onSpeakingChangeRef.current?.(
-        value
-      );
+  /* =======================================================
+     CHECK PERMISSION
+  ======================================================= */
+
+  useEffect(() => {
+    let permissionStatus =
+      null;
+
+    const checkPermission =
+      async () => {
+        try {
+          if (
+            !navigator
+              .permissions
+              ?.query
+          ) {
+            return;
+          }
+
+          permissionStatus =
+            await navigator
+              .permissions
+              .query({
+                name:
+                  "microphone",
+              });
+
+          setPermission(
+            permissionStatus.state
+          );
+
+          permissionStatus.onchange =
+            () => {
+              setPermission(
+                permissionStatus
+                  .state
+              );
+            };
+        } catch {
+          /*
+           * Some browsers do not
+           * support microphone query.
+           */
+        }
+      };
+
+    checkPermission();
+
+    return () => {
+      if (
+        permissionStatus
+      ) {
+        permissionStatus.onchange =
+          null;
+      }
+    };
+  }, []);
+
+  /* =======================================================
+     CLEANUP AUDIO NODES
+  ======================================================= */
+
+  const cleanup =
+    useCallback(async () => {
+      recordingRef.current =
+        false;
+
+      setRecording(false);
+
+      if (
+        processorNodeRef.current
+      ) {
+        processorNodeRef.current
+          .disconnect();
+
+        processorNodeRef.current
+          .onaudioprocess =
+          null;
+
+        processorNodeRef.current =
+          null;
+      }
+
+      if (
+        sourceNodeRef.current
+      ) {
+        sourceNodeRef.current
+          .disconnect();
+
+        sourceNodeRef.current =
+          null;
+      }
+
+      if (
+        silentGainNodeRef.current
+      ) {
+        silentGainNodeRef.current
+          .disconnect();
+
+        silentGainNodeRef.current =
+          null;
+      }
+
+      if (
+        mediaStreamRef.current
+      ) {
+        mediaStreamRef.current
+          .getTracks()
+          .forEach(
+            (track) => {
+              track.stop();
+            }
+          );
+
+        mediaStreamRef.current =
+          null;
+      }
+
+      if (
+        audioContextRef.current &&
+        audioContextRef.current
+          .state !==
+          "closed"
+      ) {
+        try {
+          await audioContextRef.current
+            .close();
+        } catch {
+          // Ignore cleanup error.
+        }
+      }
+
+      audioContextRef.current =
+        null;
     }, []);
 
-  const getAudioContext =
+  /* =======================================================
+     START MICROPHONE
+  ======================================================= */
+
+  const start =
     useCallback(async () => {
       if (
-        !audioContextRef.current
+        recordingRef.current
       ) {
+        return;
+      }
+
+      try {
+        if (
+          !navigator
+            .mediaDevices
+            ?.getUserMedia
+        ) {
+          throw new Error(
+            "Microphone access is not supported in this browser."
+          );
+        }
+
+        const stream =
+          await navigator
+            .mediaDevices
+            .getUserMedia({
+              audio: {
+                channelCount: 1,
+
+                echoCancellation:
+                  true,
+
+                noiseSuppression:
+                  true,
+
+                autoGainControl:
+                  true,
+              },
+
+              video: false,
+            });
+
+        setPermission(
+          "granted"
+        );
+
+        mediaStreamRef.current =
+          stream;
+
         const AudioContextClass =
           window.AudioContext ||
           window.webkitAudioContext;
@@ -98,166 +428,213 @@ export default function usePcmPlayer({
           );
         }
 
-        audioContextRef.current =
-          new AudioContextClass();
-      }
-
-      if (
-        audioContextRef.current
-          .state === "suspended"
-      ) {
-        await audioContextRef.current.resume();
-      }
-
-      return audioContextRef.current;
-    }, []);
-
-  const playChunk =
-    useCallback(
-      async (
-        base64Audio,
-        sampleRate =
-          defaultSampleRate
-      ) => {
-        if (!base64Audio) {
-          return;
-        }
-
         const audioContext =
-          await getAudioContext();
+          new AudioContextClass();
 
-        const pcmBuffer =
-          base64ToArrayBuffer(
-            base64Audio
-          );
+        audioContextRef.current =
+          audioContext;
 
-        const floatSamples =
-          pcm16ToFloat32(
-            pcmBuffer
-          );
-
-        if (!floatSamples.length) {
-          return;
+        if (
+          audioContext.state ===
+          "suspended"
+        ) {
+          await audioContext.resume();
         }
 
-        const actualSampleRate =
-          Number(sampleRate) ||
-          defaultSampleRate;
+        const sourceNode =
+          audioContext
+            .createMediaStreamSource(
+              stream
+            );
 
-        const audioBuffer =
-          audioContext.createBuffer(
-            1,
-            floatSamples.length,
-            actualSampleRate
+        sourceNodeRef.current =
+          sourceNode;
+
+        /*
+         * ScriptProcessorNode is deprecated,
+         * but it remains widely supported
+         * and is simple for PCM streaming.
+         */
+        const processorNode =
+          audioContext
+            .createScriptProcessor(
+              PROCESSOR_BUFFER_SIZE,
+              1,
+              1
+            );
+
+        processorNodeRef.current =
+          processorNode;
+
+        /*
+         * Silent gain keeps the processor
+         * alive without playing microphone
+         * audio through speakers.
+         */
+        const silentGainNode =
+          audioContext
+            .createGain();
+
+        silentGainNode.gain.value =
+          0;
+
+        silentGainNodeRef.current =
+          silentGainNode;
+
+        processorNode
+          .connect(
+            silentGainNode
           );
 
-        audioBuffer.copyToChannel(
-          floatSamples,
-          0
-        );
-
-        const source =
-          audioContext.createBufferSource();
-
-        source.buffer =
-          audioBuffer;
-
-        source.connect(
-          audioContext.destination
-        );
-
-        const startTime =
-          Math.max(
-            audioContext.currentTime +
-              0.02,
-
-            nextStartTimeRef.current
+        silentGainNode
+          .connect(
+            audioContext.destination
           );
 
-        source.start(startTime);
+        processorNode
+          .onaudioprocess =
+          (event) => {
+            if (
+              !recordingRef.current
+            ) {
+              return;
+            }
 
-        nextStartTimeRef.current =
-          startTime +
-          audioBuffer.duration;
+            try {
+              const inputSamples =
+                event
+                  .inputBuffer
+                  .getChannelData(
+                    0
+                  );
 
-        activeSourcesRef.current.add(
-          source
+              const downsampled =
+                downsampleBuffer(
+                  inputSamples,
+                  audioContext
+                    .sampleRate,
+                  TARGET_SAMPLE_RATE
+                );
+
+              const pcm16 =
+                float32ToPcm16(
+                  downsampled
+                );
+
+              if (
+                pcm16.length ===
+                0
+              ) {
+                return;
+              }
+
+              const base64 =
+                arrayBufferToBase64(
+                  pcm16.buffer
+                );
+
+              onAudioChunkRef.current?.(
+                {
+                  base64,
+
+                  mimeType:
+                    `audio/pcm;rate=${TARGET_SAMPLE_RATE}`,
+
+                  sampleRate:
+                    TARGET_SAMPLE_RATE,
+                }
+              );
+            } catch (error) {
+              console.error(
+                "MICROPHONE PCM PROCESSING ERROR:",
+                error
+              );
+
+              onErrorRef.current?.(
+                error
+              );
+            }
+          };
+
+        sourceNode.connect(
+          processorNode
         );
 
-        updateSpeaking(true);
+        recordingRef.current =
+          true;
 
-        source.onended = () => {
-          activeSourcesRef.current.delete(
-            source
+        setRecording(true);
+
+        console.log(
+          "MICROPHONE PCM STARTED:",
+          {
+            inputSampleRate:
+              audioContext
+                .sampleRate,
+
+            outputSampleRate:
+              TARGET_SAMPLE_RATE,
+          }
+        );
+      } catch (error) {
+        console.error(
+          "MICROPHONE START ERROR:",
+          error
+        );
+
+        if (
+          error?.name ===
+          "NotAllowedError"
+        ) {
+          setPermission(
+            "denied"
           );
-
-          if (
-            activeSourcesRef.current
-              .size === 0
-          ) {
-            nextStartTimeRef.current =
-              audioContext.currentTime;
-
-            updateSpeaking(false);
-          }
-        };
-      },
-      [
-        defaultSampleRate,
-        getAudioContext,
-        updateSpeaking,
-      ]
-    );
-
-  const stopPlayback =
-    useCallback(() => {
-      activeSourcesRef.current.forEach(
-        (source) => {
-          try {
-            source.stop();
-          } catch {
-            // Already stopped.
-          }
-
-          try {
-            source.disconnect();
-          } catch {
-            // Ignore.
-          }
         }
+
+        await cleanup();
+
+        onErrorRef.current?.(
+          error
+        );
+
+        throw error;
+      }
+    }, [cleanup]);
+
+  /* =======================================================
+     STOP MICROPHONE
+  ======================================================= */
+
+  const stop =
+    useCallback(async () => {
+      if (
+        !recordingRef.current &&
+        !mediaStreamRef.current
+      ) {
+        return;
+      }
+
+      console.log(
+        "MICROPHONE PCM STOPPED"
       );
 
-      activeSourcesRef.current.clear();
+      await cleanup();
+    }, [cleanup]);
 
-      nextStartTimeRef.current =
-        audioContextRef.current
-          ?.currentTime || 0;
+  /* =======================================================
+     UNMOUNT CLEANUP
+  ======================================================= */
 
-      updateSpeaking(false);
-    }, [updateSpeaking]);
-
-  const closePlayer =
-    useCallback(async () => {
-      stopPlayback();
-
-      if (
-        audioContextRef.current &&
-        audioContextRef.current
-          .state !== "closed"
-      ) {
-        await audioContextRef.current.close();
-      }
-
-      audioContextRef.current =
-        null;
-
-      nextStartTimeRef.current = 0;
-    }, [stopPlayback]);
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   return {
-    speaking,
-    playChunk,
-    stopPlayback,
-    closePlayer,
+    recording,
+    permission,
+    start,
+    stop,
   };
 }
