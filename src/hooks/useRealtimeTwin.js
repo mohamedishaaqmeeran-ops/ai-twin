@@ -1250,8 +1250,9 @@ export default function useRealtimeTwin() {
   ======================================================= */
 
   const startMicrophone =
-    useCallback(
-      async () => {
+  useCallback(
+    async () => {
+      try {
         if (
           realtime.connectionStage !==
             "ready" ||
@@ -1262,23 +1263,62 @@ export default function useRealtimeTwin() {
           );
         }
 
-        stopPlayback();
+        console.log(
+          "MICROPHONE FUNCTION CHECK:",
+          {
+            startMicrophoneCapture:
+              typeof startMicrophoneCapture,
 
-        sendSocketEvent({
-          event:
-            "conversation:interrupt",
+            stopPlayback:
+              typeof stopPlayback,
 
-          type:
-            "conversation:interrupt",
-        });
+            sendSocketEvent:
+              typeof sendSocketEvent,
+          }
+        );
 
-        sendSocketEvent({
-          event:
-            "audio:start",
+        if (
+          typeof startMicrophoneCapture !==
+          "function"
+        ) {
+          throw new Error(
+            "Microphone start function is unavailable."
+          );
+        }
 
-          type:
-            "audio:start",
-        });
+        if (
+          typeof stopPlayback ===
+          "function"
+        ) {
+          stopPlayback();
+        }
+
+        const interruptSent =
+          sendSocketEvent({
+            event:
+              "conversation:interrupt",
+
+            type:
+              "conversation:interrupt",
+          });
+
+        const audioStartSent =
+          sendSocketEvent({
+            event:
+              "audio:start",
+
+            type:
+              "audio:start",
+          });
+
+        if (
+          !interruptSent ||
+          !audioStartSent
+        ) {
+          throw new Error(
+            "WebSocket is not ready for microphone audio."
+          );
+        }
 
         await startMicrophoneCapture();
 
@@ -1287,16 +1327,37 @@ export default function useRealtimeTwin() {
             true
           )
         );
-      },
-      [
-        dispatch,
-        realtime.connected,
-        realtime.connectionStage,
-        sendSocketEvent,
-        startMicrophoneCapture,
-        stopPlayback,
-      ]
-    );
+      } catch (error) {
+        console.error(
+          "START MICROPHONE ERROR:",
+          error
+        );
+
+        dispatch(
+          setMicrophoneActive(
+            false
+          )
+        );
+
+        dispatch(
+          setRealtimeError(
+            error?.message ||
+              "Unable to start microphone."
+          )
+        );
+
+        throw error;
+      }
+    },
+    [
+      dispatch,
+      realtime.connected,
+      realtime.connectionStage,
+      sendSocketEvent,
+      startMicrophoneCapture,
+      stopPlayback,
+    ]
+  );
 
   /* =======================================================
      STOP MICROPHONE
