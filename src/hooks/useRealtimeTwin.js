@@ -1303,9 +1303,15 @@ export default function useRealtimeTwin() {
   ======================================================= */
 
   const stopMicrophone =
-    useCallback(
-      async () => {
-        await stopMicrophoneCapture();
+  useCallback(
+    async () => {
+      try {
+        if (
+          typeof stopMicrophoneCapture ===
+          "function"
+        ) {
+          await stopMicrophoneCapture();
+        }
 
         sendSocketEvent({
           event:
@@ -1320,13 +1326,32 @@ export default function useRealtimeTwin() {
             false
           )
         );
-      },
-      [
-        dispatch,
-        sendSocketEvent,
-        stopMicrophoneCapture,
-      ]
-    );
+      } catch (error) {
+        console.error(
+          "STOP MICROPHONE ERROR:",
+          error
+        );
+
+        dispatch(
+          setMicrophoneActive(
+            false
+          )
+        );
+
+        dispatch(
+          setRealtimeError(
+            error?.message ||
+              "Unable to stop microphone."
+          )
+        );
+      }
+    },
+    [
+      dispatch,
+      sendSocketEvent,
+      stopMicrophoneCapture,
+    ]
+  );
 
   /* =======================================================
      SEND TEXT
