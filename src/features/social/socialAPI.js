@@ -1,34 +1,56 @@
-const API = "https://twinn-backend.onrender.com/api/social";
+const API =
+  "https://twinn-backend.onrender.com/api/social";
 
-export const getConnectionsAPI = async () => {
-  const res = await fetch(`${API}/connections`, {
-    credentials: "include",
-  });
+export const getConnectionsAPI =
+  async () => {
+    const res = await fetch(
+      `${API}/connections`,
+      {
+        credentials: "include",
+      }
+    );
 
-  const data = await res.json();
+    const data = await res
+      .json()
+      .catch(() => ({}));
 
-  if (!res.ok) {
-    throw new Error(data.message || "Failed to fetch connections");
-  }
+    if (!res.ok) {
+      throw new Error(
+        data.message ||
+          "Failed to fetch connections"
+      );
+    }
 
-  return data.data || [];
-};
+    return data.data || [];
+  };
 
-export const disconnectAPI = async (platform) => {
-  const res = await fetch(`${API}/connections/${platform}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
+export const disconnectAPI =
+  async (platform) => {
+    const res = await fetch(
+      `${API}/connections/${platform}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+      }
+    );
 
-  const data = await res.json();
+    const data = await res
+      .json()
+      .catch(() => ({}));
 
-  if (!res.ok) {
-    throw new Error(data.message || "Failed to disconnect");
-  }
+    if (!res.ok) {
+      throw new Error(
+        data.message ||
+          "Failed to disconnect"
+      );
+    }
 
-  return data;
-};
+    return data;
+  };
 
-export const connectAPI = (platform) => {
-  window.location.href = `${API}/connect/${platform}`;
+export const connectAPI = (
+  platform
+) => {
+  window.location.href =
+    `${API}/connect/${platform}`;
 };
