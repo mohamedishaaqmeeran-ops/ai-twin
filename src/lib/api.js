@@ -52,3 +52,11 @@ export const apiRequest = async (
 
   return data;
 };
+
+export function toWebSocketUrl(url) {
+  if (!url) return "";
+
+  return url
+    .replace(/^https:/i, "wss:")
+    .replace(/^http:/i, "ws:");
+}
