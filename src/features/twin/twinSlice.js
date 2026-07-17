@@ -1,6 +1,26 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { apiRequest } from "../../lib/api";
 
+
+
+export const createTwinBasicInfo = createAsyncThunk(
+  "twin/createBasicInfo",
+  async (payload, { rejectWithValue }) => {
+    try {
+      const data = await apiRequest(
+        "/api/twin/basic-info",
+        {
+          method: "POST",
+          body: JSON.stringify(payload),
+        }
+      );
+
+      return data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
 export const fetchTwins = createAsyncThunk(
   "twin/fetchTwins",
   async (_, { rejectWithValue }) => {
@@ -108,6 +128,30 @@ const twinSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+    .addCase(
+  createTwinBasicInfo.pending,
+  (state) => {
+    state.loading = true;
+    state.error = "";
+  }
+)
+
+.addCase(
+  createTwinBasicInfo.fulfilled,
+  (state) => {
+    state.loading = false;
+  }
+)
+
+.addCase(
+  createTwinBasicInfo.rejected,
+  (state, action) => {
+    state.loading = false;
+    state.error =
+      action.payload ||
+      "Unable to create AI Twin.";
+  }
+)
       .addCase(fetchTwins.pending, (state) => {
         state.loading = true;
         state.error = "";
