@@ -50,19 +50,48 @@ export const saveTwinAppearance = createAsyncThunk(
     try {
       const formData = new FormData();
 
-      if (avatarFile) formData.append("avatar", avatarFile);
-      if (avatarUrl) formData.append("avatarUrl", avatarUrl);
-      if (style) formData.append("style", style);
-      if (background) formData.append("background", background);
-      if (clothingStyle) formData.append("clothingStyle", clothingStyle);
-      if (gesture) formData.append("gesture", gesture);
+      if (twinId) {
+        formData.append("twinId", twinId);
+      }
 
-      return await apiRequest(`/api/twin/${twinId}/appearance`, {
-        method: "POST",
-        body: formData,
-      });
+      if (avatarFile) {
+        formData.append("avatar", avatarFile);
+      }
+
+      if (avatarUrl) {
+        formData.append("avatarUrl", avatarUrl);
+      }
+
+      if (style) {
+        formData.append("style", style);
+      }
+
+      if (background) {
+        formData.append("background", background);
+      }
+
+      if (clothingStyle) {
+        formData.append(
+          "clothingStyle",
+          clothingStyle
+        );
+      }
+
+      if (gesture) {
+        formData.append("gesture", gesture);
+      }
+
+      return await apiRequest(
+        "/api/twin/appearance",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message
+      );
     }
   }
 );
@@ -70,52 +99,147 @@ export const saveTwinAppearance = createAsyncThunk(
 export const saveTwinVoice = createAsyncThunk(
   "twin/saveVoice",
   async (
-    { twinId, voiceType, language, speed, pitch, sampleFile },
+    {
+      twinId,
+      voiceType,
+      language,
+      speed,
+      pitch,
+      sampleFile,
+    },
     { rejectWithValue }
   ) => {
     try {
       const formData = new FormData();
 
-      if (voiceType) formData.append("voiceType", voiceType);
-      if (language) formData.append("language", language);
-      if (speed !== undefined) formData.append("speed", String(speed));
-      if (pitch !== undefined) formData.append("pitch", String(pitch));
-      if (sampleFile) formData.append("sample", sampleFile);
+      if (twinId) {
+        formData.append("twinId", twinId);
+      }
 
-      return await apiRequest(`/api/twin/${twinId}/voice`, {
-        method: "POST",
-        body: formData,
-      });
+      if (voiceType) {
+        formData.append(
+          "voiceType",
+          voiceType
+        );
+      }
+
+      if (language) {
+        formData.append(
+          "language",
+          language
+        );
+      }
+
+      if (speed !== undefined) {
+        formData.append(
+          "speed",
+          String(speed)
+        );
+      }
+
+      if (pitch !== undefined) {
+        formData.append(
+          "pitch",
+          String(pitch)
+        );
+      }
+
+      if (sampleFile) {
+        formData.append(
+          "sample",
+          sampleFile
+        );
+      }
+
+      return await apiRequest(
+        "/api/twin/voice",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message
+      );
     }
   }
 );
 
-export const saveTwinKnowledge = createAsyncThunk(
-  "twin/saveKnowledge",
-  async (
-    { twinId, title, text, websiteUrl, documentFile, productId },
-    { rejectWithValue }
-  ) => {
-    try {
-      const formData = new FormData();
+export const saveTwinKnowledge =
+  createAsyncThunk(
+    "twin/saveKnowledge",
+    async (
+      {
+        twinId,
+        title,
+        text,
+        websiteUrl,
+        documentFile,
+        productId,
+      },
+      { rejectWithValue }
+    ) => {
+      try {
+        const formData =
+          new FormData();
 
-      if (title) formData.append("title", title);
-      if (text) formData.append("text", text);
-      if (websiteUrl) formData.append("websiteUrl", websiteUrl);
-      if (documentFile) formData.append("document", documentFile);
-      if (productId) formData.append("productId", productId);
+        if (twinId) {
+          formData.append(
+            "twinId",
+            twinId
+          );
+        }
 
-      return await apiRequest(`/api/twin/${twinId}/knowledge`, {
-        method: "POST",
-        body: formData,
-      });
-    } catch (error) {
-      return rejectWithValue(error.message);
+        if (title) {
+          formData.append(
+            "title",
+            title
+          );
+        }
+
+        if (text) {
+          formData.append(
+            "text",
+            text
+          );
+        }
+
+        if (websiteUrl) {
+          formData.append(
+            "websiteUrl",
+            websiteUrl
+          );
+        }
+
+        if (documentFile) {
+          formData.append(
+            "document",
+            documentFile
+          );
+        }
+
+        if (productId) {
+          formData.append(
+            "productId",
+            productId
+          );
+        }
+
+        return await apiRequest(
+          "/api/twin/knowledge",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+      } catch (error) {
+        return rejectWithValue(
+          error.message
+        );
+      }
     }
-  }
-);
+  );
 
 const twinSlice = createSlice({
   name: "twin",
