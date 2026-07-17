@@ -138,22 +138,28 @@ const getAccountDisplayName = (
   }
 
   if (
-    account.platform ===
-    "instagram"
-  ) {
-    if (account.username) {
-      return account.username.startsWith(
-        "@"
-      )
-        ? account.username
-        : `@${account.username}`;
-    }
+  account.platform ===
+  "instagram"
+) {
+  const username =
+    account.username ||
+    account.instagramUsername ||
+    account.platformUsername ||
+    account.metadata?.username ||
+    "";
 
-    return (
-      account.name ||
-      "Instagram Account"
-    );
+  if (username) {
+    return username.startsWith("@")
+      ? username
+      : `@${username}`;
   }
+
+  return (
+    account.name ||
+    account.pageName ||
+    "Instagram Account"
+  );
+}
 
   if (account.username) {
     return account.username.startsWith(
@@ -179,7 +185,11 @@ const getAccountAvatar = (
   return (
     account?.youtubeChannelThumbnail ||
     account?.avatarUrl ||
+    account?.profilePictureUrl ||
     account?.profilePicture ||
+    account?.instagramProfilePictureUrl ||
+    account?.metadata?.avatarUrl ||
+    account?.metadata?.profile_picture_url ||
     ""
   );
 };
@@ -1000,17 +1010,24 @@ function AccountModal({
             "instagram" && (
             <>
               <AccountRow
-                label="Instagram Username"
-                value={
-                  account.username
-                    ? account.username.startsWith(
-                        "@"
-                      )
-                      ? account.username
-                      : `@${account.username}`
-                    : "Not available"
-                }
-              />
+  label="Instagram Username"
+  value={(() => {
+    const username =
+      account.username ||
+      account.instagramUsername ||
+      account.platformUsername ||
+      account.metadata?.username ||
+      "";
+
+    if (!username) {
+      return "Not available";
+    }
+
+    return username.startsWith("@")
+      ? username
+      : `@${username}`;
+  })()}
+/>
 
               <AccountRow
                 label="Linked Facebook Page"

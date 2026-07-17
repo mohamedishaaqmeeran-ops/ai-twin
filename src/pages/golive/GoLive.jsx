@@ -1,5 +1,3 @@
-// src/pages/golive/GoLive.jsx
-
 import {
   useEffect,
   useMemo,
@@ -86,11 +84,9 @@ const platforms = [
   },
 ];
 
-const defaultProducts = [
-  "Vitamin C Glow Serum",
-  "Wireless Headphone",
-  "Smart Watch",
-];
+/* =========================================================
+   HELPERS
+========================================================= */
 
 const normalizePlatform = (
   platform = ""
@@ -98,6 +94,98 @@ const normalizePlatform = (
   return String(platform)
     .trim()
     .toLowerCase();
+};
+
+const getTwinDisplayName = (
+  twin
+) => {
+  return (
+    twin?.name ||
+    twin?.twinName ||
+    twin?.twin_name ||
+    twin?.basicInfo?.name ||
+    twin?.basicInfo?.twinName ||
+    "Unnamed AI Twin"
+  );
+};
+
+const getProductDisplayName = (
+  product
+) => {
+  return (
+    product?.name ||
+    product?.productName ||
+    product?.title ||
+    "Unnamed Product"
+  );
+};
+
+const extractTwinList = (
+  data
+) => {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (
+    Array.isArray(
+      data?.twins
+    )
+  ) {
+    return data.twins;
+  }
+
+  if (
+    Array.isArray(
+      data?.data
+    )
+  ) {
+    return data.data;
+  }
+
+  if (
+    Array.isArray(
+      data?.data?.twins
+    )
+  ) {
+    return data.data.twins;
+  }
+
+  return [];
+};
+
+const extractProductList = (
+  data
+) => {
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (
+    Array.isArray(
+      data?.products
+    )
+  ) {
+    return data.products;
+  }
+
+  if (
+    Array.isArray(
+      data?.data
+    )
+  ) {
+    return data.data;
+  }
+
+  if (
+    Array.isArray(
+      data?.data?.products
+    )
+  ) {
+    return data.data.products;
+  }
+
+  return [];
 };
 
 /* =========================================================
@@ -162,26 +250,24 @@ export default function GoLive() {
   ] = useState(null);
 
   const [
-    twinName,
-    setTwinName,
-  ] = useState(
-    "My AI Twin"
-  );
-
-  const [
-    product,
-    setProduct,
-  ] = useState(
-    productState ||
-      "Vitamin C Glow Serum"
-  );
+    twins,
+    setTwins,
+  ] = useState([]);
 
   const [
     products,
     setProducts,
-  ] = useState(
-    defaultProducts
-  );
+  ] = useState([]);
+
+  const [
+    selectedTwinId,
+    setSelectedTwinId,
+  ] = useState("");
+
+  const [
+    selectedProductId,
+    setSelectedProductId,
+  ] = useState("");
 
   const [
     selectedPlatforms,
@@ -216,6 +302,11 @@ export default function GoLive() {
   ] = useState("");
 
   const [
+    loadingTwins,
+    setLoadingTwins,
+  ] = useState(false);
+
+  const [
     loadingProducts,
     setLoadingProducts,
   ] = useState(false);
@@ -229,6 +320,48 @@ export default function GoLive() {
     autoAnswer: true,
     multiPlatformSync: false,
   });
+
+  /* =========================================================
+     SELECTED TWIN AND PRODUCT
+  ========================================================= */
+
+  const selectedTwin =
+    useMemo(() => {
+      return twins.find(
+        (item) =>
+          String(item?._id) ===
+          String(
+            selectedTwinId
+          )
+      );
+    }, [
+      twins,
+      selectedTwinId,
+    ]);
+
+  const selectedProduct =
+    useMemo(() => {
+      return products.find(
+        (item) =>
+          String(item?._id) ===
+          String(
+            selectedProductId
+          )
+      );
+    }, [
+      products,
+      selectedProductId,
+    ]);
+
+  const twinName =
+    getTwinDisplayName(
+      selectedTwin
+    );
+
+  const productName =
+    getProductDisplayName(
+      selectedProduct
+    );
 
   /* =========================================================
      CONNECTED PLATFORMS
@@ -271,11 +404,123 @@ export default function GoLive() {
   ========================================================= */
 
   const inputClass =
-    "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20";
+    "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20 disabled:cursor-not-allowed disabled:opacity-60";
 
   const upgradeToPro =
     () => {
       navigate("/pricing");
+    };
+
+  /* =========================================================
+     LOAD AI TWINS
+  ========================================================= */
+
+  const loadTwins =
+    async () => {
+      try {
+        setLoadingTwins(
+          true
+        );
+
+        const response =
+          await fetch(
+            `${API}/twin`,
+            {
+              method: "GET",
+              credentials:
+                "include",
+            }
+          );
+
+        const data =
+          await response
+            .json()
+            .catch(
+              () => ({})
+            );
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Unable to load AI Twins."
+          );
+        }
+
+        const twinList =
+          extractTwinList(
+            data
+          );
+
+        setTwins(
+          twinList
+        );
+
+        if (
+          !twinList.length
+        ) {
+          setSelectedTwinId(
+            ""
+          );
+
+          return;
+        }
+
+        const requestedTwinId =
+          scheduleState
+            ?.twinId ||
+          scheduleState
+            ?.twin?._id ||
+          location.state
+            ?.twinId ||
+          localStorage.getItem(
+            "selectedTwinId"
+          );
+
+        const matchingTwin =
+          twinList.find(
+            (item) =>
+              String(
+                item?._id
+              ) ===
+              String(
+                requestedTwinId
+              )
+          );
+
+        const activeTwin =
+          twinList.find(
+            (item) =>
+              item?.isTrained ===
+                true ||
+              item?.status ===
+                "active"
+          );
+
+        const initialTwin =
+          matchingTwin ||
+          activeTwin ||
+          twinList[0];
+
+        setSelectedTwinId(
+          String(
+            initialTwin._id
+          )
+        );
+      } catch (error) {
+        console.error(
+          "LOAD TWINS ERROR:",
+          error
+        );
+
+        setLiveStatus(
+          error.message ||
+            "Unable to load AI Twins."
+        );
+      } finally {
+        setLoadingTwins(
+          false
+        );
+      }
     };
 
   /* =========================================================
@@ -289,58 +534,130 @@ export default function GoLive() {
           true
         );
 
-        const res =
+        const response =
           await fetch(
             `${API}/products`,
             {
+              method: "GET",
               credentials:
                 "include",
             }
           );
 
         const data =
-          await res
+          await response
             .json()
             .catch(
               () => ({})
             );
 
-        if (!res.ok) {
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              "Unable to load products."
+          );
+        }
+
+        const productList =
+          extractProductList(
+            data
+          );
+
+        setProducts(
+          productList
+        );
+
+        if (
+          !productList.length
+        ) {
+          setSelectedProductId(
+            ""
+          );
+
           return;
         }
 
-        const list =
-          Array.isArray(data)
-            ? data
-            : data.products ||
-              data.data ||
-              [];
+        const productStateId =
+          typeof productState ===
+          "object"
+            ? productState?._id ||
+              productState?.id
+            : "";
 
-        if (
-          Array.isArray(
-            list
-          ) &&
-          list.length
-        ) {
-          const productNames =
-            list
-              .map(
-                (item) =>
-                  item.name
+        const productStateName =
+          typeof productState ===
+          "string"
+            ? productState
+            : getProductDisplayName(
+                productState
+              );
+
+        const requestedProductId =
+          productStateId ||
+          scheduleState
+            ?.productId ||
+          scheduleState
+            ?.product?._id ||
+          localStorage.getItem(
+            "selectedProductId"
+          );
+
+        const requestedProductName =
+          productStateName ||
+          scheduleState
+            ?.productName ||
+          (typeof scheduleState
+            ?.product ===
+          "string"
+            ? scheduleState.product
+            : "");
+
+        const matchingById =
+          productList.find(
+            (item) =>
+              String(
+                item?._id
+              ) ===
+              String(
+                requestedProductId
               )
-              .filter(Boolean);
+          );
 
-          setProducts([
-            ...new Set([
-              ...defaultProducts,
-              ...productNames,
-            ]),
-          ]);
-        }
+        const matchingByName =
+          productList.find(
+            (item) =>
+              getProductDisplayName(
+                item
+              )
+                .trim()
+                .toLowerCase() ===
+              String(
+                requestedProductName ||
+                  ""
+              )
+                .trim()
+                .toLowerCase()
+          );
+
+        const initialProduct =
+          matchingById ||
+          matchingByName ||
+          productList[0];
+
+        setSelectedProductId(
+          String(
+            initialProduct._id
+          )
+        );
       } catch (error) {
         console.error(
           "LOAD PRODUCTS ERROR:",
           error
+        );
+
+        setLiveStatus(
+          error.message ||
+            "Unable to load products."
         );
       } finally {
         setLoadingProducts(
@@ -364,33 +681,37 @@ export default function GoLive() {
       fetchConnections()
     );
 
+    loadTwins();
     loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
-    setTwinName(
-      localStorage.getItem(
-        "twinName"
-      ) || "My AI Twin"
-    );
+  /* =========================================================
+     SAVE SELECTED IDS
+  ========================================================= */
 
-    const selectedProduct =
-      productState ||
-      scheduleState?.product ||
-      scheduleState
-        ?.productName ||
-      localStorage.getItem(
-        "selectedProduct"
-      );
-
-    if (selectedProduct) {
-      setProduct(
-        selectedProduct
+  useEffect(() => {
+    if (selectedTwinId) {
+      localStorage.setItem(
+        "selectedTwinId",
+        selectedTwinId
       );
     }
   }, [
-    dispatch,
-    productState,
-    scheduleState,
-    user,
+    selectedTwinId,
+  ]);
+
+  useEffect(() => {
+    if (
+      selectedProductId
+    ) {
+      localStorage.setItem(
+        "selectedProductId",
+        selectedProductId
+      );
+    }
+  }, [
+    selectedProductId,
   ]);
 
   /* =========================================================
@@ -466,6 +787,33 @@ export default function GoLive() {
   ]);
 
   /* =========================================================
+     VALIDATE TWIN AND PRODUCT
+  ========================================================= */
+
+  const validateTwinAndProduct =
+    () => {
+      if (!selectedTwinId) {
+        setLiveStatus(
+          "Please select an AI Twin."
+        );
+
+        return false;
+      }
+
+      if (
+        !selectedProductId
+      ) {
+        setLiveStatus(
+          "Please select a product."
+        );
+
+        return false;
+      }
+
+      return true;
+    };
+
+  /* =========================================================
      UPLOAD VIDEO
   ========================================================= */
 
@@ -487,7 +835,7 @@ export default function GoLive() {
         videoFile
       );
 
-      const res =
+      const response =
         await fetch(
           `${LIVE_API}/upload-video`,
           {
@@ -499,13 +847,13 @@ export default function GoLive() {
         );
 
       const data =
-        await res
+        await response
           .json()
           .catch(
             () => ({})
           );
 
-      if (!res.ok) {
+      if (!response.ok) {
         throw new Error(
           data.message ||
             "Video upload failed."
@@ -639,6 +987,12 @@ export default function GoLive() {
         setLiveStatus("");
 
         if (
+          !validateTwinAndProduct()
+        ) {
+          return;
+        }
+
+        if (
           !instagramConnected
         ) {
           setLiveStatus(
@@ -677,7 +1031,7 @@ export default function GoLive() {
           uploadedVideoPath
         );
 
-        const res =
+        const response =
           await fetch(
             `${LIVE_API}/start-instagram-rtmp`,
             {
@@ -700,8 +1054,18 @@ export default function GoLive() {
                   videoPath:
                     uploadedVideoPath,
 
-                  product,
+                  twinId:
+                    selectedTwinId,
+
                   twinName,
+
+                  productId:
+                    selectedProductId,
+
+                  product:
+                    productName,
+
+                  productName,
 
                   platforms: [
                     "instagram",
@@ -711,13 +1075,13 @@ export default function GoLive() {
           );
 
         const data =
-          await res
+          await response
             .json()
             .catch(
               () => ({})
             );
 
-        if (!res.ok) {
+        if (!response.ok) {
           throw new Error(
             data.message ||
               "Failed to start Instagram live."
@@ -749,7 +1113,7 @@ export default function GoLive() {
         setLiveLoading(true);
         setLiveStatus("");
 
-        const res =
+        const response =
           await fetch(
             `${LIVE_API}/stop-instagram-rtmp`,
             {
@@ -762,13 +1126,13 @@ export default function GoLive() {
           );
 
         const data =
-          await res
+          await response
             .json()
             .catch(
               () => ({})
             );
 
-        if (!res.ok) {
+        if (!response.ok) {
           throw new Error(
             data.message ||
               "Failed to stop Instagram live."
@@ -799,6 +1163,12 @@ export default function GoLive() {
       try {
         setLiveLoading(true);
         setLiveStatus("");
+
+        if (
+          !validateTwinAndProduct()
+        ) {
+          return;
+        }
 
         if (
           !facebookConnected
@@ -835,7 +1205,7 @@ export default function GoLive() {
           uploadedVideoPath
         );
 
-        const res =
+        const response =
           await fetch(
             `${LIVE_API}/start-facebook`,
             {
@@ -855,26 +1225,36 @@ export default function GoLive() {
                   videoPath:
                     uploadedVideoPath,
 
-                  product,
+                  twinId:
+                    selectedTwinId,
+
                   twinName,
+
+                  productId:
+                    selectedProductId,
+
+                  product:
+                    productName,
+
+                  productName,
 
                   title:
                     `${twinName} Live Selling`,
 
                   description:
-                    `Live selling ${product}`,
+                    `Live selling ${productName}`,
                 }),
             }
           );
 
         const data =
-          await res
+          await response
             .json()
             .catch(
               () => ({})
             );
 
-        if (!res.ok) {
+        if (!response.ok) {
           throw new Error(
             data.message ||
               "Failed to start Facebook live."
@@ -906,7 +1286,7 @@ export default function GoLive() {
         setLiveLoading(true);
         setLiveStatus("");
 
-        const res =
+        const response =
           await fetch(
             `${LIVE_API}/stop-facebook`,
             {
@@ -919,13 +1299,13 @@ export default function GoLive() {
           );
 
         const data =
-          await res
+          await response
             .json()
             .catch(
               () => ({})
             );
 
-        if (!res.ok) {
+        if (!response.ok) {
           throw new Error(
             data.message ||
               "Failed to stop Facebook live."
@@ -956,6 +1336,12 @@ export default function GoLive() {
       try {
         setLiveLoading(true);
         setLiveStatus("");
+
+        if (
+          !validateTwinAndProduct()
+        ) {
+          return;
+        }
 
         if (
           !youtubeConnected
@@ -1011,14 +1397,24 @@ export default function GoLive() {
               videoPath:
                 uploadedVideoPath,
 
+              twinId:
+                selectedTwinId,
+
+              twinName,
+
+              productId:
+                selectedProductId,
+
+              product:
+                productName,
+
+              productName,
+
               title:
                 `${twinName} Live Selling`,
 
               description:
-                `Live product presentation for ${product}.`,
-
-              product,
-              twinName,
+                `Live product presentation for ${productName}.`,
 
               onWaiting: (
                 current,
@@ -1101,6 +1497,12 @@ export default function GoLive() {
         setLiveLoading(true);
         setLiveStatus("");
 
+        if (
+          !validateTwinAndProduct()
+        ) {
+          return;
+        }
+
         const allowedPlatforms =
           isPro
             ? selectedPlatforms
@@ -1119,7 +1521,7 @@ export default function GoLive() {
           return;
         }
 
-        const res =
+        const response =
           await fetch(
             `${LIVE_API}/setup`,
             {
@@ -1143,8 +1545,18 @@ export default function GoLive() {
                       ?.id ||
                     null,
 
+                  twinId:
+                    selectedTwinId,
+
                   twinName,
-                  product,
+
+                  productId:
+                    selectedProductId,
+
+                  product:
+                    productName,
+
+                  productName,
 
                   platforms:
                     allowedPlatforms,
@@ -1161,13 +1573,13 @@ export default function GoLive() {
           );
 
         const data =
-          await res
+          await response
             .json()
             .catch(
               () => ({})
             );
 
-        if (!res.ok) {
+        if (!response.ok) {
           throw new Error(
             data.message ||
               "Unable to create live setup."
@@ -1204,10 +1616,14 @@ export default function GoLive() {
     };
 
   const canContinue =
-    product &&
-    selectedPlatforms.length >
-      0 &&
-    !socialLoading;
+    Boolean(
+      selectedTwinId &&
+      selectedProductId &&
+      selectedPlatforms.length
+    ) &&
+    !socialLoading &&
+    !loadingTwins &&
+    !loadingProducts;
 
   /* =========================================================
      UI
@@ -1215,10 +1631,6 @@ export default function GoLive() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 bg-background text-foreground transition-colors duration-300">
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
       <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
@@ -1292,16 +1704,11 @@ export default function GoLive() {
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-          Select connected
-          platforms, upload a video
-          and stream to Instagram,
-          Facebook or YouTube.
+          Select an AI Twin and product
+          from your backend, then stream
+          to a connected platform.
         </p>
       </section>
-
-      {/* =====================================================
-          STATUS
-      ===================================================== */}
 
       {liveStatus && (
         <section className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-sm font-bold text-foreground shadow-sm">
@@ -1315,10 +1722,6 @@ export default function GoLive() {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          {/* =================================================
-              TWIN AND PRODUCT
-          ================================================= */}
-
           <div className="grid gap-5 md:grid-cols-2">
             <Field
               icon={ScanFace}
@@ -1326,12 +1729,12 @@ export default function GoLive() {
             >
               <select
                 value={
-                  twinName
+                  selectedTwinId
                 }
                 onChange={(
                   event
                 ) =>
-                  setTwinName(
+                  setSelectedTwinId(
                     event.target
                       .value
                   )
@@ -1339,14 +1742,45 @@ export default function GoLive() {
                 className={
                   inputClass
                 }
+                disabled={
+                  loadingTwins ||
+                  !twins.length
+                }
               >
-                <option
-                  value={
-                    twinName
-                  }
-                >
-                  {twinName}
-                </option>
+                {loadingTwins && (
+                  <option value="">
+                    Loading AI
+                    Twins...
+                  </option>
+                )}
+
+                {!loadingTwins &&
+                  !twins.length && (
+                    <option value="">
+                      No AI Twin
+                      found
+                    </option>
+                  )}
+
+                {twins.map(
+                  (item) => (
+                    <option
+                      key={
+                        item._id
+                      }
+                      value={
+                        item._id
+                      }
+                    >
+                      {getTwinDisplayName(
+                        item
+                      )}
+                      {item.status
+                        ? ` - ${item.status}`
+                        : ""}
+                    </option>
+                  )
+                )}
               </select>
             </Field>
 
@@ -1356,12 +1790,12 @@ export default function GoLive() {
             >
               <select
                 value={
-                  product
+                  selectedProductId
                 }
                 onChange={(
                   event
                 ) =>
-                  setProduct(
+                  setSelectedProductId(
                     event.target
                       .value
                   )
@@ -1369,35 +1803,45 @@ export default function GoLive() {
                 className={
                   inputClass
                 }
+                disabled={
+                  loadingProducts ||
+                  !products.length
+                }
               >
-                {loadingProducts ? (
-                  <option>
+                {loadingProducts && (
+                  <option value="">
                     Loading
                     products...
                   </option>
-                ) : (
-                  products.map(
-                    (item) => (
-                      <option
-                        key={
-                          item
-                        }
-                        value={
-                          item
-                        }
-                      >
-                        {item}
-                      </option>
-                    )
+                )}
+
+                {!loadingProducts &&
+                  !products.length && (
+                    <option value="">
+                      No product
+                      found
+                    </option>
+                  )}
+
+                {products.map(
+                  (item) => (
+                    <option
+                      key={
+                        item._id
+                      }
+                      value={
+                        item._id
+                      }
+                    >
+                      {getProductDisplayName(
+                        item
+                      )}
+                    </option>
                   )
                 )}
               </select>
             </Field>
           </div>
-
-          {/* =================================================
-              PLATFORM SELECTION
-          ================================================= */}
 
           <div className="mt-6">
             <h2 className="text-xl font-black tracking-tight brand-text">
@@ -1486,10 +1930,6 @@ export default function GoLive() {
             </div>
           </div>
 
-          {/* =================================================
-              VIDEO UPLOAD
-          ================================================= */}
-
           <div className="mt-6 rounded-3xl border border-border bg-background p-5">
             <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
               <Package className="h-5 w-5" />
@@ -1529,10 +1969,6 @@ export default function GoLive() {
               )}
             </div>
           </div>
-
-          {/* =================================================
-              INSTAGRAM
-          ================================================= */}
 
           <div className="mt-6 rounded-3xl border border-border bg-background p-5">
             <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
@@ -1624,10 +2060,6 @@ export default function GoLive() {
             </div>
           </div>
 
-          {/* =================================================
-              FACEBOOK
-          ================================================= */}
-
           <div className="mt-6 rounded-3xl border border-border bg-background p-5">
             <h2 className="flex items-center gap-2 text-xl font-black tracking-tight text-blue-600">
               <Facebook className="h-5 w-5" />
@@ -1675,10 +2107,6 @@ export default function GoLive() {
               </button>
             </div>
           </div>
-
-          {/* =================================================
-              YOUTUBE
-          ================================================= */}
 
           <div className="mt-6 rounded-3xl border border-border bg-background p-5">
             <h2 className="flex items-center gap-2 text-xl font-black tracking-tight text-red-600">
@@ -1779,10 +2207,6 @@ export default function GoLive() {
             </div>
           </div>
 
-          {/* =================================================
-              LIVE SETTINGS
-          ================================================= */}
-
           <div className="mt-6 space-y-4">
             <LiveToggle
               icon={
@@ -1863,10 +2287,6 @@ export default function GoLive() {
           </button>
         </section>
 
-        {/* ===================================================
-            PREVIEW
-        =================================================== */}
-
         <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-black tracking-tight brand-text">
             Live Setup Preview
@@ -1876,14 +2296,34 @@ export default function GoLive() {
             <PreviewItem
               label="AI Twin"
               value={
-                twinName
+                selectedTwin
+                  ? twinName
+                  : "No AI Twin selected"
+              }
+            />
+
+            <PreviewItem
+              label="Twin ID"
+              value={
+                selectedTwinId ||
+                "Not selected"
               }
             />
 
             <PreviewItem
               label="Product"
               value={
-                product
+                selectedProduct
+                  ? productName
+                  : "No product selected"
+              }
+            />
+
+            <PreviewItem
+              label="Product ID"
+              value={
+                selectedProductId ||
+                "Not selected"
               }
             />
 
