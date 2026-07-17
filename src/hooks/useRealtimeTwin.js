@@ -187,6 +187,85 @@ function downsample(
 }
 
 /* =========================================================
+   MERGE TRANSCRIPT CHUNKS
+========================================================= */
+
+function mergeTranscript(
+  previous,
+  incoming
+) {
+  const current =
+    String(
+      previous || ""
+    ).trim();
+
+  const next =
+    String(
+      incoming || ""
+    ).trim();
+
+  if (!next) {
+    return current;
+  }
+
+  if (!current) {
+    return next;
+  }
+
+  /*
+   * Gemini may send the complete accumulated
+   * transcript instead of only the latest chunk.
+   */
+  if (
+    next.startsWith(
+      current
+    )
+  ) {
+    return next;
+  }
+
+  if (
+    current.startsWith(
+      next
+    )
+  ) {
+    return current;
+  }
+
+  /*
+   * Avoid repeated chunks.
+   */
+  if (
+    current.endsWith(
+      next
+    )
+  ) {
+    return current;
+  }
+
+  /*
+   * Join punctuation without adding a space.
+   */
+  if (
+    /^[,.;:!?)]/.test(
+      next
+    )
+  ) {
+    return `${current}${next}`;
+  }
+
+  if (
+    /^['’]/.test(
+      next
+    )
+  ) {
+    return `${current}${next}`;
+  }
+
+  return `${current} ${next}`;
+}
+
+/* =========================================================
    HOOK
 ========================================================= */
 
@@ -303,40 +382,43 @@ export default function useRealtimeTwin() {
      SEND SOCKET MESSAGE
   ======================================================= */
 
-  const send = useCallback(
-    (payload) => {
-      const socket =
-        socketRef.current;
+  const send =
+    useCallback(
+      (
+        payload
+      ) => {
+        const socket =
+          socketRef.current;
 
-      if (
-        !socket ||
-        socket.readyState !==
-          WebSocket.OPEN
-      ) {
-        return false;
-      }
+        if (
+          !socket ||
+          socket.readyState !==
+            WebSocket.OPEN
+        ) {
+          return false;
+        }
 
-      try {
-        socket.send(
-          JSON.stringify(
-            payload
-          )
-        );
+        try {
+          socket.send(
+            JSON.stringify(
+              payload
+            )
+          );
 
-        return true;
-      } catch (
-        sendError
-      ) {
-        console.error(
-          "REALTIME SEND ERROR:",
+          return true;
+        } catch (
           sendError
-        );
+        ) {
+          console.error(
+            "REALTIME SEND ERROR:",
+            sendError
+          );
 
-        return false;
-      }
-    },
-    []
-  );
+          return false;
+        }
+      },
+      []
+    );
 
   /* =======================================================
      APPEND CHAT MESSAGE
@@ -374,6 +456,9 @@ export default function useRealtimeTwin() {
                   1
               ];
 
+            /*
+             * Prevent duplicate final messages.
+             */
             if (
               lastMessage &&
               lastMessage.role ===
@@ -461,7 +546,8 @@ export default function useRealtimeTwin() {
       []
     );
 
-  /* =======================================================
+
+      /* =======================================================
      PLAY OUTPUT AUDIO QUEUE
   ======================================================= */
 
@@ -621,7 +707,9 @@ export default function useRealtimeTwin() {
 
         playNext();
       },
-      [playNext]
+      [
+        playNext,
+      ]
     );
 
   /* =======================================================
@@ -629,30 +717,33 @@ export default function useRealtimeTwin() {
   ======================================================= */
 
   const clearPlayback =
-    useCallback(() => {
-      outputQueueRef.current =
-        [];
+    useCallback(
+      () => {
+        outputQueueRef.current =
+          [];
 
-      try {
-        currentOutputRef
-          .current
-          ?.stop();
-      } catch {
-        // Output was already stopped.
-      }
+        try {
+          currentOutputRef
+            .current
+            ?.stop();
+        } catch {
+          // Output was already stopped.
+        }
 
-      currentOutputRef.current =
-        null;
+        currentOutputRef.current =
+          null;
 
-      outputPlayingRef.current =
-        false;
+        outputPlayingRef.current =
+          false;
 
-      if (
-        mountedRef.current
-      ) {
-        setSpeaking(false);
-      }
-    }, []);
+        if (
+          mountedRef.current
+        ) {
+          setSpeaking(false);
+        }
+      },
+      []
+    );
 
   /* =======================================================
      STOP MICROPHONE
@@ -734,7 +825,9 @@ export default function useRealtimeTwin() {
           });
         }
       },
-      [send]
+      [
+        send,
+      ]
     );
 
   /* =======================================================
@@ -993,6 +1086,7 @@ export default function useRealtimeTwin() {
           "socket:connected"
         ) {
           setConnected(true);
+
           setStatus(
             "connected"
           );
@@ -1013,7 +1107,10 @@ export default function useRealtimeTwin() {
           "session:ready"
         ) {
           setConnected(true);
-          setStatus("ready");
+
+          setStatus(
+            "ready"
+          );
 
           setConnectionStage(
             "ready"
@@ -1024,7 +1121,8 @@ export default function useRealtimeTwin() {
           return;
         }
 
-        /* ===============================
+
+                /* ===============================
            USER TRANSCRIPT
         =============================== */
 
@@ -1032,28 +1130,26 @@ export default function useRealtimeTwin() {
           type ===
           "transcript:user"
         ) {
-          const text =
+          const incomingText =
             String(
               message.text ||
                 message.transcript ||
-                message.data
-                  ?.text ||
+                message.data?.text ||
                 ""
             ).trim();
 
-          if (!text) {
+          if (!incomingText) {
             return;
           }
 
           /*
-           * Typed messages are appended immediately
-           * in sendText(). Ignore the repeated
-           * transcript sent back by Gemini.
+           * Typed messages are already appended
+           * immediately by sendText(). Ignore
+           * the same text when Gemini echoes it.
            */
           if (
-            text ===
-            lastTypedMessageRef
-              .current
+            incomingText ===
+            lastTypedMessageRef.current
           ) {
             lastTypedMessageRef.current =
               "";
@@ -1061,18 +1157,33 @@ export default function useRealtimeTwin() {
             userTranscriptRef.current =
               "";
 
-            setUserTranscript(
-              ""
-            );
+            setUserTranscript("");
 
             return;
           }
 
+          const completeText =
+            message.completeText ||
+            message.fullText ||
+            message.data?.completeText ||
+            message.data?.fullText ||
+            "";
+
+          const nextTranscript =
+            completeText
+              ? String(
+                  completeText
+                ).trim()
+              : mergeTranscript(
+                  userTranscriptRef.current,
+                  incomingText
+                );
+
           userTranscriptRef.current =
-            text;
+            nextTranscript;
 
           setUserTranscript(
-            text
+            nextTranscript
           );
 
           const isFinal =
@@ -1080,26 +1191,21 @@ export default function useRealtimeTwin() {
               true ||
             message.isFinal ===
               true ||
-            message.data
-              ?.final ===
+            message.data?.final ===
               true ||
-            message.data
-              ?.isFinal ===
+            message.data?.isFinal ===
               true;
 
           if (isFinal) {
             appendMessage(
               "user",
-              userTranscriptRef
-                .current
+              nextTranscript
             );
 
             userTranscriptRef.current =
               "";
 
-            setUserTranscript(
-              ""
-            );
+            setUserTranscript("");
           }
 
           return;
@@ -1113,24 +1219,40 @@ export default function useRealtimeTwin() {
           type ===
           "transcript:assistant"
         ) {
-          const text =
+          const incomingText =
             String(
               message.text ||
                 message.transcript ||
-                message.data
-                  ?.text ||
+                message.data?.text ||
                 ""
             ).trim();
 
-          if (!text) {
+          if (!incomingText) {
             return;
           }
 
+          const completeText =
+            message.completeText ||
+            message.fullText ||
+            message.data?.completeText ||
+            message.data?.fullText ||
+            "";
+
+          const nextTranscript =
+            completeText
+              ? String(
+                  completeText
+                ).trim()
+              : mergeTranscript(
+                  assistantTranscriptRef.current,
+                  incomingText
+                );
+
           assistantTranscriptRef.current =
-            text;
+            nextTranscript;
 
           setAssistantTranscript(
-            text
+            nextTranscript
           );
 
           setSpeaking(true);
@@ -1140,26 +1262,21 @@ export default function useRealtimeTwin() {
               true ||
             message.isFinal ===
               true ||
-            message.data
-              ?.final ===
+            message.data?.final ===
               true ||
-            message.data
-              ?.isFinal ===
+            message.data?.isFinal ===
               true;
 
           if (isFinal) {
             appendMessage(
               "assistant",
-              assistantTranscriptRef
-                .current
+              nextTranscript
             );
 
             assistantTranscriptRef.current =
               "";
 
-            setAssistantTranscript(
-              ""
-            );
+            setAssistantTranscript("");
           }
 
           return;
@@ -1176,8 +1293,7 @@ export default function useRealtimeTwin() {
           const audio =
             message.audio ||
             message.base64 ||
-            message.data
-              ?.audio ||
+            message.data?.audio ||
             (
               typeof message.data ===
               "string"
@@ -1187,8 +1303,7 @@ export default function useRealtimeTwin() {
 
           const sampleRate =
             message.sampleRate ||
-            message.data
-              ?.sampleRate ||
+            message.data?.sampleRate ||
             OUTPUT_SAMPLE_RATE;
 
           enqueueAudio(
@@ -1208,13 +1323,11 @@ export default function useRealtimeTwin() {
           "conversation:turn-complete"
         ) {
           const completedUserText =
-            userTranscriptRef
-              .current
+            userTranscriptRef.current
               .trim();
 
           const completedAssistantText =
-            assistantTranscriptRef
-              .current
+            assistantTranscriptRef.current
               .trim();
 
           if (
@@ -1244,24 +1357,16 @@ export default function useRealtimeTwin() {
           lastTypedMessageRef.current =
             "";
 
-          setUserTranscript(
-            ""
-          );
+          setUserTranscript("");
 
-          setAssistantTranscript(
-            ""
-          );
+          setAssistantTranscript("");
 
           if (
-            outputQueueRef
-              .current
+            outputQueueRef.current
               .length === 0 &&
-            !outputPlayingRef
-              .current
+            !outputPlayingRef.current
           ) {
-            setSpeaking(
-              false
-            );
+            setSpeaking(false);
           }
 
           return;
@@ -1280,9 +1385,7 @@ export default function useRealtimeTwin() {
           assistantTranscriptRef.current =
             "";
 
-          setAssistantTranscript(
-            ""
-          );
+          setAssistantTranscript("");
 
           setSpeaking(false);
 
@@ -1310,7 +1413,8 @@ export default function useRealtimeTwin() {
         =============================== */
 
         if (
-          type === "pong"
+          type ===
+          "pong"
         ) {
           return;
         }
@@ -1324,7 +1428,9 @@ export default function useRealtimeTwin() {
           "session:closed"
         ) {
           setConnected(false);
+
           setRecording(false);
+
           setSpeaking(false);
 
           setStatus(
@@ -1347,7 +1453,9 @@ export default function useRealtimeTwin() {
           "gemini:closed"
         ) {
           setConnected(false);
+
           setRecording(false);
+
           setSpeaking(false);
 
           setStatus(
@@ -1372,8 +1480,7 @@ export default function useRealtimeTwin() {
           const messageText =
             message.message ||
             message.error ||
-            message.data
-              ?.message ||
+            message.data?.message ||
             "Realtime session error.";
 
           setError(
@@ -1456,8 +1563,7 @@ export default function useRealtimeTwin() {
           null;
 
         const sessionId =
-          sessionRef.current
-            ?._id;
+          sessionRef.current?._id;
 
         if (sessionId) {
           await fetch(
@@ -1502,22 +1608,24 @@ export default function useRealtimeTwin() {
           mountedRef.current
         ) {
           setSession(null);
+
           setConnected(false);
+
           setRecording(false);
+
           setSpeaking(false);
-          setStatus("idle");
+
+          setStatus(
+            "idle"
+          );
 
           setConnectionStage(
             "idle"
           );
 
-          setUserTranscript(
-            ""
-          );
+          setUserTranscript("");
 
-          setAssistantTranscript(
-            ""
-          );
+          setAssistantTranscript("");
         }
       },
       [
@@ -1526,7 +1634,8 @@ export default function useRealtimeTwin() {
       ]
     );
 
-  /* =======================================================
+
+      /* =======================================================
      CONNECT
   ======================================================= */
 
@@ -1567,7 +1676,9 @@ export default function useRealtimeTwin() {
           "";
 
         setMessages([]);
+
         setError("");
+
         setStatus(
           "creating"
         );
@@ -1605,19 +1716,15 @@ export default function useRealtimeTwin() {
 
         const returnedSession =
           result.session ||
-          result.data
-            ?.session ||
+          result.data?.session ||
           result.data ||
           {};
 
         const sessionId =
-          returnedSession
-            ?._id ||
-          returnedSession
-            ?.id ||
+          returnedSession?._id ||
+          returnedSession?.id ||
           result.sessionId ||
-          result.data
-            ?.sessionId;
+          result.data?.sessionId;
 
         if (!sessionId) {
           throw new Error(
@@ -1654,20 +1761,16 @@ export default function useRealtimeTwin() {
 
         const socketUrl =
           result.socketUrl ||
-          result.data
-            ?.socketUrl ||
-          returnedSession
-            ?.socketUrl ||
+          result.data?.socketUrl ||
+          returnedSession?.socketUrl ||
           `${toWebSocketUrl(
             API_URL
           )}/api/realtime/socket`;
 
         const socketToken =
           result.socketToken ||
-          result.data
-            ?.socketToken ||
-          returnedSession
-            ?.socketToken;
+          result.data?.socketToken ||
+          returnedSession?.socketToken;
 
         if (!socketToken) {
           throw new Error(
@@ -1757,9 +1860,10 @@ export default function useRealtimeTwin() {
                 );
 
                 /*
-                 * The backend already initializes Gemini
-                 * after WebSocket upgrade. This event is
-                 * optional and may be ignored by backend.
+                 * Backend may already initialize Gemini
+                 * when the WebSocket connection opens.
+                 * This event is safe as an optional
+                 * compatibility event.
                  */
                 send({
                   event:
@@ -1897,8 +2001,7 @@ export default function useRealtimeTwin() {
                 );
 
                 if (
-                  !manualCloseRef
-                    .current
+                  !manualCloseRef.current
                 ) {
                   setStatus(
                     "closed"
@@ -2017,131 +2120,183 @@ export default function useRealtimeTwin() {
   ======================================================= */
 
   const interrupt =
-    useCallback(() => {
-      clearPlayback();
+    useCallback(
+      () => {
+        clearPlayback();
 
-      assistantTranscriptRef.current =
-        "";
+        assistantTranscriptRef.current =
+          "";
 
-      setAssistantTranscript(
-        ""
-      );
+        setAssistantTranscript(
+          ""
+        );
 
-      send({
-        event:
-          "conversation:interrupt",
-      });
-    }, [
-      clearPlayback,
-      send,
-    ]);
+        send({
+          event:
+            "conversation:interrupt",
+        });
+      },
+      [
+        clearPlayback,
+        send,
+      ]
+    );
 
   /* =======================================================
      CLEAR MESSAGES
   ======================================================= */
 
   const clearMessages =
-    useCallback(() => {
-      setMessages([]);
+    useCallback(
+      () => {
+        setMessages([]);
 
-      userTranscriptRef.current =
-        "";
+        userTranscriptRef.current =
+          "";
 
-      assistantTranscriptRef.current =
-        "";
+        assistantTranscriptRef.current =
+          "";
 
-      lastTypedMessageRef.current =
-        "";
+        lastTypedMessageRef.current =
+          "";
 
-      setUserTranscript(
-        ""
-      );
+        setUserTranscript(
+          ""
+        );
 
-      setAssistantTranscript(
-        ""
-      );
-    }, []);
+        setAssistantTranscript(
+          ""
+        );
+      },
+      []
+    );
 
   /* =======================================================
      KEEPALIVE PING
   ======================================================= */
 
-  useEffect(() => {
-    if (!connected) {
-      return undefined;
-    }
+  useEffect(
+    () => {
+      if (!connected) {
+        return undefined;
+      }
 
-    const timer =
-      window.setInterval(
-        () => {
-          send({
-            event:
-              "ping",
+      const timer =
+        window.setInterval(
+          () => {
+            send({
+              event:
+                "ping",
 
-            timestamp:
-              Date.now(),
-          });
-        },
-        20000
-      );
+              timestamp:
+                Date.now(),
+            });
+          },
+          20000
+        );
 
-    return () =>
-      window.clearInterval(
-        timer
-      );
-  }, [
-    connected,
-    send,
-  ]);
+      return () =>
+        window.clearInterval(
+          timer
+        );
+    },
+    [
+      connected,
+      send,
+    ]
+  );
 
-  /* =======================================================
+
+    /* =======================================================
      CLEANUP
   ======================================================= */
 
-  useEffect(() => {
-    mountedRef.current =
-      true;
-
-    return () => {
+  useEffect(
+    () => {
       mountedRef.current =
-        false;
-
-      manualCloseRef.current =
         true;
 
-      try {
-        socketRef.current
-          ?.close(
-            1000,
-            "Component unmounted"
+      return () => {
+        mountedRef.current =
+          false;
+
+        manualCloseRef.current =
+          true;
+
+        try {
+          socketRef.current
+            ?.close(
+              1000,
+              "Component unmounted"
+            );
+        } catch {
+          // Ignore close error.
+        }
+
+        streamRef.current
+          ?.getTracks()
+          .forEach(
+            (
+              track
+            ) => {
+              track.stop();
+            }
           );
-      } catch {
-        // Ignore close error.
-      }
 
-      streamRef.current
-        ?.getTracks()
-        .forEach(
-          (
-            track
-          ) => {
-            track.stop();
-          }
-        );
+        if (
+          inputContextRef.current &&
+          inputContextRef.current
+            .state !== "closed"
+        ) {
+          inputContextRef.current
+            .close()
+            .catch(
+              () => {}
+            );
+        }
 
-      inputContextRef.current
-        ?.close()
-        .catch(
-          () => {}
-        );
+        if (
+          outputContextRef.current &&
+          outputContextRef.current
+            .state !== "closed"
+        ) {
+          outputContextRef.current
+            .close()
+            .catch(
+              () => {}
+            );
+        }
 
-      outputContextRef.current
-        ?.close()
-        .catch(
-          () => {}
-        );
-    };
-  }, []);
+        socketRef.current =
+          null;
+
+        streamRef.current =
+          null;
+
+        inputContextRef.current =
+          null;
+
+        outputContextRef.current =
+          null;
+
+        processorRef.current =
+          null;
+
+        sourceRef.current =
+          null;
+
+        currentOutputRef.current =
+          null;
+
+        outputQueueRef.current =
+          [];
+
+        outputPlayingRef.current =
+          false;
+      };
+    },
+    []
+  );
 
   /* =======================================================
      RETURN
