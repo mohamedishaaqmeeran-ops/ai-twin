@@ -247,6 +247,29 @@ const publicImageToFile = async (
   );
 };
 
+
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  "https://twinn-backend.onrender.com"
+).replace(/\/$/, "");
+
+const readApiResponse = async (
+  response
+) => {
+  const data = await response
+    .json()
+    .catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.message ||
+        `Request failed with status ${response.status}`
+    );
+  }
+
+  return data;
+};
+
 /* =========================================================
    COMPONENT
 ========================================================= */
@@ -407,6 +430,51 @@ export default function CreateTwin() {
     setFormError,
   ] = useState("");
 
+  const [
+    createdTwinId,
+    setCreatedTwinId,
+  ] = useState("");
+
+  const [
+    basicSaved,
+    setBasicSaved,
+  ] = useState(false);
+
+  const [
+    appearanceSaved,
+    setAppearanceSaved,
+  ] = useState(false);
+
+  const [
+    voiceSaved,
+    setVoiceSaved,
+  ] = useState(false);
+
+  const [
+    knowledgeSaved,
+    setKnowledgeSaved,
+  ] = useState(false);
+
+  const [
+    lipSyncLoading,
+    setLipSyncLoading,
+  ] = useState(false);
+
+  const [
+    lipSyncStatus,
+    setLipSyncStatus,
+  ] = useState("idle");
+
+  const [
+    lipSyncVideoUrl,
+    setLipSyncVideoUrl,
+  ] = useState("");
+
+  const [
+    lipSyncAudioUrl,
+    setLipSyncAudioUrl,
+  ] = useState("");
+
   const steps = [
     {
       title: "Basic Info",
@@ -508,14 +576,476 @@ export default function CreateTwin() {
     return true;
   };
 
-  const goNext = () => {
+  const getReturnedTwinId = (
+    result
+  ) => {
+    return (
+      result?.twin?._id ||
+      result?.data?.twinId ||
+      result?.data?.twin_id ||
+      result?.data?.id ||
+      ""
+    );
+  };
+
+  const saveBasicStep = async () => {
+    if (
+      basicSaved &&
+      createdTwinId
+    ) {
+      return createdTwinId;
+    }
+
+    if (!name.trim()) {
+      throw new Error(
+        "AI Twin name is required."
+      );
+    }
+
+    if (
+      !brandDescription.trim()
+    ) {
+      throw new Error(
+        "Brand description is required."
+      );
+    }
+
+    if (!canCreateTwin) {
+      throw new Error(
+        isPro
+          ? "Your Pro plan already has the maximum of three AI Twins."
+          : "Your Free plan already has one AI Twin."
+      );
+    }
+
+    setSavingMessage(
+      "Saving basic information..."
+    );
+
+    const result =
+      await dispatch(
+        createTwinBasicInfo({
+          name: name.trim(),
+          brandName:
+            brandName.trim(),
+          brandDescription:
+            brandDescription.trim(),
+          purpose:
+            purpose.trim(),
+          industry:
+            industry.trim() ||
+            "General",
+          targetAudience:
+            targetAudience.trim(),
+          personality:
+            gesture,
+          tone: "Helpful",
+          primaryLanguage:
+            language,
+        })
+      ).unwrap();
+
+    const twinId =
+      getReturnedTwinId(result);
+
+    if (!twinId) {
+      throw new Error(
+        "Backend did not return the new Twin ID."
+      );
+    }
+
+    setCreatedTwinId(twinId);
+    setBasicSaved(true);
+
+    return twinId;
+  };
+
+  const saveAppearanceStep =
+    async (twinId) => {
+      if (appearanceSaved) {
+        return;
+      }
+
+      setSavingMessage(
+        "Uploading appearance..."
+      );
+
+      let finalAvatarFile =
+        avatarFile;
+
+      if (!finalAvatarFile) {
+        const selectedName =
+          avatar
+            .split("/")
+            .pop() ||
+          "default-avatar.png";
+
+        finalAvatarFile =
+          await publicImageToFile(
+            avatar,
+            selectedName
+          );
+      }
+
+      await dispatch(
+        saveTwinAppearance({
+          twinId,
+          avatarFile:
+            finalAvatarFile,
+          style,
+          background:
+            backgroundName,
+          clothingStyle:
+            style,
+          gesture,
+          gender: "",
+          ageGroup: "",
+          skinTone: "",
+          hairStyle: "",
+        })
+      ).unwrap();
+
+      setAppearanceSaved(true);
+  };
+
+  const saveVoiceStep =
+    async (twinId) => {
+      if (voiceSaved) {
+        return;
+      }
+
+      setSavingMessage(
+        "Saving voice settings..."
+      );
+
+      await dispatch(
+        saveTwinVoice({
+          twinId,
+          voiceType: voice,
+          language,
+          speed: voiceSpeed,
+          pitch: voicePitch,
+          sampleFile:
+            voiceSample,
+        })
+      ).unwrap();
+
+      setVoiceSaved(true);
+  };
+
+  const buildFallbackKnowledge =
+    () => {
+      return `
+AI Twin name: ${name.trim()}
+
+Brand name:
+${
+  brandName.trim() ||
+  "Not provided"
+}
+
+Brand description:
+${brandDescription.trim()}
+
+Industry:
+${industry.trim() || "General"}
+
+Purpose:
+${purpose.trim()}
+
+Target audience:
+${
+  targetAudience.trim() ||
+  "General customers"
+}
+
+Preferred language:
+${language}
+
+Personality:
+${gesture}
+
+Communication rules:
+The AI Twin represents this brand during live-commerce sessions. It should answer customer questions clearly and helpfully. It must not invent product prices, refund policies, shipping details, guarantees, discounts or product information.
+      `.trim();
+    };
+
+  const saveKnowledgeStep =
+    async (twinId) => {
+      if (knowledgeSaved) {
+        return;
+      }
+
+      setSavingMessage(
+        "Training AI Twin..."
+      );
+
+      await dispatch(
+        saveTwinKnowledge({
+          twinId,
+          title:
+            `${name.trim()} Brand Knowledge`,
+          documentFile:
+            knowledgeFile,
+          websiteUrl:
+            knowledgeFile
+              ? ""
+              : websiteUrl.trim(),
+          text:
+            knowledgeFile ||
+            websiteUrl.trim()
+              ? ""
+              : trainingText.trim() ||
+                buildFallbackKnowledge(),
+        })
+      ).unwrap();
+
+      setKnowledgeSaved(true);
+    };
+
+  const generateLipSyncPreview =
+    async () => {
+      setFormError("");
+
+      if (!lipScript.trim()) {
+        setFormError(
+          "Preview script is required."
+        );
+        return;
+      }
+
+      try {
+        setLipSyncLoading(true);
+        setLipSyncStatus(
+          "preparing"
+        );
+        setLipSyncVideoUrl("");
+
+        const twinId =
+          await saveBasicStep();
+
+        await saveAppearanceStep(
+          twinId
+        );
+
+        await saveVoiceStep(
+          twinId
+        );
+
+        setSavingMessage(
+          "Generating voice and lip sync..."
+        );
+
+        const createResponse =
+          await fetch(
+            `${API_BASE_URL}/api/twin/talking-avatar`,
+            {
+              method: "POST",
+              credentials:
+                "include",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                twinId,
+                text:
+                  lipScript.trim(),
+              }),
+            }
+          );
+
+        const createData =
+          await readApiResponse(
+            createResponse
+          );
+
+        const generation =
+          createData.data ||
+          createData;
+
+        const generationId =
+          generation.generationId;
+
+        if (!generationId) {
+          throw new Error(
+            "Backend did not return an avatar generation ID."
+          );
+        }
+
+        setLipSyncAudioUrl(
+          generation.audioUrl ||
+            ""
+        );
+
+        for (
+          let attempt = 0;
+          attempt < 60;
+          attempt += 1
+        ) {
+          setLipSyncStatus(
+            "processing"
+          );
+
+          const statusResponse =
+            await fetch(
+              `${API_BASE_URL}/api/twin/talking-avatar/${generationId}`,
+              {
+                method: "GET",
+                credentials:
+                  "include",
+              }
+            );
+
+          const statusData =
+            await readApiResponse(
+              statusResponse
+            );
+
+          const current =
+            statusData.data ||
+            statusData;
+
+          if (
+            current.status ===
+            "completed"
+          ) {
+            if (
+              !current.videoUrl
+            ) {
+              throw new Error(
+                "Avatar completed but no video URL was returned."
+              );
+            }
+
+            setLipSyncVideoUrl(
+              current.videoUrl
+            );
+
+            setLipSyncStatus(
+              "completed"
+            );
+
+            return;
+          }
+
+          if (
+            current.status ===
+            "failed"
+          ) {
+            throw new Error(
+              current.error ||
+                "Lip-sync generation failed."
+            );
+          }
+
+          await new Promise(
+            (resolve) =>
+              setTimeout(
+                resolve,
+                2000
+              )
+          );
+        }
+
+        throw new Error(
+          "Lip-sync generation timed out."
+        );
+      } catch (previewError) {
+        console.error(
+          "LIP SYNC PREVIEW ERROR:",
+          previewError
+        );
+
+        setLipSyncStatus(
+          "failed"
+        );
+
+        setFormError(
+          getErrorMessage(
+            previewError
+          )
+        );
+      } finally {
+        setLipSyncLoading(false);
+        setSavingMessage("");
+      }
+    };
+
+  const goNext = async () => {
     if (!validateStep()) {
       return;
     }
 
-    setStep((current) =>
-      Math.min(6, current + 1)
-    );
+    try {
+      setFormError("");
+
+      if (step === 1) {
+        await saveBasicStep();
+      }
+
+      if (step === 2) {
+        const twinId =
+          createdTwinId ||
+          (await saveBasicStep());
+
+        await saveAppearanceStep(
+          twinId
+        );
+      }
+
+      if (step === 3) {
+        const twinId =
+          createdTwinId ||
+          (await saveBasicStep());
+
+        await saveAppearanceStep(
+          twinId
+        );
+
+        await saveVoiceStep(
+          twinId
+        );
+      }
+
+      if (step === 5) {
+        const twinId =
+          createdTwinId ||
+          (await saveBasicStep());
+
+        await saveAppearanceStep(
+          twinId
+        );
+
+        await saveVoiceStep(
+          twinId
+        );
+
+        await saveKnowledgeStep(
+          twinId
+        );
+      }
+
+      setStep((current) =>
+        Math.min(
+          6,
+          current + 1
+        )
+      );
+    } catch (stepError) {
+      console.error(
+        "SAVE STEP ERROR:",
+        stepError
+      );
+
+      setFormError(
+        getErrorMessage(
+          stepError
+        )
+      );
+    } finally {
+      setSavingMessage("");
+    }
   };
 
   const handleAvatarUpload = (
@@ -650,235 +1180,22 @@ export default function CreateTwin() {
   const finishCreate = async () => {
     setFormError("");
 
-    if (!canCreateTwin) {
-      setFormError(
-        isPro
-          ? "Your Pro plan already has the maximum of three AI Twins."
-          : "Your Free plan already has one AI Twin."
-      );
-
-      return;
-    }
-
-    if (!name.trim()) {
-      setStep(1);
-
-      setFormError(
-        "AI Twin name is required."
-      );
-
-      return;
-    }
-
-    if (
-      !brandDescription.trim()
-    ) {
-      setStep(1);
-
-      setFormError(
-        "Brand description is required."
-      );
-
-      return;
-    }
-
     try {
-      /*
-       * 1. BASIC INFO
-       */
-
-      setSavingMessage(
-        "Saving basic information..."
-      );
-
-      const basicResult =
-        await dispatch(
-          createTwinBasicInfo({
-            name: name.trim(),
-
-            brandName:
-              brandName.trim(),
-
-            brandDescription:
-              brandDescription.trim(),
-
-            purpose:
-              purpose.trim(),
-
-            industry:
-              industry.trim() ||
-              "General",
-
-            targetAudience:
-              targetAudience.trim(),
-
-            personality: gesture,
-
-            tone: "Helpful",
-
-            primaryLanguage:
-              language,
-          })
-        ).unwrap();
-
       const twinId =
-        basicResult.twin?._id ||
-        basicResult.data
-          ?.twinId ||
-        basicResult.data
-          ?.twin_id ||
-        basicResult.data?.id;
+        createdTwinId ||
+        (await saveBasicStep());
 
-      if (!twinId) {
-        throw new Error(
-          "Backend did not return the new Twin ID."
-        );
-      }
-
-      /*
-       * 2. APPEARANCE
-       */
-
-      setSavingMessage(
-        "Uploading appearance..."
+      await saveAppearanceStep(
+        twinId
       );
 
-      let finalAvatarFile =
-        avatarFile;
-
-      if (!finalAvatarFile) {
-        const selectedName =
-          avatar
-            .split("/")
-            .pop() ||
-          "default-avatar.png";
-
-        finalAvatarFile =
-          await publicImageToFile(
-            avatar,
-            selectedName
-          );
-      }
-
-      await dispatch(
-        saveTwinAppearance({
-          twinId,
-
-          avatarFile:
-            finalAvatarFile,
-
-          style,
-
-          background:
-            backgroundName,
-
-          clothingStyle:
-            style,
-
-          gender: "",
-
-          ageGroup: "",
-
-          skinTone: "",
-
-          hairStyle: "",
-        })
-      ).unwrap();
-
-      /*
-       * 3. VOICE
-       */
-
-      setSavingMessage(
-        "Saving voice settings..."
+      await saveVoiceStep(
+        twinId
       );
 
-      await dispatch(
-        saveTwinVoice({
-          twinId,
-
-          voiceType: voice,
-
-          language,
-
-          speed: voiceSpeed,
-
-          pitch: voicePitch,
-
-          sampleFile:
-            voiceSample,
-        })
-      ).unwrap();
-
-      /*
-       * 4. KNOWLEDGE
-       */
-
-      setSavingMessage(
-        "Training AI Twin..."
+      await saveKnowledgeStep(
+        twinId
       );
-
-      const fallbackKnowledge = `
-AI Twin name: ${name.trim()}
-
-Brand name:
-${
-  brandName.trim() ||
-  "Not provided"
-}
-
-Brand description:
-${brandDescription.trim()}
-
-Industry:
-${industry.trim() || "General"}
-
-Purpose:
-${purpose.trim()}
-
-Target audience:
-${
-  targetAudience.trim() ||
-  "General customers"
-}
-
-Preferred language:
-${language}
-
-Personality:
-${gesture}
-
-Communication rules:
-The AI Twin represents this brand during live-commerce sessions. It should answer customer questions clearly and helpfully. It must not invent product prices, refund policies, shipping details, guarantees, discounts or product information.
-      `.trim();
-
-      await dispatch(
-        saveTwinKnowledge({
-          twinId,
-
-          title:
-            `${name.trim()} Brand Knowledge`,
-
-          documentFile:
-            knowledgeFile,
-
-          websiteUrl:
-            knowledgeFile
-              ? ""
-              : websiteUrl.trim(),
-
-          text:
-            knowledgeFile ||
-            websiteUrl.trim()
-              ? ""
-              : trainingText.trim() ||
-                fallbackKnowledge,
-        })
-      ).unwrap();
-
-      /*
-       * 5. REFRESH FROM BACKEND
-       */
 
       setSavingMessage(
         "Loading your AI Twin..."
@@ -888,12 +1205,15 @@ The AI Twin represents this brand during live-commerce sessions. It should answe
         fetchTwins()
       ).unwrap();
 
-      navigate(
-        `/app/twin`
+      localStorage.setItem(
+        "hasTwin",
+        "true"
       );
+
+      navigate("/app/twin");
     } catch (creationError) {
       console.error(
-        "CREATE TWIN ERROR:",
+        "FINALIZE TWIN ERROR:",
         creationError
       );
 
@@ -1482,14 +1802,26 @@ The AI Twin represents this brand during live-commerce sessions. It should answe
               desc="Preview the selected appearance and test script."
             >
               <div className="mt-5 grid gap-5 lg:grid-cols-2">
-                <div className="overflow-hidden rounded-2xl border border-border bg-card">
-                  <img
-                    src={
-                      displayedAvatar
-                    }
-                    alt="Lip sync preview"
-                    className="h-80 w-full object-contain"
-                  />
+                <div className="overflow-hidden rounded-2xl border border-border bg-black">
+                  {lipSyncVideoUrl ? (
+                    <video
+                      src={
+                        lipSyncVideoUrl
+                      }
+                      controls
+                      autoPlay
+                      playsInline
+                      className="h-80 w-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={
+                        displayedAvatar
+                      }
+                      alt="Lip sync preview"
+                      className="h-80 w-full object-contain"
+                    />
+                  )}
                 </div>
 
                 <div className="rounded-2xl border border-border bg-card p-5">
@@ -1510,11 +1842,44 @@ The AI Twin represents this brand during live-commerce sessions. It should answe
 
                   <button
                     type="button"
-                    className="brand-gradient mt-4 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold text-white"
+                    disabled={
+                      lipSyncLoading ||
+                      !lipScript.trim()
+                    }
+                    onClick={
+                      generateLipSyncPreview
+                    }
+                    className="brand-gradient mt-4 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Play className="h-4 w-4" />
-                    Preview Script
+                    {lipSyncLoading ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+
+                    {lipSyncLoading
+                      ? `Generating ${lipSyncStatus}...`
+                      : lipSyncVideoUrl
+                      ? "Regenerate Preview"
+                      : "Generate Lip-Sync Preview"}
                   </button>
+
+                  {lipSyncAudioUrl && (
+                    <audio
+                      src={
+                        lipSyncAudioUrl
+                      }
+                      controls
+                      className="mt-4 w-full"
+                    />
+                  )}
+
+                  {createdTwinId && (
+                    <p className="mt-3 break-all text-xs text-muted-foreground">
+                      Draft Twin ID:{" "}
+                      {createdTwinId}
+                    </p>
+                  )}
                 </div>
               </div>
             </StepCard>

@@ -24,6 +24,13 @@ const SignUp = lazy(() => import("./pages/SignUp"));
 
 const AppLayout = lazy(() => import("./components/AppLayout"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ProductTraining = lazy(() =>
+  import("./pages/twin/ProductTraining")
+);
+
+const AvatarStudio = lazy(() =>
+  import("./pages/twin/AvatarStudio")
+);
 
 const TwinDashboard = lazy(() => import("./pages/twin/TwinDashboard"));
 const CreateTwin = lazy(() => import("./pages/twin/CreateTwin"));
@@ -209,6 +216,15 @@ export default function App() {
             <Route path="twin/create" element={<CreateTwin />} />
             <Route path="twin/edit" element={<EditTwin />} />
             <Route path="twin/train" element={<TrainTwin />} />
+            <Route
+  path="twin/product-training"
+  element={<ProductTraining />}
+/>
+
+<Route
+  path="twin/avatar-studio"
+  element={<AvatarStudio />}
+/>
             <Route path="twin/test" element={<TestTwin />} />
 
             <Route path="products" element={<Products />} />

@@ -5,51 +5,40 @@ import {
   useState,
 } from "react";
 
-const BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  "https://twinn-backend.onrender.com";
+import {
+  addAvatarIceApi,
+  createAvatarSessionApi,
+  endAvatarSessionApi,
+  speakAvatarApi,
+  submitAvatarAnswerApi,
+} from "../lib/avatarApi";
 
-/* =========================================================
-   RESPONSE PARSER
-========================================================= */
-
-const parseResponse = async (
-  response
-) => {
-  const contentType =
-    response.headers.get(
-      "content-type"
-    ) || "";
-
-  const data =
-    contentType.includes(
-      "application/json"
-    )
-      ? await response
-          .json()
-          .catch(() => ({}))
-      : {
-          message: await response
-            .text()
-            .catch(() => ""),
-        };
-
-  if (!response.ok) {
-    throw new Error(
-      data?.message ||
-        data?.description ||
-        `Avatar request failed (${response.status}).`
+const wait = (milliseconds) =>
+  new Promise((resolve) => {
+    setTimeout(
+      resolve,
+      milliseconds
     );
-  }
-
-  return data;
-};
-
-/* =========================================================
-   HOOK
-========================================================= */
+  });
 
 export default function useAvatarStream() {
+  const videoRef =
+    useRef(null);
+
+  const peerConnectionRef =
+    useRef(null);
+
+  const avatarSessionIdRef =
+    useRef(null);
+
+  const closingRef =
+    useRef(false);
+
+  const [
+    avatarLoading,
+    setAvatarLoading,
+  ] = useState(false);
+
   const [
     avatarConnected,
     setAvatarConnected,
@@ -61,111 +50,17 @@ export default function useAvatarStream() {
   ] = useState(false);
 
   const [
-    avatarLoading,
-    setAvatarLoading,
-  ] = useState(false);
-
-  const [
     avatarError,
     setAvatarError,
-  ] = useState(null);
+  ] = useState("");
 
   const [
     connectionState,
     setConnectionState,
   ] = useState("idle");
 
-  const videoRef =
-    useRef(null);
-
-  const peerConnectionRef =
-    useRef(null);
-
-  const remoteStreamRef =
-    useRef(null);
-
-  const avatarSessionIdRef =
-    useRef(null);
-
-  const closedRef =
-    useRef(false);
-
-  const streamAttachedRef =
-    useRef(false);
-
-  const playPromiseRef =
-    useRef(null);
-
   /* =======================================================
-     ATTACH STREAM ONLY ONCE
-  ======================================================= */
-
-  const attachStreamToVideo =
-    useCallback((stream) => {
-      const video =
-        videoRef.current;
-
-      if (
-        !video ||
-        !stream
-      ) {
-        return false;
-      }
-
-      /*
-       * Do not assign srcObject repeatedly.
-       * Reassigning it interrupts video.play().
-       */
-      if (
-        video.srcObject === stream
-      ) {
-        return true;
-      }
-
-      if (
-        streamAttachedRef.current &&
-        video.srcObject
-      ) {
-        return true;
-      }
-
-      video.srcObject =
-        stream;
-
-      video.autoplay =
-        true;
-
-      video.playsInline =
-        true;
-
-      /*
-       * Keep D-ID muted because Gemini
-       * is already playing audio.
-       */
-      video.muted =
-        true;
-
-      streamAttachedRef.current =
-        true;
-
-      console.log(
-        "D-ID STREAM ATTACHED TO VIDEO",
-        {
-          audioTracks:
-            stream.getAudioTracks()
-              .length,
-
-          videoTracks:
-            stream.getVideoTracks()
-              .length,
-        }
-      );
-
-      return true;
-    }, []);
-
-  /* =======================================================
-     PLAY VIDEO SAFELY
+     VIDEO
   ======================================================= */
 
   const playVideo =
@@ -173,351 +68,61 @@ export default function useAvatarStream() {
       const video =
         videoRef.current;
 
-      if (
-        !video ||
-        !video.srcObject
-      ) {
+      if (!video) {
         return false;
       }
 
-      /*
-       * Avoid multiple simultaneous play()
-       * calls, which can produce AbortError.
-       */
-      if (
-        playPromiseRef.current
-      ) {
-        return playPromiseRef.current;
+      try {
+        await video.play();
+
+        setAvatarPlaying(
+          true
+        );
+
+        return true;
+      } catch (error) {
+        console.warn(
+          "AVATAR VIDEO PLAY ERROR:",
+          error
+        );
+
+        return false;
       }
-
-      const attemptPlay =
-        async () => {
-          try {
-            video.autoplay =
-              true;
-
-            video.playsInline =
-              true;
-
-            video.muted =
-              true;
-
-            /*
-             * HAVE_CURRENT_DATA = 2.
-             * Below that, wait for canplay.
-             */
-            if (
-              video.readyState <
-              HTMLMediaElement.HAVE_CURRENT_DATA
-            ) {
-              console.log(
-                "D-ID VIDEO WAITING FOR MEDIA DATA:",
-                video.readyState
-              );
-
-              return false;
-            }
-
-            await video.play();
-
-            console.log(
-              "D-ID VIDEO PLAY STARTED"
-            );
-
-            setAvatarPlaying(
-              true
-            );
-
-            setAvatarError(
-              null
-            );
-
-            return true;
-          } catch (error) {
-            /*
-             * AbortError is usually temporary:
-             * the stream or media track changed
-             * while play() was starting.
-             */
-            if (
-              error?.name ===
-              "AbortError"
-            ) {
-              console.warn(
-                "D-ID VIDEO PLAY INTERRUPTED. WILL RETRY."
-              );
-
-              return false;
-            }
-
-            console.error(
-              "D-ID VIDEO PLAY ERROR:",
-              error
-            );
-
-            setAvatarPlaying(
-              false
-            );
-
-            setAvatarError(
-              error?.message ||
-                "The avatar video could not start."
-            );
-
-            return false;
-          } finally {
-            playPromiseRef.current =
-              null;
-          }
-        };
-
-      playPromiseRef.current =
-        attemptPlay();
-
-      return playPromiseRef.current;
     }, []);
 
-
-    const waitForVideoFrames = useCallback(
-  async ({
-    attempts = 40,
-    delay = 250,
-  } = {}) => {
-    for (
-      let attempt = 1;
-      attempt <= attempts;
-      attempt += 1
-    ) {
-      if (closedRef.current) {
-        return false;
-      }
-
-      const video = videoRef.current;
-
-      if (!video || !video.srcObject) {
-        await new Promise((resolve) =>
-          window.setTimeout(resolve, delay)
-        );
-
-        continue;
-      }
-
-      const videoTracks =
-        video.srcObject.getVideoTracks();
-
-      const videoTrack =
-        videoTracks[0];
-
-      console.log(
-        "D-ID VIDEO FRAME CHECK:",
-        {
-          attempt,
-          readyState: video.readyState,
-          videoWidth: video.videoWidth,
-          videoHeight: video.videoHeight,
-          trackReadyState:
-            videoTrack?.readyState,
-          trackMuted:
-            videoTrack?.muted,
-        }
-      );
-
-      if (
-        video.readyState >=
-          HTMLMediaElement.HAVE_CURRENT_DATA &&
-        video.videoWidth > 0 &&
-        video.videoHeight > 0
-      ) {
-        return playVideo();
-      }
-
-      await new Promise((resolve) =>
-        window.setTimeout(resolve, delay)
-      );
-    }
-
-    setAvatarPlaying(false);
-
-    setAvatarError(
-      "The D-ID connection is active, but no avatar video frames were received."
-    );
-
-    return false;
-  },
-  [playVideo]
-);
-  /* =======================================================
-     WAIT FOR ICE GATHERING
-  ======================================================= */
-
-  const waitForIceGatheringComplete =
+  const waitForVideoFrames =
     useCallback(
-      (peerConnection) => {
-        if (
-          peerConnection
-            .iceGatheringState ===
-          "complete"
+      async (
+        attempts = 40
+      ) => {
+        for (
+          let index = 0;
+          index < attempts;
+          index += 1
         ) {
-          return Promise.resolve();
+          const video =
+            videoRef.current;
+
+          if (
+            video &&
+            video.videoWidth > 0 &&
+            video.videoHeight > 0
+          ) {
+            await playVideo();
+
+            return true;
+          }
+
+          await wait(200);
         }
 
-        return new Promise(
-          (resolve) => {
-            let finished =
-              false;
-
-            const finish =
-              () => {
-                if (finished) {
-                  return;
-                }
-
-                finished =
-                  true;
-
-                window.clearTimeout(
-                  timeoutId
-                );
-
-                peerConnection.removeEventListener(
-                  "icegatheringstatechange",
-                  handleStateChange
-                );
-
-                resolve();
-              };
-
-            const handleStateChange =
-              () => {
-                console.log(
-                  "D-ID ICE GATHERING STATE:",
-                  peerConnection
-                    .iceGatheringState
-                );
-
-                if (
-                  peerConnection
-                    .iceGatheringState ===
-                  "complete"
-                ) {
-                  finish();
-                }
-              };
-
-            const timeoutId =
-              window.setTimeout(
-                finish,
-                5000
-              );
-
-            peerConnection.addEventListener(
-              "icegatheringstatechange",
-              handleStateChange
-            );
-          }
-        );
+        return false;
       },
-      []
+      [playVideo]
     );
 
-  /* =======================================================
-     CLOSE AVATAR
-  ======================================================= */
-
-  const closeAvatar =
-    useCallback(async () => {
-      closedRef.current =
-        true;
-
-      streamAttachedRef.current =
-        false;
-
-      playPromiseRef.current =
-        null;
-
-      const avatarSessionId =
-        avatarSessionIdRef.current;
-
-      avatarSessionIdRef.current =
-        null;
-
-      if (
-        avatarSessionId
-      ) {
-        await fetch(
-          `${BASE_URL}/api/avatar/sessions/${avatarSessionId}`,
-          {
-            method:
-              "DELETE",
-
-            credentials:
-              "include",
-          }
-        ).catch((error) => {
-          console.error(
-            "AVATAR SESSION DELETE ERROR:",
-            error
-          );
-        });
-      }
-
-      const peerConnection =
-        peerConnectionRef.current;
-
-      if (
-        peerConnection
-      ) {
-        peerConnection.ontrack =
-          null;
-
-        peerConnection.onicecandidate =
-          null;
-
-        peerConnection.onconnectionstatechange =
-          null;
-
-        peerConnection.oniceconnectionstatechange =
-          null;
-
-        peerConnection.onicegatheringstatechange =
-          null;
-
-        peerConnection.onsignalingstatechange =
-          null;
-
-        try {
-          peerConnection.close();
-        } catch (error) {
-          console.error(
-            "PEER CONNECTION CLOSE ERROR:",
-            error
-          );
-        }
-      }
-
-      peerConnectionRef.current =
-        null;
-
-      const remoteStream =
-        remoteStreamRef.current;
-
-      if (remoteStream) {
-        remoteStream
-          .getTracks()
-          .forEach(
-            (track) => {
-              try {
-                track.stop();
-              } catch {
-                // Ignore.
-              }
-            }
-          );
-      }
-
-      remoteStreamRef.current =
-        null;
-
+  const resetVideo =
+    useCallback(() => {
       const video =
         videoRef.current;
 
@@ -525,103 +130,129 @@ export default function useAvatarStream() {
         try {
           video.pause();
         } catch {
-          // Ignore.
+          // Ignore pause error.
         }
 
         video.srcObject =
           null;
       }
 
-      setAvatarConnected(
-        false
-      );
-
       setAvatarPlaying(
         false
-      );
-
-      setAvatarLoading(
-        false
-      );
-
-      setConnectionState(
-        "closed"
       );
     }, []);
 
   /* =======================================================
-     SEND ICE CANDIDATE
+     PEER CONNECTION
   ======================================================= */
 
-  const sendIceCandidate =
-    useCallback(
-      async ({
-        avatarSessionId,
-        candidate,
-      }) => {
-        const response =
-          await fetch(
-            `${BASE_URL}/api/avatar/sessions/${avatarSessionId}/ice`,
-            {
-              method:
-                "POST",
+  const destroyPeerConnection =
+    useCallback(() => {
+      const peer =
+        peerConnectionRef.current;
 
-              credentials:
-                "include",
+      if (!peer) {
+        return;
+      }
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
+      peer.ontrack = null;
+      peer.onicecandidate =
+        null;
 
-              body:
-                JSON.stringify({
-                  candidate:
-                    candidate
-                      ?.candidate ??
-                    null,
+      peer.onconnectionstatechange =
+        null;
 
-                  sdpMid:
-                    candidate
-                      ?.sdpMid ??
-                    null,
+      peer.oniceconnectionstatechange =
+        null;
 
-                  sdpMLineIndex:
-                    candidate
-                      ?.sdpMLineIndex ??
-                    null,
-                }),
+      try {
+        peer
+          .getSenders()
+          .forEach((sender) => {
+            sender.track?.stop();
+          });
+
+        peer
+          .getReceivers()
+          .forEach(
+            (receiver) => {
+              receiver.track?.stop();
             }
           );
 
-        if (
-          !response.ok
-        ) {
-          const data =
-            await response
-              .json()
-              .catch(
-                () => ({})
-              );
+        peer.close();
+      } catch (error) {
+        console.error(
+          "AVATAR PEER CLOSE ERROR:",
+          error
+        );
+      }
 
-          console.error(
-            "D-ID ICE API ERROR:",
-            data
-          );
-        }
-      },
-      []
-    );
+      peerConnectionRef.current =
+        null;
+    }, []);
 
   /* =======================================================
-     CREATE AVATAR SESSION
+     CLOSE
+  ======================================================= */
+
+  const closeAvatar =
+    useCallback(async () => {
+      if (
+        closingRef.current
+      ) {
+        return;
+      }
+
+      closingRef.current =
+        true;
+
+      const avatarSessionId =
+        avatarSessionIdRef.current;
+
+      avatarSessionIdRef.current =
+        null;
+
+      try {
+        if (avatarSessionId) {
+          await endAvatarSessionApi(
+            avatarSessionId
+          ).catch((error) => {
+            console.error(
+              "END AVATAR SESSION ERROR:",
+              error
+            );
+          });
+        }
+      } finally {
+        destroyPeerConnection();
+        resetVideo();
+
+        setAvatarConnected(
+          false
+        );
+
+        setConnectionState(
+          "closed"
+        );
+
+        closingRef.current =
+          false;
+      }
+    }, [
+      destroyPeerConnection,
+      resetVideo,
+    ]);
+
+  /* =======================================================
+     CREATE D-ID SESSION
   ======================================================= */
 
   const createAvatarSession =
     useCallback(
       async ({
         twinId,
-        realtimeSessionId,
+        realtimeSessionId = null,
       }) => {
         if (!twinId) {
           throw new Error(
@@ -629,350 +260,144 @@ export default function useAvatarStream() {
           );
         }
 
-        if (
-          peerConnectionRef.current ||
-          avatarSessionIdRef.current
-        ) {
-          await closeAvatar();
-        }
+        await closeAvatar();
 
-        closedRef.current =
-          false;
-
-        streamAttachedRef.current =
-          false;
-
-        playPromiseRef.current =
-          null;
-
-        setAvatarLoading(
-          true
-        );
-
-        setAvatarConnected(
-          false
-        );
-
-        setAvatarPlaying(
-          false
-        );
-
-        setAvatarError(
-          null
-        );
+        setAvatarLoading(true);
+        setAvatarError("");
 
         setConnectionState(
           "creating-session"
         );
 
         try {
-          /* ---------------------------------------------
-             1. CREATE BACKEND/D-ID SESSION
-          --------------------------------------------- */
+          const response =
+            await createAvatarSessionApi({
+              twinId,
+              realtimeSessionId,
+            });
 
-          const sessionResponse =
-            await fetch(
-              `${BASE_URL}/api/avatar/sessions`,
-              {
-                method:
-                  "POST",
+          const result =
+            response.data ||
+            response;
 
-                credentials:
-                  "include",
+          const avatarSessionId =
+            result.avatarSessionId;
 
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
+          const offer =
+            result.offer;
 
-                body:
-                  JSON.stringify({
-                    twinId,
-
-                    realtimeSessionId:
-                      realtimeSessionId ||
-                      null,
-                  }),
-              }
-            );
-
-          const sessionData =
-            await parseResponse(
-              sessionResponse
-            );
+          const iceServers =
+            result.iceServers ||
+            [];
 
           if (
-            !sessionData
-              .avatarSessionId
+            !avatarSessionId ||
+            !offer?.type ||
+            !offer?.sdp
           ) {
             throw new Error(
-              "Avatar session ID was not returned."
-            );
-          }
-
-          if (
-            !sessionData.offer
-              ?.type ||
-            !sessionData.offer
-              ?.sdp
-          ) {
-            throw new Error(
-              "D-ID did not return a valid WebRTC offer."
+              "Backend returned invalid avatar stream data."
             );
           }
 
           avatarSessionIdRef.current =
-            sessionData.avatarSessionId;
-
-          console.log(
-            "D-ID SESSION CREATED:",
-            {
-              avatarSessionId:
-                sessionData
-                  .avatarSessionId,
-
-              streamId:
-                sessionData
-                  .streamId,
-
-              offerType:
-                sessionData.offer
-                  .type,
-
-              iceServers:
-                sessionData
-                  .iceServers
-                  ?.length ||
-                0,
-            }
-          );
-
-          /* ---------------------------------------------
-             2. CREATE REMOTE STREAM
-          --------------------------------------------- */
-
-          const remoteStream =
-            new MediaStream();
-
-          remoteStreamRef.current =
-            remoteStream;
-
-          /* ---------------------------------------------
-             3. CREATE WEBRTC CONNECTION
-          --------------------------------------------- */
+            avatarSessionId;
 
           const peerConnection =
-            new RTCPeerConnection(
-              {
-                iceServers:
-                  Array.isArray(
-                    sessionData
-                      .iceServers
-                  )
-                    ? sessionData
-                        .iceServers
-                    : [],
-              }
-            );
+            new RTCPeerConnection({
+              iceServers,
+            });
 
           peerConnectionRef.current =
             peerConnection;
 
-          setConnectionState(
-            "connecting-webrtc"
-          );
-
-          /* ---------------------------------------------
-             4. HANDLE REMOTE AUDIO/VIDEO TRACKS
-          --------------------------------------------- */
+          /* ===============================================
+             REMOTE VIDEO
+          =============================================== */
 
           peerConnection.ontrack =
-            (event) => {
+            async (event) => {
+              const remoteStream =
+                event.streams?.[0];
+
               if (
-                closedRef.current
+                !remoteStream ||
+                !videoRef.current
               ) {
                 return;
               }
 
-              console.log(
-                "D-ID REMOTE TRACK:",
-                {
-                  kind:
-                    event.track
-                      .kind,
+              videoRef.current.srcObject =
+                remoteStream;
 
-                  id:
-                    event.track.id,
+              await playVideo();
 
-                  readyState:
-                    event.track
-                      .readyState,
-
-                  muted:
-                    event.track
-                      .muted,
-
-                  streamCount:
-                    event.streams
-                      ?.length ||
-                    0,
-                }
-              );
-
-              const receivedStream =
-                event.streams
-                  ?.length
-                  ? event
-                      .streams[0]
-                  : null;
-
-              /*
-               * Add tracks into one stable
-               * MediaStream instance.
-               */
-              if (
-                receivedStream
-              ) {
-                receivedStream
-                  .getTracks()
-                  .forEach(
-                    (track) => {
-                      const exists =
-                        remoteStream
-                          .getTracks()
-                          .some(
-                            (
-                              existing
-                            ) =>
-                              existing.id ===
-                              track.id
-                          );
-
-                      if (
-                        !exists
-                      ) {
-                        remoteStream.addTrack(
-                          track
-                        );
-                      }
-                    }
-                  );
-              } else {
-                const exists =
-                  remoteStream
-                    .getTracks()
-                    .some(
-                      (
-                        existing
-                      ) =>
-                        existing.id ===
-                        event.track.id
-                    );
-
-                if (
-                  !exists
-                ) {
-                  remoteStream.addTrack(
-                    event.track
-                  );
-                }
-              }
-
-              /*
-               * Attach only once.
-               */
-              attachStreamToVideo(
-                remoteStream
-              );
-
-             event.track.onunmute =
-  () => {
-    console.log(
-      "D-ID TRACK UNMUTED:",
-      event.track.kind
-    );
-
-    if (
-      event.track.kind !==
-      "video"
-    ) {
-      return;
-    }
-
-    window.setTimeout(
-      () => {
-        waitForVideoFrames({
-          attempts: 80,
-          delay: 250,
-        }).catch(
-          (error) => {
-            console.error(
-              "D-ID VIDEO FRAME WAIT ERROR:",
-              error
-            );
-          }
-        );
-      },
-      300
-    );
-  };
-
-     
-
-              event.track.onended =
-                () => {
-                  console.warn(
-                    "D-ID TRACK ENDED:",
-                    event.track
-                      .kind
-                  );
-                };
+              await waitForVideoFrames();
             };
 
-          /* ---------------------------------------------
-             5. SEND LOCAL ICE CANDIDATES
-          --------------------------------------------- */
+          /* ===============================================
+             ICE
+          =============================================== */
 
           peerConnection.onicecandidate =
-            (event) => {
-              if (
-                closedRef.current ||
-                !avatarSessionIdRef.current
-              ) {
+            async (event) => {
+              const currentSessionId =
+                avatarSessionIdRef.current;
+
+              if (!currentSessionId) {
                 return;
               }
 
-              sendIceCandidate({
-                avatarSessionId:
-                  sessionData
-                    .avatarSessionId,
+              try {
+                if (
+                  event.candidate
+                ) {
+                  await addAvatarIceApi({
+                    avatarSessionId:
+                      currentSessionId,
 
-                candidate:
-                  event.candidate,
-              }).catch(
-                (error) => {
-                  console.error(
-                    "D-ID ICE SEND ERROR:",
-                    error
-                  );
+                    candidate:
+                      event.candidate
+                        .candidate,
+
+                    sdpMid:
+                      event.candidate
+                        .sdpMid,
+
+                    sdpMLineIndex:
+                      event.candidate
+                        .sdpMLineIndex,
+                  });
+                } else {
+                  await addAvatarIceApi({
+                    avatarSessionId:
+                      currentSessionId,
+
+                    candidate: null,
+
+                    sdpMid: null,
+
+                    sdpMLineIndex:
+                      null,
+                  });
                 }
-              );
+              } catch (error) {
+                console.error(
+                  "AVATAR ICE ERROR:",
+                  error
+                );
+              }
             };
 
-          /* ---------------------------------------------
-             6. CONNECTION STATE
-          --------------------------------------------- */
+          /* ===============================================
+             CONNECTION STATE
+          =============================================== */
 
           peerConnection.onconnectionstatechange =
             () => {
               const state =
                 peerConnection
                   .connectionState;
-
-              console.log(
-                "D-ID CONNECTION STATE:",
-                state
-              );
 
               setConnectionState(
                 state
@@ -985,51 +410,16 @@ export default function useAvatarStream() {
                 setAvatarConnected(
                   true
                 );
-
-                setAvatarError(
-                  null
-                );
-
-                /*
-                 * Do not change srcObject here.
-                 * Only retry play.
-                 */
-                window.setTimeout(
-                  () => {
-                    playVideo();
-                  },
-                  150
-                );
               }
 
               if (
-                state ===
-                  "disconnected" ||
-                state ===
-                  "failed"
+                [
+                  "failed",
+                  "disconnected",
+                  "closed",
+                ].includes(state)
               ) {
                 setAvatarConnected(
-                  false
-                );
-
-                setAvatarPlaying(
-                  false
-                );
-
-                setAvatarError(
-                  `Avatar WebRTC connection is ${state}.`
-                );
-              }
-
-              if (
-                state ===
-                "closed"
-              ) {
-                setAvatarConnected(
-                  false
-                );
-
-                setAvatarPlaying(
                   false
                 );
               }
@@ -1037,123 +427,73 @@ export default function useAvatarStream() {
 
           peerConnection.oniceconnectionstatechange =
             () => {
-              console.log(
-                "D-ID ICE CONNECTION STATE:",
+              const state =
                 peerConnection
-                  .iceConnectionState
-              );
+                  .iceConnectionState;
+
+              if (
+                state ===
+                "failed"
+              ) {
+                setAvatarError(
+                  "Avatar ICE connection failed."
+                );
+              }
             };
 
-          peerConnection.onicegatheringstatechange =
-            () => {
-              console.log(
-                "D-ID ICE GATHERING STATE:",
-                peerConnection
-                  .iceGatheringState
-              );
-            };
+          /* ===============================================
+             SDP
+          =============================================== */
 
-          peerConnection.onsignalingstatechange =
-            () => {
-              console.log(
-                "D-ID SIGNALING STATE:",
-                peerConnection
-                  .signalingState
-              );
-            };
+          setConnectionState(
+            "setting-remote-description"
+          );
 
-          /* ---------------------------------------------
-             7. APPLY REMOTE OFFER
-          --------------------------------------------- */
+          await peerConnection
+            .setRemoteDescription(
+              new RTCSessionDescription(
+                offer
+              )
+            );
 
-          await peerConnection.setRemoteDescription(
-            {
+          const answer =
+            await peerConnection
+              .createAnswer();
+
+          await peerConnection
+            .setLocalDescription(
+              answer
+            );
+
+          setConnectionState(
+            "submitting-answer"
+          );
+
+          await submitAvatarAnswerApi({
+            avatarSessionId,
+
+            answer: {
               type:
-                sessionData.offer
+                peerConnection
+                  .localDescription
                   .type,
 
               sdp:
-                sessionData.offer
+                peerConnection
+                  .localDescription
                   .sdp,
-            }
+            },
+          });
+
+          setAvatarConnected(
+            true
           );
 
-          console.log(
-            "D-ID REMOTE DESCRIPTION SET"
+          setConnectionState(
+            "connected"
           );
 
-          /* ---------------------------------------------
-             8. CREATE LOCAL ANSWER
-          --------------------------------------------- */
-
-          const answer =
-            await peerConnection.createAnswer();
-
-          await peerConnection.setLocalDescription(
-            answer
-          );
-
-          await waitForIceGatheringComplete(
-            peerConnection
-          );
-
-          const localDescription =
-            peerConnection.localDescription;
-
-          if (
-            !localDescription
-              ?.type ||
-            !localDescription
-              ?.sdp
-          ) {
-            throw new Error(
-              "Browser did not create a valid SDP answer."
-            );
-          }
-
-          /* ---------------------------------------------
-             9. SUBMIT SDP ANSWER
-          --------------------------------------------- */
-
-          const answerResponse =
-            await fetch(
-              `${BASE_URL}/api/avatar/sessions/${sessionData.avatarSessionId}/answer`,
-              {
-                method:
-                  "POST",
-
-                credentials:
-                  "include",
-
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
-
-                body:
-                  JSON.stringify({
-                    answer: {
-                      type:
-                        localDescription
-                          .type,
-
-                      sdp:
-                        localDescription
-                          .sdp,
-                    },
-                  }),
-              }
-            );
-
-          await parseResponse(
-            answerResponse
-          );
-
-          console.log(
-            "D-ID SDP ANSWER ACCEPTED"
-          );
-
-          return sessionData;
+          return result;
         } catch (error) {
           console.error(
             "CREATE AVATAR SESSION ERROR:",
@@ -1161,21 +501,15 @@ export default function useAvatarStream() {
           );
 
           setAvatarError(
-            error?.message ||
-              "Unable to start the avatar."
+            error.message ||
+              "Unable to create avatar stream."
           );
 
-          setAvatarConnected(
-            false
+          setConnectionState(
+            "failed"
           );
 
-          setAvatarPlaying(
-            false
-          );
-
-          await closeAvatar().catch(
-            () => {}
-          );
+          await closeAvatar();
 
           throw error;
         } finally {
@@ -1185,138 +519,99 @@ export default function useAvatarStream() {
         }
       },
       [
-        
-  attachStreamToVideo,
-  closeAvatar,
-  playVideo,
-  sendIceCandidate,
-  waitForIceGatheringComplete,
-  waitForVideoFrames,
-
+        closeAvatar,
+        playVideo,
+        waitForVideoFrames,
       ]
     );
 
   /* =======================================================
-     MAKE AVATAR SPEAK
+     SPEAK
   ======================================================= */
-const speak =
-  useCallback(
-    async (
-      text,
-      language = "English"
-    ) => {
-      const avatarSessionId =
-        avatarSessionIdRef.current;
 
-      const normalizedText =
-        String(text || "").trim();
+  const speak =
+    useCallback(
+      async (
+        text,
+        language = "English",
+        audioUrl = ""
+      ) => {
+        const avatarSessionId =
+          avatarSessionIdRef.current;
 
-      if (!avatarSessionId) {
-        throw new Error(
-          "Avatar session is not available."
-        );
-      }
-
-      if (!normalizedText) {
-        throw new Error(
-          "Avatar speech text is required."
-        );
-      }
-
-      console.log(
-        "CALLING D-ID SPEAK:",
-        {
-          avatarSessionId,
-          language,
-          textLength:
-            normalizedText.length,
+        if (!avatarSessionId) {
+          throw new Error(
+            "Avatar session is not active."
+          );
         }
-      );
 
-      const response =
-        await fetch(
-          `${BASE_URL}/api/avatar/sessions/${avatarSessionId}/speak`,
-          {
-            method: "POST",
-            credentials: "include",
+        const normalizedText =
+          String(
+            text || ""
+          ).trim();
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+        if (
+          !normalizedText &&
+          !audioUrl
+        ) {
+          throw new Error(
+            "Speech text or audio URL is required."
+          );
+        }
 
-            body: JSON.stringify({
-              text:
-                normalizedText,
-              language,
-            }),
-          }
-        );
+        return speakAvatarApi({
+          avatarSessionId,
 
-      const result =
-        await parseResponse(
-          response
-        );
+          text:
+            normalizedText,
 
-      console.log(
-        "D-ID SPEECH REQUEST ACCEPTED:",
-        result
-      );
+          language,
 
-      window.setTimeout(
-        () => {
-          waitForVideoFrames({
-            attempts: 100,
-            delay: 250,
-          }).catch((error) => {
-            console.error(
-              "D-ID FRAME WAIT ERROR:",
-              error
-            );
-          });
-        },
-        300
-      );
-
-      return true;
-    },
-    [waitForVideoFrames]
-  );
+          audioUrl,
+        });
+      },
+      []
+    );
 
   /* =======================================================
-     COMPONENT CLEANUP
+     UNMOUNT CLEANUP
   ======================================================= */
 
   useEffect(() => {
     return () => {
-      const peerConnection =
-        peerConnectionRef.current;
+      const avatarSessionId =
+        avatarSessionIdRef.current;
 
-      if (
-        peerConnection
-      ) {
-        try {
-          peerConnection.close();
-        } catch {
-          // Ignore.
-        }
+      avatarSessionIdRef.current =
+        null;
+
+      if (avatarSessionId) {
+        endAvatarSessionApi(
+          avatarSessionId
+        ).catch(() => {});
       }
+
+      destroyPeerConnection();
+      resetVideo();
     };
-  }, []);
+  }, [
+    destroyPeerConnection,
+    resetVideo,
+  ]);
 
   return {
-  videoRef,
+    videoRef,
 
-  avatarConnected,
-  avatarPlaying,
-  avatarLoading,
-  avatarError,
-  connectionState,
+    avatarLoading,
+    avatarConnected,
+    avatarPlaying,
+    avatarError,
+    connectionState,
 
-  createAvatarSession,
-  speak,
-  playVideo,
-  waitForVideoFrames,
-  closeAvatar,
-};
+    createAvatarSession,
+    speak,
+    closeAvatar,
+    playVideo,
+    waitForVideoFrames,
+  };
 }
