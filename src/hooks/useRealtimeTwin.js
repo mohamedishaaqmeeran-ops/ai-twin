@@ -1,639 +1,2187 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { API_URL, apiRequest, toWebSocketUrl } from "../lib/api";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import {
+  API_URL,
+  apiRequest,
+  toWebSocketUrl,
+} from "../lib/api";
 
 const INPUT_SAMPLE_RATE = 16000;
 const OUTPUT_SAMPLE_RATE = 24000;
 const CHUNK_SIZE = 4096;
 
+/* =========================================================
+   EVENT HELPERS
+========================================================= */
+
 function getEvent(message) {
-  return message?.event || message?.type || "";
+  return (
+    message?.event ||
+    message?.type ||
+    ""
+  );
 }
 
+function createId() {
+  return (
+    crypto?.randomUUID?.() ||
+    `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2)}`
+  );
+}
+
+/* =========================================================
+   AUDIO HELPERS
+========================================================= */
+
 function arrayBufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
+  const bytes =
+    new Uint8Array(buffer);
+
   let binary = "";
+
   const size = 0x8000;
 
-  for (let index = 0; index < bytes.length; index += size) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + size));
+  for (
+    let index = 0;
+    index < bytes.length;
+    index += size
+  ) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(
+        index,
+        index + size
+      )
+    );
   }
 
   return btoa(binary);
 }
 
 function base64ToInt16(base64) {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
+  const binary =
+    atob(base64);
 
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
+  const bytes =
+    new Uint8Array(
+      binary.length
+    );
+
+  for (
+    let index = 0;
+    index < binary.length;
+    index += 1
+  ) {
+    bytes[index] =
+      binary.charCodeAt(index);
   }
 
-  return new Int16Array(bytes.buffer);
+  return new Int16Array(
+    bytes.buffer
+  );
 }
 
 function float32ToInt16(input) {
-  const output = new Int16Array(input.length);
+  const output =
+    new Int16Array(
+      input.length
+    );
 
-  for (let index = 0; index < input.length; index += 1) {
-    const sample = Math.max(-1, Math.min(1, input[index]));
-    output[index] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+  for (
+    let index = 0;
+    index < input.length;
+    index += 1
+  ) {
+    const sample =
+      Math.max(
+        -1,
+        Math.min(
+          1,
+          input[index]
+        )
+      );
+
+    output[index] =
+      sample < 0
+        ? sample * 0x8000
+        : sample * 0x7fff;
   }
 
   return output;
 }
 
-function downsample(input, inputRate, outputRate) {
-  if (inputRate === outputRate) return input;
-  if (outputRate > inputRate) {
-    throw new Error("Output sample rate must not exceed input sample rate.");
+function downsample(
+  input,
+  inputRate,
+  outputRate
+) {
+  if (
+    inputRate === outputRate
+  ) {
+    return input;
   }
 
-  const ratio = inputRate / outputRate;
-  const length = Math.round(input.length / ratio);
-  const output = new Float32Array(length);
+  if (
+    outputRate > inputRate
+  ) {
+    throw new Error(
+      "Output sample rate must not exceed input sample rate."
+    );
+  }
+
+  const ratio =
+    inputRate / outputRate;
+
+  const length =
+    Math.round(
+      input.length / ratio
+    );
+
+  const output =
+    new Float32Array(
+      length
+    );
 
   let inputOffset = 0;
 
-  for (let outputOffset = 0; outputOffset < length; outputOffset += 1) {
-    const nextOffset = Math.round((outputOffset + 1) * ratio);
+  for (
+    let outputOffset = 0;
+    outputOffset < length;
+    outputOffset += 1
+  ) {
+    const nextOffset =
+      Math.round(
+        (outputOffset + 1) *
+          ratio
+      );
+
     let total = 0;
     let count = 0;
 
-    while (inputOffset < nextOffset && inputOffset < input.length) {
-      total += input[inputOffset];
+    while (
+      inputOffset <
+        nextOffset &&
+      inputOffset <
+        input.length
+    ) {
+      total +=
+        input[inputOffset];
+
       count += 1;
       inputOffset += 1;
     }
 
-    output[outputOffset] = count ? total / count : 0;
+    output[outputOffset] =
+      count
+        ? total / count
+        : 0;
   }
 
   return output;
 }
 
-function createId() {
-  return crypto?.randomUUID?.() ||
-    `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
+/* =========================================================
+   HOOK
+========================================================= */
 
 export default function useRealtimeTwin() {
-  const socketRef = useRef(null);
-  const sessionRef = useRef(null);
-  const streamRef = useRef(null);
-  const inputContextRef = useRef(null);
-  const sourceRef = useRef(null);
-  const processorRef = useRef(null);
-  const outputContextRef = useRef(null);
-  const outputQueueRef = useRef([]);
-  const outputPlayingRef = useRef(false);
-  const currentOutputRef = useRef(null);
-  const manualCloseRef = useRef(false);
+  /* =======================================================
+     REFS
+  ======================================================= */
 
-  const [session, setSession] = useState(null);
-  const [status, setStatus] = useState("idle");
-  const [connectionStage, setConnectionStage] = useState("idle");
-  const [connected, setConnected] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
-  const [permission, setPermission] = useState("unknown");
-  const [messages, setMessages] = useState([]);
-  const [userTranscript, setUserTranscript] = useState("");
-  const [assistantTranscript, setAssistantTranscript] = useState("");
-  const [error, setError] = useState("");
+  const socketRef =
+    useRef(null);
 
-  const send = useCallback((payload) => {
-    const socket = socketRef.current;
+  const sessionRef =
+    useRef(null);
 
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      return false;
-    }
+  const streamRef =
+    useRef(null);
 
-    socket.send(JSON.stringify(payload));
-    return true;
-  }, []);
+  const inputContextRef =
+    useRef(null);
 
-  const appendMessage = useCallback((role, text, id) => {
-    const normalized = String(text || "").trim();
-    if (!normalized) return;
+  const sourceRef =
+    useRef(null);
 
-    setMessages((current) => [
-      ...current,
-      {
-        id: id || createId(),
-        role,
-        text: normalized,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
-  }, []);
+  const processorRef =
+    useRef(null);
 
-  const getOutputContext = useCallback(async () => {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  const outputContextRef =
+    useRef(null);
 
-    if (!AudioContextClass) {
-      throw new Error("Audio playback is unsupported in this browser.");
-    }
+  const outputQueueRef =
+    useRef([]);
 
-    if (!outputContextRef.current || outputContextRef.current.state === "closed") {
-      outputContextRef.current = new AudioContextClass({
-        sampleRate: OUTPUT_SAMPLE_RATE,
-      });
-    }
+  const outputPlayingRef =
+    useRef(false);
 
-    if (outputContextRef.current.state === "suspended") {
-      await outputContextRef.current.resume();
-    }
+  const currentOutputRef =
+    useRef(null);
 
-    return outputContextRef.current;
-  }, []);
+  const manualCloseRef =
+    useRef(false);
 
-  const playNext = useCallback(async () => {
-    if (outputPlayingRef.current) return;
+  const userTranscriptRef =
+    useRef("");
 
-    const next = outputQueueRef.current.shift();
+  const assistantTranscriptRef =
+    useRef("");
 
-    if (!next) {
-      setSpeaking(false);
-      return;
-    }
+  const lastTypedMessageRef =
+    useRef("");
 
-    outputPlayingRef.current = true;
-    setSpeaking(true);
+  const mountedRef =
+    useRef(true);
 
-    try {
-      const context = await getOutputContext();
-      const pcm = base64ToInt16(next.audio);
-      const floats = new Float32Array(pcm.length);
+  /* =======================================================
+     STATE
+  ======================================================= */
 
-      for (let index = 0; index < pcm.length; index += 1) {
-        floats[index] = pcm[index] / 32768;
+  const [
+    session,
+    setSession,
+  ] = useState(null);
+
+  const [
+    status,
+    setStatus,
+  ] = useState("idle");
+
+  const [
+    connectionStage,
+    setConnectionStage,
+  ] = useState("idle");
+
+  const [
+    connected,
+    setConnected,
+  ] = useState(false);
+
+  const [
+    recording,
+    setRecording,
+  ] = useState(false);
+
+  const [
+    speaking,
+    setSpeaking,
+  ] = useState(false);
+
+  const [
+    permission,
+    setPermission,
+  ] = useState("unknown");
+
+  const [
+    messages,
+    setMessages,
+  ] = useState([]);
+
+  const [
+    userTranscript,
+    setUserTranscript,
+  ] = useState("");
+
+  const [
+    assistantTranscript,
+    setAssistantTranscript,
+  ] = useState("");
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  /* =======================================================
+     SEND SOCKET MESSAGE
+  ======================================================= */
+
+  const send = useCallback(
+    (payload) => {
+      const socket =
+        socketRef.current;
+
+      if (
+        !socket ||
+        socket.readyState !==
+          WebSocket.OPEN
+      ) {
+        return false;
       }
-
-      const buffer = context.createBuffer(
-        1,
-        floats.length,
-        Number(next.sampleRate || OUTPUT_SAMPLE_RATE)
-      );
-
-      buffer.getChannelData(0).set(floats);
-
-      const source = context.createBufferSource();
-      source.buffer = buffer;
-      source.connect(context.destination);
-      currentOutputRef.current = source;
-
-      source.onended = () => {
-        currentOutputRef.current = null;
-        outputPlayingRef.current = false;
-        playNext();
-      };
-
-      source.start();
-    } catch (playbackError) {
-      outputPlayingRef.current = false;
-      setError(playbackError.message || "Unable to play realtime audio.");
-      playNext();
-    }
-  }, [getOutputContext]);
-
-  const enqueueAudio = useCallback(
-    (audio, sampleRate) => {
-      if (!audio) return;
-
-      outputQueueRef.current.push({
-        audio,
-        sampleRate: sampleRate || OUTPUT_SAMPLE_RATE,
-      });
-
-      playNext();
-    },
-    [playNext]
-  );
-
-  const clearPlayback = useCallback(() => {
-    outputQueueRef.current = [];
-
-    try {
-      currentOutputRef.current?.stop();
-    } catch {
-      // Already stopped.
-    }
-
-    currentOutputRef.current = null;
-    outputPlayingRef.current = false;
-    setSpeaking(false);
-  }, []);
-
-  const stopMicrophone = useCallback(async () => {
-    processorRef.current?.disconnect();
-    sourceRef.current?.disconnect();
-    processorRef.current = null;
-    sourceRef.current = null;
-
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-
-    if (inputContextRef.current?.state !== "closed") {
-      await inputContextRef.current?.close().catch(() => {});
-    }
-
-    inputContextRef.current = null;
-    setRecording(false);
-    send({ event: "audio:end" });
-  }, [send]);
-
-  const startMicrophone = useCallback(async () => {
-    if (!connected || connectionStage !== "ready") {
-      throw new Error("Gemini Live is not ready.");
-    }
-
-    if (recording) return;
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-
-      setPermission("granted");
-      streamRef.current = stream;
-
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      const context = new AudioContextClass();
-
-      inputContextRef.current = context;
-
-      const source = context.createMediaStreamSource(stream);
-      const processor = context.createScriptProcessor(CHUNK_SIZE, 1, 1);
-
-      sourceRef.current = source;
-      processorRef.current = processor;
-
-      processor.onaudioprocess = (event) => {
-        const input = event.inputBuffer.getChannelData(0);
-        const reduced = downsample(input, context.sampleRate, INPUT_SAMPLE_RATE);
-        const pcm = float32ToInt16(reduced);
-        const audio = arrayBufferToBase64(pcm.buffer);
-
-        send({
-          event: "audio:input",
-          audio,
-          data: audio,
-          mimeType: `audio/pcm;rate=${INPUT_SAMPLE_RATE}`,
-          sampleRate: INPUT_SAMPLE_RATE,
-        });
-      };
-
-      source.connect(processor);
-      processor.connect(context.destination);
-
-      send({
-        event: "audio:start",
-        mimeType: `audio/pcm;rate=${INPUT_SAMPLE_RATE}`,
-        sampleRate: INPUT_SAMPLE_RATE,
-      });
-
-      setRecording(true);
-    } catch (microphoneError) {
-      setPermission(
-        microphoneError?.name === "NotAllowedError" ? "denied" : "error"
-      );
-      await stopMicrophone();
-      throw microphoneError;
-    }
-  }, [connected, connectionStage, recording, send, stopMicrophone]);
-
-  const handleMessage = useCallback(
-    (event) => {
-      let message;
 
       try {
-        message = JSON.parse(event.data);
+        socket.send(
+          JSON.stringify(
+            payload
+          )
+        );
+
+        return true;
+      } catch (
+        sendError
+      ) {
+        console.error(
+          "REALTIME SEND ERROR:",
+          sendError
+        );
+
+        return false;
+      }
+    },
+    []
+  );
+
+  /* =======================================================
+     APPEND CHAT MESSAGE
+  ======================================================= */
+
+  const appendMessage =
+    useCallback(
+      (
+        role,
+        text,
+        id
+      ) => {
+        const normalized =
+          String(
+            text || ""
+          ).trim();
+
+        if (
+          !normalized ||
+          ![
+            "user",
+            "assistant",
+          ].includes(role)
+        ) {
+          return;
+        }
+
+        setMessages(
+          (
+            current
+          ) => {
+            const lastMessage =
+              current[
+                current.length -
+                  1
+              ];
+
+            if (
+              lastMessage &&
+              lastMessage.role ===
+                role &&
+              lastMessage.text ===
+                normalized
+            ) {
+              return current;
+            }
+
+            const nextMessages =
+              [
+                ...current,
+                {
+                  id:
+                    id ||
+                    createId(),
+
+                  role,
+
+                  text:
+                    normalized,
+
+                  createdAt:
+                    new Date()
+                      .toISOString(),
+                },
+              ];
+
+            return nextMessages.slice(
+              -100
+            );
+          }
+        );
+      },
+      []
+    );
+
+  /* =======================================================
+     OUTPUT AUDIO CONTEXT
+  ======================================================= */
+
+  const getOutputContext =
+    useCallback(
+      async () => {
+        const AudioContextClass =
+          window.AudioContext ||
+          window.webkitAudioContext;
+
+        if (
+          !AudioContextClass
+        ) {
+          throw new Error(
+            "Audio playback is unsupported in this browser."
+          );
+        }
+
+        if (
+          !outputContextRef.current ||
+          outputContextRef
+            .current
+            .state ===
+            "closed"
+        ) {
+          outputContextRef.current =
+            new AudioContextClass({
+              sampleRate:
+                OUTPUT_SAMPLE_RATE,
+            });
+        }
+
+        if (
+          outputContextRef
+            .current
+            .state ===
+          "suspended"
+        ) {
+          await outputContextRef
+            .current
+            .resume();
+        }
+
+        return outputContextRef.current;
+      },
+      []
+    );
+
+  /* =======================================================
+     PLAY OUTPUT AUDIO QUEUE
+  ======================================================= */
+
+  const playNext =
+    useCallback(
+      async () => {
+        if (
+          outputPlayingRef
+            .current
+        ) {
+          return;
+        }
+
+        const next =
+          outputQueueRef
+            .current
+            .shift();
+
+        if (!next) {
+          if (
+            mountedRef.current
+          ) {
+            setSpeaking(false);
+          }
+
+          return;
+        }
+
+        outputPlayingRef.current =
+          true;
+
+        if (
+          mountedRef.current
+        ) {
+          setSpeaking(true);
+        }
+
+        try {
+          const context =
+            await getOutputContext();
+
+          const pcm =
+            base64ToInt16(
+              next.audio
+            );
+
+          const floats =
+            new Float32Array(
+              pcm.length
+            );
+
+          for (
+            let index = 0;
+            index <
+            pcm.length;
+            index += 1
+          ) {
+            floats[index] =
+              pcm[index] /
+              32768;
+          }
+
+          const sampleRate =
+            Number(
+              next.sampleRate ||
+                OUTPUT_SAMPLE_RATE
+            );
+
+          const buffer =
+            context.createBuffer(
+              1,
+              floats.length,
+              sampleRate
+            );
+
+          buffer
+            .getChannelData(0)
+            .set(floats);
+
+          const source =
+            context.createBufferSource();
+
+          source.buffer =
+            buffer;
+
+          source.connect(
+            context.destination
+          );
+
+          currentOutputRef.current =
+            source;
+
+          source.onended =
+            () => {
+              currentOutputRef.current =
+                null;
+
+              outputPlayingRef.current =
+                false;
+
+              playNext();
+            };
+
+          source.start();
+        } catch (
+          playbackError
+        ) {
+          console.error(
+            "REALTIME AUDIO PLAYBACK ERROR:",
+            playbackError
+          );
+
+          outputPlayingRef.current =
+            false;
+
+          if (
+            mountedRef.current
+          ) {
+            setError(
+              playbackError
+                ?.message ||
+                "Unable to play realtime audio."
+            );
+          }
+
+          playNext();
+        }
+      },
+      [
+        getOutputContext,
+      ]
+    );
+
+  const enqueueAudio =
+    useCallback(
+      (
+        audio,
+        sampleRate
+      ) => {
+        if (
+          !audio ||
+          typeof audio !==
+            "string"
+        ) {
+          return;
+        }
+
+        outputQueueRef.current.push(
+          {
+            audio,
+
+            sampleRate:
+              sampleRate ||
+              OUTPUT_SAMPLE_RATE,
+          }
+        );
+
+        playNext();
+      },
+      [playNext]
+    );
+
+  /* =======================================================
+     CLEAR AUDIO PLAYBACK
+  ======================================================= */
+
+  const clearPlayback =
+    useCallback(() => {
+      outputQueueRef.current =
+        [];
+
+      try {
+        currentOutputRef
+          .current
+          ?.stop();
       } catch {
-        return;
+        // Output was already stopped.
       }
 
-      const type = getEvent(message);
+      currentOutputRef.current =
+        null;
 
-      if (type === "socket:connected") {
-        setConnected(true);
-        setStatus("connected");
-        setConnectionStage("initializing-gemini");
-        return;
-      }
+      outputPlayingRef.current =
+        false;
 
-      if (type === "session:ready") {
-        setConnected(true);
-        setStatus("ready");
-        setConnectionStage("ready");
-        setError("");
-        return;
-      }
-
-      if (type === "transcript:user") {
-        const text = message.text || message.transcript || message.data?.text || "";
-        setUserTranscript(text);
-
-        if (message.final || message.isFinal || message.data?.final) {
-          appendMessage("user", text);
-          setUserTranscript("");
-        }
-
-        return;
-      }
-
-      if (type === "transcript:assistant") {
-        const text = message.text || message.transcript || message.data?.text || "";
-        setAssistantTranscript(text);
-
-        if (message.final || message.isFinal || message.data?.final) {
-          appendMessage("assistant", text);
-          setAssistantTranscript("");
-        }
-
-        return;
-      }
-
-      if (type === "audio:output") {
-        enqueueAudio(
-          message.audio || message.base64 || message.data?.audio || message.data,
-          message.sampleRate || message.data?.sampleRate
-        );
-        return;
-      }
-
-      if (type === "conversation:turn-complete") {
-        if (userTranscript.trim()) appendMessage("user", userTranscript);
-        if (assistantTranscript.trim()) appendMessage("assistant", assistantTranscript);
-        setUserTranscript("");
-        setAssistantTranscript("");
-        return;
-      }
-
-      if (type === "conversation:interrupted") {
-        clearPlayback();
-        setAssistantTranscript("");
-        return;
-      }
-
-      if (type === "session:error") {
-        setError(
-          message.message ||
-          message.error ||
-          message.data?.message ||
-          "Realtime session error."
-        );
-        setStatus("error");
-        return;
-      }
-
-      if (type === "gemini:closed") {
-        setConnected(false);
-        setConnectionStage("closed");
-        setStatus("closed");
-        setRecording(false);
+      if (
+        mountedRef.current
+      ) {
         setSpeaking(false);
       }
-    },
-    [
-      appendMessage,
-      assistantTranscript,
-      clearPlayback,
-      enqueueAudio,
-      userTranscript,
-    ]
-  );
+    }, []);
 
-  const disconnect = useCallback(async () => {
-    manualCloseRef.current = true;
-    await stopMicrophone();
-    clearPlayback();
+  /* =======================================================
+     STOP MICROPHONE
+  ======================================================= */
 
-    const socket = socketRef.current;
+  const stopMicrophone =
+    useCallback(
+      async () => {
+        const wasRecording =
+          Boolean(
+            processorRef.current ||
+              streamRef.current
+          );
 
-    if (socket) {
-      socket.onopen = null;
-      socket.onmessage = null;
-      socket.onerror = null;
-      socket.onclose = null;
+        try {
+          processorRef
+            .current
+            ?.disconnect();
+        } catch {
+          // Ignore disconnect error.
+        }
 
-      try {
-        socket.close(1000, "Client disconnected");
-      } catch {
-        // Ignore close errors.
-      }
-    }
+        try {
+          sourceRef
+            .current
+            ?.disconnect();
+        } catch {
+          // Ignore disconnect error.
+        }
 
-    socketRef.current = null;
+        processorRef.current =
+          null;
 
-    const sessionId = sessionRef.current?._id;
+        sourceRef.current =
+          null;
 
-    if (sessionId) {
-      await fetch(`${API_URL}/api/realtime/sessions/${sessionId}/end`, {
-        method: "POST",
-        credentials: "include",
-      }).catch(() => {});
-    }
+        streamRef.current
+          ?.getTracks()
+          .forEach(
+            (
+              track
+            ) => {
+              track.stop();
+            }
+          );
 
-    sessionRef.current = null;
-    setSession(null);
-    setConnected(false);
-    setRecording(false);
-    setSpeaking(false);
-    setStatus("idle");
-    setConnectionStage("idle");
-    setUserTranscript("");
-    setAssistantTranscript("");
-  }, [clearPlayback, stopMicrophone]);
+        streamRef.current =
+          null;
 
-  const connect = useCallback(
-    async ({ twinId, productId, language = "English", mode = "test" }) => {
-      if (!twinId) throw new Error("Twin ID is required.");
-      if (!productId) throw new Error("Product ID is required.");
+        if (
+          inputContextRef
+            .current &&
+          inputContextRef
+            .current
+            .state !==
+            "closed"
+        ) {
+          await inputContextRef
+            .current
+            .close()
+            .catch(
+              () => {}
+            );
+        }
 
-      await disconnect();
-      manualCloseRef.current = false;
-      setMessages([]);
-      setError("");
-      setStatus("creating");
-      setConnectionStage("creating-session");
+        inputContextRef.current =
+          null;
 
-      const result = await apiRequest("/api/realtime/sessions", {
-        method: "POST",
-        body: JSON.stringify({ twinId, productId, language, mode }),
-      });
+        if (
+          mountedRef.current
+        ) {
+          setRecording(false);
+        }
 
-      const returnedSession =
-        result.session || result.data?.session || result.data || {};
+        if (wasRecording) {
+          send({
+            event:
+              "audio:end",
+          });
+        }
+      },
+      [send]
+    );
 
-      const sessionId =
-        returnedSession._id ||
-        returnedSession.id ||
-        result.sessionId ||
-        result.data?.sessionId;
+  /* =======================================================
+     START MICROPHONE
+  ======================================================= */
 
-      if (!sessionId) {
-        throw new Error("Realtime session ID was not returned.");
-      }
+  const startMicrophone =
+    useCallback(
+      async () => {
+        if (
+          !connected ||
+          connectionStage !==
+            "ready"
+        ) {
+          throw new Error(
+            "Gemini Live is not ready."
+          );
+        }
 
-      const normalized = {
-        ...returnedSession,
-        _id: sessionId,
-        twinId,
-        productId,
-        language,
-        mode,
-      };
+        if (recording) {
+          return;
+        }
 
-      sessionRef.current = normalized;
-      setSession(normalized);
-      setConnectionStage("connecting-socket");
+        try {
+          const stream =
+            await navigator
+              .mediaDevices
+              .getUserMedia({
+                audio: {
+                  channelCount:
+                    1,
 
-      const socketUrl =
-        result.socketUrl ||
-        result.data?.socketUrl ||
-        returnedSession.socketUrl ||
-        `${toWebSocketUrl(API_URL)}/api/realtime/socket`;
+                  echoCancellation:
+                    true,
 
-      const socketToken =
-        result.socketToken ||
-        result.data?.socketToken ||
-        returnedSession.socketToken;
+                  noiseSuppression:
+                    true,
 
-      const url = new URL(socketUrl);
-      url.searchParams.set("sessionId", sessionId);
+                  autoGainControl:
+                    true,
+                },
+              });
 
-      if (socketToken) {
-        url.searchParams.set("token", socketToken);
-      }
+          if (
+            mountedRef.current
+          ) {
+            setPermission(
+              "granted"
+            );
+          }
 
-      const socket = new WebSocket(url.toString());
-      socketRef.current = socket;
+          streamRef.current =
+            stream;
 
-      await new Promise((resolve, reject) => {
-        const timeout = window.setTimeout(
-          () => reject(new Error("Realtime socket connection timed out.")),
-          20000
-        );
+          const AudioContextClass =
+            window.AudioContext ||
+            window.webkitAudioContext;
 
-        socket.onopen = () => {
-          window.clearTimeout(timeout);
-          setConnected(true);
-          setStatus("connected");
-          setConnectionStage("initializing-gemini");
+          if (
+            !AudioContextClass
+          ) {
+            throw new Error(
+              "Microphone audio is unsupported in this browser."
+            );
+          }
+
+          const context =
+            new AudioContextClass();
+
+          if (
+            context.state ===
+            "suspended"
+          ) {
+            await context.resume();
+          }
+
+          inputContextRef.current =
+            context;
+
+          const source =
+            context
+              .createMediaStreamSource(
+                stream
+              );
+
+          const processor =
+            context
+              .createScriptProcessor(
+                CHUNK_SIZE,
+                1,
+                1
+              );
+
+          sourceRef.current =
+            source;
+
+          processorRef.current =
+            processor;
+
+          processor.onaudioprocess =
+            (
+              event
+            ) => {
+              if (
+                !socketRef.current ||
+                socketRef.current
+                  .readyState !==
+                  WebSocket.OPEN
+              ) {
+                return;
+              }
+
+              const input =
+                event.inputBuffer
+                  .getChannelData(
+                    0
+                  );
+
+              const reduced =
+                downsample(
+                  input,
+                  context.sampleRate,
+                  INPUT_SAMPLE_RATE
+                );
+
+              const pcm =
+                float32ToInt16(
+                  reduced
+                );
+
+              const audio =
+                arrayBufferToBase64(
+                  pcm.buffer
+                );
+
+              send({
+                event:
+                  "audio:input",
+
+                audio,
+
+                data:
+                  audio,
+
+                mimeType:
+                  `audio/pcm;rate=${INPUT_SAMPLE_RATE}`,
+
+                sampleRate:
+                  INPUT_SAMPLE_RATE,
+              });
+            };
+
+          source.connect(
+            processor
+          );
+
+          processor.connect(
+            context.destination
+          );
 
           send({
-            event: "session:initialize",
-            sessionId,
-            twinId,
-            productId,
-            language,
-            mode,
+            event:
+              "audio:start",
+
+            mimeType:
+              `audio/pcm;rate=${INPUT_SAMPLE_RATE}`,
+
+            sampleRate:
+              INPUT_SAMPLE_RATE,
           });
 
-          resolve();
-        };
+          if (
+            mountedRef.current
+          ) {
+            setRecording(true);
+          }
+        } catch (
+          microphoneError
+        ) {
+          console.error(
+            "MICROPHONE ERROR:",
+            microphoneError
+          );
 
-        socket.onmessage = handleMessage;
+          if (
+            mountedRef.current
+          ) {
+            setPermission(
+              microphoneError
+                ?.name ===
+                "NotAllowedError"
+                ? "denied"
+                : "error"
+            );
+          }
 
-        socket.onerror = () => {
-          window.clearTimeout(timeout);
-          reject(new Error("Realtime socket connection failed."));
-        };
+          await stopMicrophone();
 
-        socket.onclose = (closeEvent) => {
-          window.clearTimeout(timeout);
+          throw microphoneError;
+        }
+      },
+      [
+        connected,
+        connectionStage,
+        recording,
+        send,
+        stopMicrophone,
+      ]
+    );
+
+  /* =======================================================
+     WEBSOCKET MESSAGE HANDLER
+  ======================================================= */
+
+  const handleMessage =
+    useCallback(
+      (
+        event
+      ) => {
+        let message;
+
+        try {
+          message =
+            JSON.parse(
+              event.data
+            );
+        } catch (
+          parseError
+        ) {
+          console.error(
+            "INVALID REALTIME MESSAGE:",
+            event.data,
+            parseError
+          );
+
+          return;
+        }
+
+        const type =
+          getEvent(
+            message
+          );
+
+        console.log(
+          "REALTIME EVENT:",
+          type,
+          message
+        );
+
+        /* ===============================
+           SOCKET CONNECTED
+        =============================== */
+
+        if (
+          type ===
+          "socket:connected"
+        ) {
+          setConnected(true);
+          setStatus(
+            "connected"
+          );
+
+          setConnectionStage(
+            "initializing-gemini"
+          );
+
+          return;
+        }
+
+        /* ===============================
+           SESSION READY
+        =============================== */
+
+        if (
+          type ===
+          "session:ready"
+        ) {
+          setConnected(true);
+          setStatus("ready");
+
+          setConnectionStage(
+            "ready"
+          );
+
+          setError("");
+
+          return;
+        }
+
+        /* ===============================
+           USER TRANSCRIPT
+        =============================== */
+
+        if (
+          type ===
+          "transcript:user"
+        ) {
+          const text =
+            String(
+              message.text ||
+                message.transcript ||
+                message.data
+                  ?.text ||
+                ""
+            ).trim();
+
+          if (!text) {
+            return;
+          }
+
+          /*
+           * Typed messages are appended immediately
+           * in sendText(). Ignore the repeated
+           * transcript sent back by Gemini.
+           */
+          if (
+            text ===
+            lastTypedMessageRef
+              .current
+          ) {
+            lastTypedMessageRef.current =
+              "";
+
+            userTranscriptRef.current =
+              "";
+
+            setUserTranscript(
+              ""
+            );
+
+            return;
+          }
+
+          userTranscriptRef.current =
+            text;
+
+          setUserTranscript(
+            text
+          );
+
+          const isFinal =
+            message.final ===
+              true ||
+            message.isFinal ===
+              true ||
+            message.data
+              ?.final ===
+              true ||
+            message.data
+              ?.isFinal ===
+              true;
+
+          if (isFinal) {
+            appendMessage(
+              "user",
+              userTranscriptRef
+                .current
+            );
+
+            userTranscriptRef.current =
+              "";
+
+            setUserTranscript(
+              ""
+            );
+          }
+
+          return;
+        }
+
+        /* ===============================
+           ASSISTANT TRANSCRIPT
+        =============================== */
+
+        if (
+          type ===
+          "transcript:assistant"
+        ) {
+          const text =
+            String(
+              message.text ||
+                message.transcript ||
+                message.data
+                  ?.text ||
+                ""
+            ).trim();
+
+          if (!text) {
+            return;
+          }
+
+          assistantTranscriptRef.current =
+            text;
+
+          setAssistantTranscript(
+            text
+          );
+
+          setSpeaking(true);
+
+          const isFinal =
+            message.final ===
+              true ||
+            message.isFinal ===
+              true ||
+            message.data
+              ?.final ===
+              true ||
+            message.data
+              ?.isFinal ===
+              true;
+
+          if (isFinal) {
+            appendMessage(
+              "assistant",
+              assistantTranscriptRef
+                .current
+            );
+
+            assistantTranscriptRef.current =
+              "";
+
+            setAssistantTranscript(
+              ""
+            );
+          }
+
+          return;
+        }
+
+        /* ===============================
+           AUDIO OUTPUT
+        =============================== */
+
+        if (
+          type ===
+          "audio:output"
+        ) {
+          const audio =
+            message.audio ||
+            message.base64 ||
+            message.data
+              ?.audio ||
+            (
+              typeof message.data ===
+              "string"
+                ? message.data
+                : ""
+            );
+
+          const sampleRate =
+            message.sampleRate ||
+            message.data
+              ?.sampleRate ||
+            OUTPUT_SAMPLE_RATE;
+
+          enqueueAudio(
+            audio,
+            sampleRate
+          );
+
+          return;
+        }
+
+        /* ===============================
+           TURN COMPLETE
+        =============================== */
+
+        if (
+          type ===
+          "conversation:turn-complete"
+        ) {
+          const completedUserText =
+            userTranscriptRef
+              .current
+              .trim();
+
+          const completedAssistantText =
+            assistantTranscriptRef
+              .current
+              .trim();
+
+          if (
+            completedUserText
+          ) {
+            appendMessage(
+              "user",
+              completedUserText
+            );
+          }
+
+          if (
+            completedAssistantText
+          ) {
+            appendMessage(
+              "assistant",
+              completedAssistantText
+            );
+          }
+
+          userTranscriptRef.current =
+            "";
+
+          assistantTranscriptRef.current =
+            "";
+
+          lastTypedMessageRef.current =
+            "";
+
+          setUserTranscript(
+            ""
+          );
+
+          setAssistantTranscript(
+            ""
+          );
+
+          if (
+            outputQueueRef
+              .current
+              .length === 0 &&
+            !outputPlayingRef
+              .current
+          ) {
+            setSpeaking(
+              false
+            );
+          }
+
+          return;
+        }
+
+        /* ===============================
+           INTERRUPTED
+        =============================== */
+
+        if (
+          type ===
+          "conversation:interrupted"
+        ) {
+          clearPlayback();
+
+          assistantTranscriptRef.current =
+            "";
+
+          setAssistantTranscript(
+            ""
+          );
+
+          setSpeaking(false);
+
+          return;
+        }
+
+        /* ===============================
+           UNSUPPORTED EVENT
+        =============================== */
+
+        if (
+          type ===
+          "event:unsupported"
+        ) {
+          console.warn(
+            "UNSUPPORTED REALTIME EVENT:",
+            message
+          );
+
+          return;
+        }
+
+        /* ===============================
+           PONG
+        =============================== */
+
+        if (
+          type === "pong"
+        ) {
+          return;
+        }
+
+        /* ===============================
+           SESSION CLOSED
+        =============================== */
+
+        if (
+          type ===
+          "session:closed"
+        ) {
           setConnected(false);
           setRecording(false);
           setSpeaking(false);
 
-          if (!manualCloseRef.current) {
-            setStatus("closed");
-            setConnectionStage("closed");
+          setStatus(
+            "closed"
+          );
 
-            if (closeEvent.code !== 1000) {
-              setError(closeEvent.reason || "Realtime connection closed.");
+          setConnectionStage(
+            "closed"
+          );
+
+          return;
+        }
+
+        /* ===============================
+           GEMINI CLOSED
+        =============================== */
+
+        if (
+          type ===
+          "gemini:closed"
+        ) {
+          setConnected(false);
+          setRecording(false);
+          setSpeaking(false);
+
+          setStatus(
+            "closed"
+          );
+
+          setConnectionStage(
+            "closed"
+          );
+
+          return;
+        }
+
+        /* ===============================
+           SESSION ERROR
+        =============================== */
+
+        if (
+          type ===
+          "session:error"
+        ) {
+          const messageText =
+            message.message ||
+            message.error ||
+            message.data
+              ?.message ||
+            "Realtime session error.";
+
+          setError(
+            messageText
+          );
+
+          setStatus(
+            "error"
+          );
+
+          setConnectionStage(
+            "error"
+          );
+        }
+      },
+      [
+        appendMessage,
+        clearPlayback,
+        enqueueAudio,
+      ]
+    );
+
+  /* =======================================================
+     DISCONNECT
+  ======================================================= */
+
+  const disconnect =
+    useCallback(
+      async () => {
+        manualCloseRef.current =
+          true;
+
+        await stopMicrophone();
+
+        clearPlayback();
+
+        const socket =
+          socketRef.current;
+
+        if (socket) {
+          try {
+            if (
+              socket.readyState ===
+                WebSocket.OPEN
+            ) {
+              socket.send(
+                JSON.stringify({
+                  event:
+                    "session:end",
+                })
+              );
             }
+          } catch {
+            // Ignore final send error.
           }
+
+          socket.onopen =
+            null;
+
+          socket.onmessage =
+            null;
+
+          socket.onerror =
+            null;
+
+          socket.onclose =
+            null;
+
+          try {
+            socket.close(
+              1000,
+              "Client disconnected"
+            );
+          } catch {
+            // Ignore close error.
+          }
+        }
+
+        socketRef.current =
+          null;
+
+        const sessionId =
+          sessionRef.current
+            ?._id;
+
+        if (sessionId) {
+          await fetch(
+            `${API_URL}/api/realtime/sessions/${sessionId}/end`,
+            {
+              method:
+                "POST",
+
+              credentials:
+                "include",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+            }
+          ).catch(
+            (
+              closeError
+            ) => {
+              console.error(
+                "SESSION END ERROR:",
+                closeError
+              );
+            }
+          );
+        }
+
+        sessionRef.current =
+          null;
+
+        userTranscriptRef.current =
+          "";
+
+        assistantTranscriptRef.current =
+          "";
+
+        lastTypedMessageRef.current =
+          "";
+
+        if (
+          mountedRef.current
+        ) {
+          setSession(null);
+          setConnected(false);
+          setRecording(false);
+          setSpeaking(false);
+          setStatus("idle");
+
+          setConnectionStage(
+            "idle"
+          );
+
+          setUserTranscript(
+            ""
+          );
+
+          setAssistantTranscript(
+            ""
+          );
+        }
+      },
+      [
+        clearPlayback,
+        stopMicrophone,
+      ]
+    );
+
+  /* =======================================================
+     CONNECT
+  ======================================================= */
+
+  const connect =
+    useCallback(
+      async ({
+        twinId,
+        productId,
+        language =
+          "English",
+        mode =
+          "test",
+      }) => {
+        if (!twinId) {
+          throw new Error(
+            "Twin ID is required."
+          );
+        }
+
+        if (!productId) {
+          throw new Error(
+            "Product ID is required."
+          );
+        }
+
+        await disconnect();
+
+        manualCloseRef.current =
+          false;
+
+        userTranscriptRef.current =
+          "";
+
+        assistantTranscriptRef.current =
+          "";
+
+        lastTypedMessageRef.current =
+          "";
+
+        setMessages([]);
+        setError("");
+        setStatus(
+          "creating"
+        );
+
+        setConnectionStage(
+          "creating-session"
+        );
+
+        console.log(
+          "STARTING REALTIME SESSION:",
+          {
+            twinId,
+            productId,
+            language,
+            mode,
+          }
+        );
+
+        const result =
+          await apiRequest(
+            "/api/realtime/sessions",
+            {
+              method:
+                "POST",
+
+              body:
+                JSON.stringify({
+                  twinId,
+                  productId,
+                  language,
+                  mode,
+                }),
+            }
+          );
+
+        const returnedSession =
+          result.session ||
+          result.data
+            ?.session ||
+          result.data ||
+          {};
+
+        const sessionId =
+          returnedSession
+            ?._id ||
+          returnedSession
+            ?.id ||
+          result.sessionId ||
+          result.data
+            ?.sessionId;
+
+        if (!sessionId) {
+          throw new Error(
+            "Realtime session ID was not returned."
+          );
+        }
+
+        const normalized =
+          {
+            ...returnedSession,
+
+            _id:
+              sessionId,
+
+            twinId,
+
+            productId,
+
+            language,
+
+            mode,
+          };
+
+        sessionRef.current =
+          normalized;
+
+        setSession(
+          normalized
+        );
+
+        setConnectionStage(
+          "connecting-socket"
+        );
+
+        const socketUrl =
+          result.socketUrl ||
+          result.data
+            ?.socketUrl ||
+          returnedSession
+            ?.socketUrl ||
+          `${toWebSocketUrl(
+            API_URL
+          )}/api/realtime/socket`;
+
+        const socketToken =
+          result.socketToken ||
+          result.data
+            ?.socketToken ||
+          returnedSession
+            ?.socketToken;
+
+        if (!socketToken) {
+          throw new Error(
+            "Realtime socket token was not returned."
+          );
+        }
+
+        const url =
+          new URL(
+            socketUrl
+          );
+
+        url.searchParams.set(
+          "sessionId",
+          sessionId
+        );
+
+        url.searchParams.set(
+          "token",
+          socketToken
+        );
+
+        console.log(
+          "CONNECTING REALTIME SOCKET:",
+          url.toString()
+        );
+
+        const socket =
+          new WebSocket(
+            url.toString()
+          );
+
+        socketRef.current =
+          socket;
+
+        await new Promise(
+          (
+            resolve,
+            reject
+          ) => {
+            let settled =
+              false;
+
+            const timeout =
+              window.setTimeout(
+                () => {
+                  if (
+                    settled
+                  ) {
+                    return;
+                  }
+
+                  settled =
+                    true;
+
+                  try {
+                    socket.close();
+                  } catch {
+                    // Ignore close error.
+                  }
+
+                  reject(
+                    new Error(
+                      "Realtime socket connection timed out."
+                    )
+                  );
+                },
+                20000
+              );
+
+            socket.onopen =
+              () => {
+                console.log(
+                  "REALTIME SOCKET OPENED"
+                );
+
+                setConnected(
+                  true
+                );
+
+                setStatus(
+                  "connected"
+                );
+
+                setConnectionStage(
+                  "initializing-gemini"
+                );
+
+                /*
+                 * The backend already initializes Gemini
+                 * after WebSocket upgrade. This event is
+                 * optional and may be ignored by backend.
+                 */
+                send({
+                  event:
+                    "session:initialize",
+
+                  sessionId,
+
+                  twinId,
+
+                  productId,
+
+                  language,
+
+                  mode,
+                });
+              };
+
+            socket.onmessage =
+              (
+                socketEvent
+              ) => {
+                handleMessage(
+                  socketEvent
+                );
+
+                try {
+                  const parsed =
+                    JSON.parse(
+                      socketEvent.data
+                    );
+
+                  const eventType =
+                    getEvent(
+                      parsed
+                    );
+
+                  if (
+                    eventType ===
+                      "session:ready" &&
+                    !settled
+                  ) {
+                    settled =
+                      true;
+
+                    window.clearTimeout(
+                      timeout
+                    );
+
+                    resolve();
+                  }
+
+                  if (
+                    eventType ===
+                      "session:error" &&
+                    !settled
+                  ) {
+                    settled =
+                      true;
+
+                    window.clearTimeout(
+                      timeout
+                    );
+
+                    reject(
+                      new Error(
+                        parsed.message ||
+                          "Realtime session initialization failed."
+                      )
+                    );
+                  }
+                } catch {
+                  // handleMessage already handles parsing.
+                }
+              };
+
+            socket.onerror =
+              (
+                socketError
+              ) => {
+                console.error(
+                  "REALTIME SOCKET ERROR:",
+                  socketError
+                );
+
+                if (
+                  !settled
+                ) {
+                  settled =
+                    true;
+
+                  window.clearTimeout(
+                    timeout
+                  );
+
+                  reject(
+                    new Error(
+                      "Realtime socket connection failed."
+                    )
+                  );
+                }
+              };
+
+            socket.onclose =
+              (
+                closeEvent
+              ) => {
+                console.error(
+                  "REALTIME SOCKET CLOSED:",
+                  {
+                    code:
+                      closeEvent.code,
+
+                    reason:
+                      closeEvent.reason,
+
+                    wasClean:
+                      closeEvent.wasClean,
+                  }
+                );
+
+                window.clearTimeout(
+                  timeout
+                );
+
+                setConnected(
+                  false
+                );
+
+                setRecording(
+                  false
+                );
+
+                setSpeaking(
+                  false
+                );
+
+                if (
+                  !manualCloseRef
+                    .current
+                ) {
+                  setStatus(
+                    "closed"
+                  );
+
+                  setConnectionStage(
+                    "closed"
+                  );
+
+                  const closeMessage =
+                    closeEvent.reason ||
+                    (
+                      closeEvent.code !==
+                      1000
+                        ? `Realtime connection closed with code ${closeEvent.code}.`
+                        : ""
+                    );
+
+                  if (
+                    closeMessage
+                  ) {
+                    setError(
+                      closeMessage
+                    );
+                  }
+                }
+
+                if (
+                  !settled
+                ) {
+                  settled =
+                    true;
+
+                  reject(
+                    new Error(
+                      closeEvent.reason ||
+                        "Realtime connection closed before initialization."
+                    )
+                  );
+                }
+              };
+          }
+        );
+
+        return {
+          ...result,
+
+          session:
+            normalized,
         };
+      },
+      [
+        disconnect,
+        handleMessage,
+        send,
+      ]
+    );
+
+  /* =======================================================
+     SEND TEXT
+  ======================================================= */
+
+  const sendText =
+    useCallback(
+      (
+        text
+      ) => {
+        const normalized =
+          String(
+            text || ""
+          ).trim();
+
+        if (
+          !normalized ||
+          !connected ||
+          connectionStage !==
+            "ready"
+        ) {
+          return false;
+        }
+
+        const sent =
+          send({
+            event:
+              "conversation:text",
+
+            text:
+              normalized,
+
+            message:
+              normalized,
+          });
+
+        if (sent) {
+          lastTypedMessageRef.current =
+            normalized;
+
+          appendMessage(
+            "user",
+            normalized
+          );
+        }
+
+        return sent;
+      },
+      [
+        appendMessage,
+        connected,
+        connectionStage,
+        send,
+      ]
+    );
+
+  /* =======================================================
+     INTERRUPT
+  ======================================================= */
+
+  const interrupt =
+    useCallback(() => {
+      clearPlayback();
+
+      assistantTranscriptRef.current =
+        "";
+
+      setAssistantTranscript(
+        ""
+      );
+
+      send({
+        event:
+          "conversation:interrupt",
       });
+    }, [
+      clearPlayback,
+      send,
+    ]);
 
-      return {
-        ...result,
-        session: normalized,
-      };
-    },
-    [disconnect, handleMessage, send]
-  );
+  /* =======================================================
+     CLEAR MESSAGES
+  ======================================================= */
 
-  const sendText = useCallback(
-    (text) => {
-      const normalized = String(text || "").trim();
+  const clearMessages =
+    useCallback(() => {
+      setMessages([]);
 
-      if (!normalized || !connected || connectionStage !== "ready") {
-        return false;
+      userTranscriptRef.current =
+        "";
+
+      assistantTranscriptRef.current =
+        "";
+
+      lastTypedMessageRef.current =
+        "";
+
+      setUserTranscript(
+        ""
+      );
+
+      setAssistantTranscript(
+        ""
+      );
+    }, []);
+
+  /* =======================================================
+     KEEPALIVE PING
+  ======================================================= */
+
+  useEffect(() => {
+    if (!connected) {
+      return undefined;
+    }
+
+    const timer =
+      window.setInterval(
+        () => {
+          send({
+            event:
+              "ping",
+
+            timestamp:
+              Date.now(),
+          });
+        },
+        20000
+      );
+
+    return () =>
+      window.clearInterval(
+        timer
+      );
+  }, [
+    connected,
+    send,
+  ]);
+
+  /* =======================================================
+     CLEANUP
+  ======================================================= */
+
+  useEffect(() => {
+    mountedRef.current =
+      true;
+
+    return () => {
+      mountedRef.current =
+        false;
+
+      manualCloseRef.current =
+        true;
+
+      try {
+        socketRef.current
+          ?.close(
+            1000,
+            "Component unmounted"
+          );
+      } catch {
+        // Ignore close error.
       }
 
-      const sent = send({
-        event: "conversation:text",
-        text: normalized,
-        message: normalized,
-      });
+      streamRef.current
+        ?.getTracks()
+        .forEach(
+          (
+            track
+          ) => {
+            track.stop();
+          }
+        );
 
-      if (sent) appendMessage("user", normalized);
-      return sent;
-    },
-    [appendMessage, connected, connectionStage, send]
-  );
+      inputContextRef.current
+        ?.close()
+        .catch(
+          () => {}
+        );
 
-  const interrupt = useCallback(() => {
-    clearPlayback();
-    send({ event: "conversation:interrupt" });
-  }, [clearPlayback, send]);
-
-  useEffect(() => {
-    if (!connected) return undefined;
-
-    const timer = window.setInterval(() => {
-      send({ event: "ping", timestamp: Date.now() });
-    }, 20000);
-
-    return () => window.clearInterval(timer);
-  }, [connected, send]);
-
-  useEffect(() => {
-    return () => {
-      manualCloseRef.current = true;
-      socketRef.current?.close();
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      inputContextRef.current?.close().catch(() => {});
-      outputContextRef.current?.close().catch(() => {});
+      outputContextRef.current
+        ?.close()
+        .catch(
+          () => {}
+        );
     };
   }, []);
 
+  /* =======================================================
+     RETURN
+  ======================================================= */
+
   return {
     session,
+
     status,
+
     connectionStage,
+
     connected,
+
     recording,
+
     speaking,
+
     permission,
+
     messages,
+
     userTranscript,
+
     assistantTranscript,
+
     error,
+
     connect,
+
     disconnect,
+
     sendText,
+
     startMicrophone,
+
     stopMicrophone,
+
     interrupt,
-    clearMessages: () => setMessages([]),
+
+    clearMessages,
   };
 }

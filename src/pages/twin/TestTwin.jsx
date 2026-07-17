@@ -1655,7 +1655,7 @@ function MessageBubble({
       }`}
     >
       <div
-        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-7 ${
+        className={`max-w-[85%] overflow-hidden rounded-2xl px-4 py-3 text-sm leading-7 ${
           isUser
             ? "brand-gradient text-white"
             : "border border-border bg-card text-foreground"
@@ -1679,7 +1679,9 @@ function MessageBubble({
           )}
         </div>
 
-        {text}
+        <p className="whitespace-pre-wrap break-words">
+          {text}
+        </p>
       </div>
     </div>
   );
