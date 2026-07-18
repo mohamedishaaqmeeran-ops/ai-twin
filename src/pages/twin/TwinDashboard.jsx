@@ -54,7 +54,10 @@ const getTwinImage = (twin) =>
   twin?.appearance?.avatarUrl ||
   twin?.image ||
   "/images/bb.png";
-
+const getTwinVideo = (twin) =>
+  twin?.appearance?.avatarVideoUrl ||
+  twin?.avatarVideoUrl ||
+  "";
 const getTwinVoice = (twin) => {
   if (!twin?.voice) {
     return (
@@ -226,13 +229,7 @@ const [checkingVideo, setCheckingVideo] =
     dispatch(fetchTwins());
   }, [dispatch]);
 
-const getTwinVideo = (
-  twin
-) =>
-  twin?.appearance
-    ?.avatarVideoUrl ||
-  twin?.avatarVideoUrl ||
-  "";
+
 
 
   const handleCreateTwin = () => {
