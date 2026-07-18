@@ -492,23 +492,25 @@ useEffect(() => {
             </div>
           </div>
 
-          <div className="rounded-3xl bg-pink-50 p-3 dark:bg-white/10">
-      
-      <TwinMotionPreview
-  twin={twin}
-  className="h-64"
-/>
-      
-      <TwinMotionPreview
-  twin={activeTwin}
-  className="h-96"
-/>
+ <div className="rounded-3xl bg-pink-50 p-3 dark:bg-white/10">
+
+  <TwinMotionPreview
+    twin={twin}
+    className="h-64"
+  />
+
+  <TwinMotionPreview
+    twin={activeTwin}
+    className="h-96"
+  />
+
   {checkingVideo && (
     <div className="mt-3 rounded-lg bg-pink-100 p-3 text-center text-sm font-semibold text-pink-600 dark:bg-pink-900/20 dark:text-pink-300">
       Generating AI motion video...
     </div>
   )}
-          </div>
+
+</div>
         </div>
       </section>
 
@@ -645,19 +647,10 @@ useEffect(() => {
                     }
                     className="rounded-3xl border border-border bg-background p-5 transition hover:-translate-y-1 hover:border-[var(--brand-pink)] hover:shadow-lg"
                   >
-                    <img
-                      src={
-                        currentImage
-                      }
-                      alt={currentName}
-                      onError={(
-                        event
-                      ) => {
-                        event.currentTarget.src =
-                          "/images/bb.png";
-                      }}
-                      className="h-64 w-full rounded-2xl bg-pink-50 object-cover dark:bg-white/10"
-                    />
+                    <TwinMotionPreview
+  twin={twin}
+  className="h-64"
+/>
 
                     <h3 className="mt-4 text-lg font-black tracking-tight text-foreground">
                       {currentName}
