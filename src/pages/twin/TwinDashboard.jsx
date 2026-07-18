@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useState,
   useMemo,
 } from "react";
 
@@ -140,7 +141,8 @@ const formatPlan = (plan) => {
 export default function TwinDashboard() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
+const [checkingVideo, setCheckingVideo] =
+  useState(false);
   const {
     user,
   } = useSelector(
@@ -223,6 +225,15 @@ export default function TwinDashboard() {
   useEffect(() => {
     dispatch(fetchTwins());
   }, [dispatch]);
+
+const getTwinVideo = (
+  twin
+) =>
+  twin?.appearance
+    ?.avatarVideoUrl ||
+  twin?.avatarVideoUrl ||
+  "";
+
 
   const handleCreateTwin = () => {
     if (!canCreateTwin) {
@@ -312,7 +323,61 @@ export default function TwinDashboard() {
       </div>
     );
   }
+useEffect(() => {
+  if (!activeTwinId) return;
 
+  const status =
+    activeTwin?.appearance?.avatarVideoStatus;
+
+  if (
+    status !== "queued" &&
+    status !== "processing"
+  ) {
+    return;
+  }
+
+  setCheckingVideo(true);
+
+  const timer = setInterval(async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/twin/${activeTwinId}/avatar-video-status`,
+        {
+          credentials: "include",
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (
+        data.success &&
+        (
+          data.data.status ===
+            "completed" ||
+          data.data.status ===
+            "failed"
+        )
+      ) {
+        clearInterval(timer);
+
+        dispatch(fetchTwins());
+
+        setCheckingVideo(false);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, 5000);
+
+  return () => {
+    clearInterval(timer);
+  };
+}, [
+  activeTwinId,
+  activeTwin?.appearance?.avatarVideoStatus,
+  dispatch,
+]);
   return (
     <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
       {error && (
@@ -428,15 +493,21 @@ export default function TwinDashboard() {
           </div>
 
           <div className="rounded-3xl bg-pink-50 p-3 dark:bg-white/10">
-            <img
-              src={twinImage}
-              alt={twinName}
-              onError={(event) => {
-                event.currentTarget.src =
-                  "/images/bb.png";
-              }}
-              className="h-80 w-full rounded-2xl object-cover"
-            />
+      
+      <TwinMotionPreview
+  twin={twin}
+  className="h-64"
+/>
+      
+      <TwinMotionPreview
+  twin={activeTwin}
+  className="h-96"
+/>
+  {checkingVideo && (
+    <div className="mt-3 rounded-lg bg-pink-100 p-3 text-center text-sm font-semibold text-pink-600 dark:bg-pink-900/20 dark:text-pink-300">
+      Generating AI motion video...
+    </div>
+  )}
           </div>
         </div>
       </section>
@@ -1130,5 +1201,175 @@ function Info({
         )}
       </p>
     </div>
+  );
+}
+
+
+function TwinMotionPreview({
+  twin,
+  className = "h-80",
+}) {
+  const videoUrl =
+    getTwinVideo(
+      twin
+    );
+
+  const imageUrl =
+    getTwinImage(
+      twin
+    );
+
+  const status =
+    twin?.appearance
+      ?.avatarVideoStatus ||
+    "idle";
+
+  if (
+  status === "queued" ||
+  status === "processing"
+) {
+    return (
+      <div
+        className={`relative flex ${className} w-full items-center justify-center overflow-hidden rounded-2xl bg-pink-50 dark:bg-white/10`}
+      >
+        <img
+          src={imageUrl}
+          alt={getTwinName(
+            twin
+          )}
+          className="absolute inset-0 h-full w-full object-cover opacity-40 blur-sm"
+        />
+
+        <div className="relative z-10 rounded-2xl bg-black/60 px-6 py-4 text-center text-white backdrop-blur-md">
+          <LoaderCircle className="mx-auto h-7 w-7 animate-spin" />
+
+          <p className="mt-3 text-sm font-black">
+            Generating your motion
+            AI Twin...
+          </p>
+
+          <p className="mt-1 text-xs text-white/70">
+            The video will appear
+            automatically when ready.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    videoUrl &&
+    status ===
+      "completed"
+  ) {
+    return (
+      <video
+        src={videoUrl}
+        poster={imageUrl}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="metadata"
+        className={`${className} w-full rounded-2xl object-cover`}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={getTwinName(
+        twin
+      )}
+      onError={(
+        event
+      ) => {
+        event.currentTarget.src =
+          "/images/bb.png";
+      }}
+      className={`${className} w-full rounded-2xl object-cover`}
+    />
+  );
+}
+
+
+function TwinMedia({
+  twin,
+  className,
+}) {
+  const imageUrl =
+    twin?.appearance
+      ?.avatarUrl ||
+    "/images/bb.png";
+
+  const videoUrl =
+    twin?.appearance
+      ?.avatarVideoUrl;
+
+  const status =
+    twin?.appearance
+      ?.avatarVideoStatus;
+
+  if (
+    status ===
+      "queued" ||
+    status ===
+      "processing"
+  ) {
+    return (
+      <div
+        className={`relative overflow-hidden rounded-2xl ${className}`}
+      >
+        <img
+          src={imageUrl}
+          alt={
+            twin?.name ||
+            "AI Twin"
+          }
+          className="h-full w-full object-cover opacity-50"
+        />
+
+        <div className="absolute inset-0 flex items-center justify-center bg-black/35">
+          <div className="text-center text-white">
+            <LoaderCircle className="mx-auto h-7 w-7 animate-spin" />
+
+            <p className="mt-2 text-sm font-bold">
+              Generating motion
+              video...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (
+    status ===
+      "completed" &&
+    videoUrl
+  ) {
+    return (
+      <video
+        src={videoUrl}
+        poster={imageUrl}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className={`${className} w-full rounded-2xl object-cover`}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={
+        twin?.name ||
+        "AI Twin"
+      }
+      className={`${className} w-full rounded-2xl object-cover`}
+    />
   );
 }
