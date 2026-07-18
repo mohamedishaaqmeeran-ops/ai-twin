@@ -303,23 +303,6 @@ const [checkingVideo, setCheckingVideo] =
       `/app/twin/test?twinId=${twinId}`
     );
   };
-
-  if (
-    loading &&
-    !initialized
-  ) {
-    return (
-      <div className="flex min-h-[450px] items-center justify-center">
-        <div className="text-center">
-          <LoaderCircle className="mx-auto h-10 w-10 animate-spin text-[var(--brand-pink)]" />
-
-          <p className="mt-3 text-sm font-bold text-muted-foreground">
-            Loading your AI Twins...
-          </p>
-        </div>
-      </div>
-    );
-  }
 useEffect(() => {
   if (!activeTwinId) return;
 
@@ -375,6 +358,23 @@ useEffect(() => {
   activeTwin?.appearance?.avatarVideoStatus,
   dispatch,
 ]);
+  if (
+    loading &&
+    !initialized
+  ) {
+    return (
+      <div className="flex min-h-[450px] items-center justify-center">
+        <div className="text-center">
+          <LoaderCircle className="mx-auto h-10 w-10 animate-spin text-[var(--brand-pink)]" />
+
+          <p className="mt-3 text-sm font-bold text-muted-foreground">
+            Loading your AI Twins...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 bg-background text-foreground transition-colors duration-300">
       {error && (
