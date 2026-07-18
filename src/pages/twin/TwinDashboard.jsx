@@ -1255,7 +1255,7 @@ function TwinMotionPreview({
         poster={imageUrl}
         autoPlay
         loop
-        muted
+      
         playsInline
         preload="metadata"
         className={`${className} w-full rounded-2xl object-cover`}
