@@ -494,10 +494,7 @@ useEffect(() => {
 
  <div className="rounded-3xl bg-pink-50 p-3 dark:bg-white/10">
 
-  <TwinMotionPreview
-    twin={twin}
-    className="h-64"
-  />
+ 
 
   <TwinMotionPreview
     twin={activeTwin}
