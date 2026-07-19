@@ -24,6 +24,7 @@ import {
   Wifi,
   Radio,
   Bell,
+  Video,
   BadgeCheck,
   Crown,
   Store,
