@@ -55,9 +55,10 @@ const getTwinImage = (twin) =>
   twin?.image ||
   "/images/bb.png";
 const getTwinVideo = (twin) =>
-  twin?.appearance?.avatarVideoUrl ||
-  twin?.avatarVideoUrl ||
-  "";
+    twin?.appearance?.avatarVideoUrl ||
+    twin?.avatarVideoUrl ||
+    twin?.videoUrl ||
+    "";
 const getTwinVoice = (twin) => {
   if (!twin?.voice) {
     return (
