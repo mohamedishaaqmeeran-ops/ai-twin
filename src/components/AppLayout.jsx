@@ -252,7 +252,13 @@ export default function AppLayout() {
             <Database size={18} />
             {isPro ? "Advanced Training" : "Train Twin"}
           </NavLink>
-
+<NavLink
+    to="/app/twin/generate-video"
+    className={linkClass}
+>
+    <Video size={18}/>
+    Generate AI Video
+</NavLink>
           <NavLink to="/app/twin/test" className={linkClass}>
             <BadgeCheck size={18} />
             Test Twin
@@ -485,6 +491,12 @@ export default function AppLayout() {
                 <Database size={18} />
                 {isPro ? "Advanced Training" : "Train Twin"}
               </NavLink>
+
+              <NavLink
+                to="/app/twin/generate-video"
+                onClick={() => setMobileMenu(false)}
+                className={linkClass}
+              ><Robot size={18}/>AI Video</NavLink>
 
               <NavLink
                 to="/app/twin/test"

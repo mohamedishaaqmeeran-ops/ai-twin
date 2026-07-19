@@ -8,6 +8,7 @@ import { fetchMe } from "./features/auth/authSlice";
 import ScrollToTop from "./components/ScrollToTop";
 import LiveShop from "./pages/LiveShop";
 import ProtectedRoute from "./components/ProtectedRoute";
+import GenerateAvatarVideo from "./pages/twin/GenerateAvatarVideo";
 const AvatarMarketplace = lazy(() =>
   import("./pages/AvatarMarketplace")
 );
@@ -215,6 +216,7 @@ export default function App() {
             <Route path="twin" element={<TwinDashboard />} />
             <Route path="twin/create" element={<CreateTwin />} />
             <Route path="twin/edit" element={<EditTwin />} />
+            <Route path="twin/generate-video" element={<GenerateAvatarVideo />} />
             <Route path="twin/train" element={<TrainTwin />} />
             <Route
   path="twin/product-training"

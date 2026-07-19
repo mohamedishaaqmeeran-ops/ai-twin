@@ -5,6 +5,7 @@ import socialReducer from "../features/social/socialSlice";
 import uiReducer from "../features/ui/uiSlice";
 import realtimeReducer from "../features/realtime/realtimeSlice";
 import productReducer from "../features/products/productSlice";
+import avatarVideoReducer from "../features/avatarVideo/avatarVideoSlice";
 
 export const store = configureStore({
   reducer: {
@@ -16,5 +17,19 @@ export const store = configureStore({
       realtimeReducer,
       product:
         productReducer,
+        avatarVideo: avatarVideoReducer,
   },
+   middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: {
+        ignoredActions: [],
+        ignoredPaths: [
+          "avatarVideo.rawResponse",
+        ],
+      },
+    }),
+
+  devTools:
+    import.meta.env.MODE !==
+    "production",
 });

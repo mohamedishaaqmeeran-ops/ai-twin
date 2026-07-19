@@ -18,6 +18,7 @@ import {
   Crown,
   Database,
   Eye,
+  Video,
   Instagram,
   LoaderCircle,
   Mic,
@@ -835,6 +836,14 @@ useEffect(() => {
                 }
               }}
             />
+
+            <ActionButton
+    icon={Video}
+    title="Generate AI Video"
+    desc="Generate a talking AI avatar using your selected product."
+    disabled={!activeTwin}
+    onClick={() => handleGenerateVideo()}
+/>
 
             <ActionButton
               icon={Database}
