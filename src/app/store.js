@@ -5,6 +5,7 @@ import socialReducer from "../features/social/socialSlice";
 import uiReducer from "../features/ui/uiSlice";
 import realtimeReducer from "../features/realtime/realtimeSlice";
 import productReducer from "../features/products/productSlice";
+import blogReducer from "../features/blog/blogSlice";
 import avatarVideoReducer from "../features/avatarVideo/avatarVideoSlice";
 
 export const store = configureStore({
@@ -18,6 +19,7 @@ export const store = configureStore({
       product:
         productReducer,
         avatarVideo: avatarVideoReducer,
+        blog:blogReducer,
   },
    middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

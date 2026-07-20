@@ -1,146 +1,457 @@
-// src/pages/Blog.jsx
-
-import { Link } from "react-router-dom";
 import {
   ArrowRight,
-  Calendar,
-  Clock,
+  Search,
   Sparkles,
-  Radio,
-  ShoppingBag,
-  Brain,
-  Instagram,
-  BarChart3,
-  ShieldCheck,
-  CheckCircle2,
 } from "lucide-react";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  useDispatch,
+  useSelector,
+} from "react-redux";
+
+import {
+  Link,
+} from "react-router-dom";
+
+import BlogCard from "../components/BlogCard";
 import Nav from "../components/Nav";
+import Pagination from "../components/Pagination";
 
-const featuredPosts = [
-  {
-    title: "How AI Twins Are Changing Live Commerce",
-    desc: "Learn how AI avatars can sell products, answer customer questions, and keep your brand live 24/7.",
-    category: "AI Live Commerce",
-    date: "June 2026",
-    read: "5 min read",
-    image: "/images/5.jpeg",
-    icon: Sparkles,
-  },
-  {
-    title: "How to Train Your AI Twin for Product Selling",
-    desc: "A simple guide to adding product details, FAQs, scripts, offers, and objection handling for better live sales.",
-    category: "Training",
-    date: "June 2026",
-    read: "6 min read",
-    image: "/images/6.jpeg",
-    icon: Brain,
-  },
-  {
-    title: "Instagram Live Selling with an AI Twin",
-    desc: "Understand how creators and brands can prepare products and connect platforms before going live.",
-    category: "Social Selling",
-    date: "June 2026",
-    read: "4 min read",
-    image: "/images/7.jpeg",
-    icon: Instagram,
-  },
-];
+import {
+  fetchBlogCategories,
+  fetchFeaturedBlogs,
+  fetchPublicBlogs,
+} from "../features/blog/blogSlice";
 
-const posts = [
-  {
-    title: "Why Live Commerce Needs Automation",
-    desc: "Manual live selling takes time. AI Twins help creators stay consistent, answer faster, and sell around the clock.",
-    icon: Radio,
-    category: "Live Selling",
-  },
-  {
-    title: "Product Scripts That Convert Viewers",
-    desc: "What your AI Twin should say when explaining benefits, handling objections, and creating urgency.",
-    icon: ShoppingBag,
-    category: "Sales",
-  },
-  {
-    title: "What to Add Before Going Live",
-    desc: "Avatar, product, training data, offers, social account connection, and preview checks.",
-    icon: CheckCircle2,
-    category: "Checklist",
-  },
-  {
-    title: "Understanding Live Sales Analytics",
-    desc: "Track views, engagement, products sold, revenue, and customer questions after every session.",
-    icon: BarChart3,
-    category: "Analytics",
-  },
-  {
-    title: "Keeping Brand Data Safe",
-    desc: "How product data, account connections, and AI Twin training information should be protected.",
-    icon: ShieldCheck,
-    category: "Security",
-  },
-];
+/* =========================================================
+   BLOG PAGE
+========================================================= */
 
 export default function Blog() {
+  const dispatch = useDispatch();
+
+  const {
+    blogs = [],
+    featuredBlogs = [],
+    categories = [],
+    pagination = {
+      page: 1,
+      totalPages: 1,
+    },
+    listLoading,
+    error,
+  } = useSelector(
+    (state) => state.blog
+  );
+
+  const [
+    search,
+    setSearch,
+  ] = useState("");
+
+  const [
+    category,
+    setCategory,
+  ] = useState("");
+
+  const [
+    sort,
+    setSort,
+  ] = useState("latest");
+
+  const [
+    page,
+    setPage,
+  ] = useState(1);
+
+  /* =======================================================
+     FETCH FEATURED BLOGS AND CATEGORIES
+  ======================================================= */
+
+  useEffect(() => {
+    dispatch(
+      fetchFeaturedBlogs(3)
+    );
+
+    dispatch(
+      fetchBlogCategories()
+    );
+  }, [dispatch]);
+
+  /* =======================================================
+     FETCH PUBLIC BLOGS
+  ======================================================= */
+
+  useEffect(() => {
+    const timer =
+      setTimeout(() => {
+        dispatch(
+          fetchPublicBlogs({
+            page,
+            limit: 9,
+            search,
+            category,
+            sort,
+          })
+        );
+      }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [
+    dispatch,
+    page,
+    search,
+    category,
+    sort,
+  ]);
+
+  const updateSearch = (
+    event
+  ) => {
+    setSearch(
+      event.target.value
+    );
+
+    setPage(1);
+  };
+
+  const updateCategory = (
+    value
+  ) => {
+    setCategory(value);
+    setPage(1);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <Nav />
 
       <main>
-        <section className="relative overflow-hidden bg-gradient-to-br from-background via-pink-50/40 to-orange-50/30 py-16 dark:from-background dark:via-white/5 dark:to-white/5">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
-              <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
-              TWINN BLOG
-            </span>
+        {/* =================================================
+            HERO
+        ================================================== */}
 
-            <h1 className="mt-6 max-w-4xl text-4xl font-black leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Ideas, guides and updates for{" "}
-              <span className="brand-text">AI live selling.</span>
-            </h1>
+        <section className="border-b border-border bg-gradient-to-br from-pink-50/60 via-background to-orange-50/40 px-4 py-16 dark:from-white/5 dark:via-background dark:to-white/5 sm:py-20">
+          <div className="mx-auto max-w-7xl">
+            <div className="mx-auto max-w-4xl text-center">
+              <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
+                <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
 
-            <p className="mt-5 max-w-3xl text-sm font-medium leading-6 text-muted-foreground sm:text-base sm:leading-7">
-              Explore practical guides on AI Twins, live commerce, product
-              selling, social media automation, training, analytics and creator
-              growth.
-            </p>
+                TWINN INSIGHTS
+              </span>
+
+              <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight sm:text-6xl">
+                Ideas for the future of{" "}
+                <span className="brand-text">
+                  AI-powered commerce
+                </span>
+              </h1>
+
+              <p className="mx-auto mt-6 max-w-3xl text-base font-medium leading-8 text-muted-foreground sm:text-lg">
+                Product updates, creator strategies, AI insights and practical guides from the Twinn team.
+              </p>
+
+              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                <Link
+                  to="/signin"
+                  className="brand-gradient inline-flex h-12 items-center justify-center gap-2 rounded-[5px] px-7 text-sm font-bold text-white shadow-md transition hover:opacity-90"
+                >
+                  Get Started
+
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+
+                <a
+                  href="#all-blogs"
+                  className="inline-flex h-12 items-center justify-center rounded-[5px] border-2 border-[var(--brand-pink)] px-7 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 dark:hover:bg-white/10"
+                >
+                  Explore Articles
+                </a>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-black tracking-tight brand-text">
-            Featured Articles
-          </h2>
+        {/* =================================================
+            FEATURED BLOGS
+        ================================================== */}
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            {featuredPosts.map((post) => (
-              <FeaturedCard key={post.title} post={post} />
-            ))}
+        {featuredBlogs.length >
+          0 && (
+          <section className="px-4 py-16">
+            <div className="mx-auto max-w-7xl">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <span className="inline-flex items-center gap-2 rounded-full border-2 border-pink-500 bg-card px-4 py-2 text-xs font-bold tracking-wide text-foreground">
+                    <Sparkles className="h-4 w-4 text-[var(--brand-pink)]" />
+
+                    EDITOR'S PICKS
+                  </span>
+
+                  <h2 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
+                    Featured{" "}
+                    <span className="brand-text">
+                      stories
+                    </span>
+                  </h2>
+
+                  <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-muted-foreground">
+                    Handpicked articles covering AI, creators, commerce and product updates.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {featuredBlogs.map(
+                  (blog) => (
+                    <BlogCard
+                      key={
+                        blog._id
+                      }
+                      blog={blog}
+                      featured
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* =================================================
+            ALL BLOGS
+        ================================================== */}
+
+        <section
+          id="all-blogs"
+          className="px-4 pb-20"
+        >
+          <div className="mx-auto max-w-7xl">
+            <div>
+              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
+                Latest{" "}
+                <span className="brand-text">
+                  articles
+                </span>
+              </h2>
+
+              <p className="mt-3 max-w-2xl text-sm font-medium leading-7 text-muted-foreground">
+                Browse all Twinn insights, updates and practical guides.
+              </p>
+            </div>
+
+            {/* =================================================
+                FILTERS
+            ================================================== */}
+
+            <div className="mt-8 rounded-3xl border border-border bg-card p-4 shadow-sm">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+
+                  <input
+                    value={
+                      search
+                    }
+                    onChange={
+                      updateSearch
+                    }
+                    placeholder="Search blogs..."
+                    className="h-12 w-full rounded-2xl border border-border bg-background pl-12 pr-4 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-500/10"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <select
+                    value={
+                      category
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      updateCategory(
+                        event
+                          .target
+                          .value
+                      )
+                    }
+                    className="h-12 min-w-[180px] rounded-2xl border border-border bg-background px-4 text-sm font-bold text-foreground outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-500/10"
+                  >
+                    <option value="">
+                      All categories
+                    </option>
+
+                    {categories.map(
+                      (item) => (
+                        <option
+                          key={
+                            item
+                          }
+                          value={
+                            item
+                          }
+                        >
+                          {item}
+                        </option>
+                      )
+                    )}
+                  </select>
+
+                  <select
+                    value={sort}
+                    onChange={(
+                      event
+                    ) => {
+                      setSort(
+                        event
+                          .target
+                          .value
+                      );
+
+                      setPage(1);
+                    }}
+                    className="h-12 min-w-[170px] rounded-2xl border border-border bg-background px-4 text-sm font-bold text-foreground outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-500/10"
+                  >
+                    <option value="latest">
+                      Latest
+                    </option>
+
+                    <option value="oldest">
+                      Oldest
+                    </option>
+
+                    <option value="popular">
+                      Most popular
+                    </option>
+
+                    <option value="title">
+                      Title A–Z
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* =================================================
+                ERROR
+            ================================================== */}
+
+            {error && (
+              <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-semibold text-red-600 dark:text-red-300">
+                {error}
+              </div>
+            )}
+
+            {/* =================================================
+                BLOG GRID
+            ================================================== */}
+
+            <div className="mt-8">
+              {listLoading ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {Array.from({
+                    length: 6,
+                  }).map(
+                    (
+                      _,
+                      index
+                    ) => (
+                      <div
+                        key={
+                          index
+                        }
+                        className="h-[430px] animate-pulse rounded-3xl border border-border bg-card shadow-sm"
+                      />
+                    )
+                  )}
+                </div>
+              ) : blogs.length >
+                0 ? (
+                <>
+                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {blogs.map(
+                      (blog) => (
+                        <BlogCard
+                          key={
+                            blog._id
+                          }
+                          blog={
+                            blog
+                          }
+                        />
+                      )
+                    )}
+                  </div>
+
+                  {pagination
+                    .totalPages >
+                    1 && (
+                    <div className="mt-12 flex justify-center">
+                      <Pagination
+                        page={
+                          pagination.page
+                        }
+                        totalPages={
+                          pagination.totalPages
+                        }
+                        onPageChange={
+                          setPage
+                        }
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-3xl border border-dashed border-border bg-card px-6 py-20 text-center shadow-sm">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+                    <Search className="h-8 w-8" />
+                  </div>
+
+                  <h3 className="mt-5 text-2xl font-black tracking-tight">
+                    No blogs found
+                  </h3>
+
+                  <p className="mx-auto mt-3 max-w-md text-sm font-medium leading-7 text-muted-foreground">
+                    Try another search term, category or sorting option.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
-          <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        {/* =================================================
+            CTA
+        ================================================== */}
+
+        <section className="px-4 pb-16">
+          <div className="mx-auto max-w-7xl rounded-3xl bg-gradient-to-r from-pink-600 to-orange-500 p-8 text-white shadow-xl sm:p-10">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-3xl font-black tracking-tight brand-text">
-                  Latest Posts
+                <h2 className="text-3xl font-black tracking-tight">
+                  Ready to build your AI Twin?
                 </h2>
-                <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-                  Short reads to help you launch, train and scale your AI Twin.
+
+                <p className="mt-2 text-sm font-medium text-white/90">
+                  Create your AI Twin, train it on your products and start selling live.
                 </p>
               </div>
 
               <Link
-                to="/waitlist"
-                className="inline-flex items-center gap-2 text-sm font-black text-[var(--brand-pink)] hover:underline"
+                to="/signin"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-[5px] bg-white px-7 text-sm font-black text-[var(--brand-pink)] transition hover:opacity-90"
               >
-                Join updates <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
+                Get Started
 
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              {posts.map((post) => (
-                <PostCard key={post.title} post={post} />
-              ))}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         </section>
@@ -148,82 +459,11 @@ export default function Blog() {
 
       <footer className="border-t border-border bg-[#0d0d12]">
         <p className="px-4 py-5 text-center text-sm font-medium tracking-wide text-white/50">
-          © {new Date().getFullYear()} Twinn. All rights reserved.
+          ©{" "}
+          {new Date().getFullYear()}{" "}
+          Twinn. All rights reserved.
         </p>
       </footer>
     </div>
-  );
-}
-
-function FeaturedCard({ post }) {
-  const Icon = post.icon;
-
-  return (
-    <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-      <div className="bg-pink-50 p-4 dark:bg-white/10">
-        <img
-          src={post.image}
-          alt={post.title}
-          className="h-56 w-full rounded-2xl object-cover"
-          onError={(e) => {
-            e.currentTarget.src = "/images/6.jpeg";
-          }}
-        />
-      </div>
-
-      <div className="p-6">
-        <span className="inline-flex items-center gap-2 rounded-full bg-pink-50 px-3 py-1 text-xs font-black text-[var(--brand-pink)] dark:bg-white/10">
-          <Icon className="h-4 w-4" />
-          {post.category}
-        </span>
-
-        <h3 className="mt-5 text-xl font-black tracking-tight text-foreground">
-          {post.title}
-        </h3>
-
-        <p className="mt-3 text-sm font-medium leading-6 text-muted-foreground">
-          {post.desc}
-        </p>
-
-        <div className="mt-5 flex items-center gap-4 text-xs font-bold text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Calendar className="h-4 w-4 text-[var(--brand-pink)]" />
-            {post.date}
-          </span>
-          <span className="flex items-center gap-1">
-            <Clock className="h-4 w-4 text-[var(--brand-pink)]" />
-            {post.read}
-          </span>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function PostCard({ post }) {
-  const Icon = post.icon;
-
-  return (
-    <article className="rounded-2xl border border-border bg-background p-5 transition hover:-translate-y-1 hover:border-[var(--brand-pink)] hover:shadow-md">
-      <div className="flex gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-          <Icon className="h-6 w-6" />
-        </div>
-
-        <div>
-          <span className="text-xs font-black uppercase tracking-wide text-[var(--brand-pink)]">
-            {post.category}
-          </span>
-
-          <h3 className="mt-1 text-lg font-black tracking-tight text-foreground">
-            {post.title}
-          </h3>
-
-          <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-            {post.desc}
-          </p>
-        </div>
-      </div>
-    </article>
   );
 }

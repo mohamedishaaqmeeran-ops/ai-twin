@@ -57,6 +57,12 @@ const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const WaitlistForm = lazy(() => import("./pages/WaitlistForm"));
 
+const BlogDetails = lazy(() => import("./pages/BlogDetails"));
+
+const BlogList = lazy(() => import("./pages/BlogList"));
+const CreateBlog = lazy(() => import("./pages/CreateBlog"));
+const EditBlog = lazy(() => import("./pages/EditBlog"));
+
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
@@ -173,6 +179,11 @@ export default function App() {
 />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/blog" element={<Blog />} />
+
+<Route
+  path="/blog/:slug"
+  element={<BlogDetails />}
+/>
           <Route path="/careers" element={<Careers />} />
           <Route path="/contactus" element={<ContactUs />} />
           <Route path="/team" element={<Team />} />
@@ -289,6 +300,20 @@ export default function App() {
             <Route path="twins" element={<AdminTwins />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="lives" element={<AdminLives />} />
+              <Route
+    path="blogs"
+    element={<BlogList />}
+  />
+
+  <Route
+    path="blogs/create"
+    element={<CreateBlog />}
+  />
+
+  <Route
+    path="blogs/:blogId/edit"
+    element={<EditBlog />}
+  />
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>

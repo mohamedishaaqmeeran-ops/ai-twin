@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   Users,
   Crown,
@@ -13,6 +13,7 @@ import {
   Bot,
   IndianRupee,
   Download,
+  Upload,
   ChevronLeft,
   ChevronRight,
   X,
@@ -36,7 +37,9 @@ const [planFilter, setPlanFilter] = useState("All Plans");
 const [statusFilter, setStatusFilter] = useState("All Status");
 const [selectedUser, setSelectedUser] = useState(null);
 const [activeTab, setActiveTab] = useState("users");
-
+const [importing, setImporting] = useState(false);
+const [importResult, setImportResult] = useState(null);
+const fileInputRef = useRef(null);
 const usersPerPage = 10;
 
 // ---------------------------------
@@ -645,6 +648,129 @@ const totalRevenue = users.reduce(
   0
 );
 
+
+const importUsers = async (event) => {
+  const file =
+    event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  const isCsv =
+    file.name
+      .toLowerCase()
+      .endsWith(".csv");
+
+  if (!isCsv) {
+    alert(
+      "Please select a valid CSV file."
+    );
+
+    event.target.value = "";
+    return;
+  }
+
+  try {
+    setImporting(true);
+    setImportResult(null);
+
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file",
+      file
+    );
+
+    const res = await fetch(
+      `${API}/admin/users/import`,
+      {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      }
+    );
+
+    const contentType =
+      res.headers.get(
+        "content-type"
+      ) || "";
+
+    if (
+      !contentType.includes(
+        "application/json"
+      )
+    ) {
+      const responseText =
+        await res.text();
+
+      console.error(
+        "IMPORT USERS NON-JSON RESPONSE:",
+        responseText
+      );
+
+      throw new Error(
+        `Import route returned ${res.status}. Check the backend route and deployment.`
+      );
+    }
+
+    const data =
+      await res.json();
+
+    if (
+      !res.ok ||
+      !data.success
+    ) {
+      throw new Error(
+        data.message ||
+          "Unable to import users."
+      );
+    }
+
+    setImportResult({
+      imported:
+        data.imported || 0,
+
+      updated:
+        data.updated || 0,
+
+      skipped:
+        data.skipped || 0,
+
+      failed:
+        data.failed || 0,
+
+      errors:
+        Array.isArray(
+          data.errors
+        )
+          ? data.errors
+          : [],
+    });
+
+    await loadUsers();
+  } catch (error) {
+    console.error(
+      "IMPORT USERS ERROR:",
+      error
+    );
+
+    alert(
+      error.message ||
+        "Unable to import users."
+    );
+  } finally {
+    setImporting(false);
+
+    if (
+      fileInputRef.current
+    ) {
+      fileInputRef.current.value =
+        "";
+    }
+  }
+};
 // ---------------------------------
 // LOADING UI
 // ---------------------------------
@@ -814,56 +940,124 @@ return (
           )}
         </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-  {activeTab === "users" && (
-    <>
-      <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
-        <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          {activeTab === "users" && (
+            <>
+              <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
+                <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
+                <select
+                  value={planFilter}
+                  onChange={(event) => setPlanFilter(event.target.value)}
+                  className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
+                >
+                  <option>All Plans</option>
+                  <option>Free</option>
+                  <option>Pro</option>
+                  <option>Business</option>
+                  <option>Agency</option>
+                </select>
+              </div>
 
-        <select
-          value={planFilter}
-          onChange={(e) =>
-            setPlanFilter(e.target.value)
-          }
-          className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
-        >
-          <option>All Plans</option>
-          <option>Free</option>
-          <option>Pro</option>
-          <option>Business</option>
-        </select>
-      </div>
+              <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
+                <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
+                  className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
+                >
+                  <option>All Status</option>
+                  <option>Active</option>
+                  <option>Blocked</option>
+                </select>
+              </div>
 
-      <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
-        <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                hidden
+                onChange={importUsers}
+              />
 
-        <select
-          value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value)
-          }
-          className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
-        >
-          <option>All Status</option>
-          <option>Active</option>
-          <option>Blocked</option>
-        </select>
-      </div>
-    </>
-  )}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importing}
+                className="flex items-center justify-center gap-2 rounded-[5px] border-2 border-[var(--brand-pink)] px-5 py-3 text-sm font-bold text-[var(--brand-pink)] transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-white/10"
+              >
+                <Upload className={`h-4 w-4 ${importing ? "animate-pulse" : ""}`} />
+                {importing ? "Importing..." : "Import CSV"}
+              </button>
+            </>
+          )}
 
-  <button
-    type="button"
-    onClick={exportUsers}
-    disabled={activeResult.length === 0}
-    className="brand-gradient flex items-center justify-center gap-2 rounded-[5px] px-5 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
-  >
-    <Download className="h-4 w-4" />
-    Export CSV
-  </button>
-</div>
+          <button
+            type="button"
+            onClick={exportUsers}
+            disabled={activeResult.length === 0}
+            className="brand-gradient flex items-center justify-center gap-2 rounded-[5px] px-5 py-3 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
+        </div>
       </div>
     </section>
+
+    {importResult && (
+      <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-black tracking-tight text-foreground">
+              CSV Import Completed
+            </h2>
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
+              The selected CSV file has been processed.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setImportResult(null)}
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border bg-background text-muted-foreground transition hover:border-[var(--brand-pink)] hover:text-foreground"
+            aria-label="Close import result"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <ImportResultItem label="Created" value={importResult.imported} type="success" />
+          <ImportResultItem label="Updated" value={importResult.updated} type="info" />
+          <ImportResultItem label="Skipped" value={importResult.skipped} type="warning" />
+          <ImportResultItem label="Failed" value={importResult.failed} type="danger" />
+        </div>
+
+        {importResult.errors.length > 0 && (
+          <div className="mt-5 overflow-hidden rounded-2xl border border-border">
+            <div className="border-b border-border bg-background px-4 py-3">
+              <p className="text-sm font-black text-foreground">Import issues</p>
+            </div>
+            <div className="max-h-60 overflow-y-auto">
+              {importResult.errors.map((item, index) => (
+                <div
+                  key={`${item.row || index}-${item.email || "error"}`}
+                  className="border-b border-border px-4 py-3 last:border-b-0"
+                >
+                  <p className="text-sm font-bold text-foreground">
+                    Row {item.row || index + 1}
+                    {item.email ? ` — ${item.email}` : ""}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">
+                    {item.message || "Unable to import this row."}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+    )}
 
     {/* Registered Users: Desktop Table */}
 {activeTab === "users" && (
@@ -1954,8 +2148,8 @@ function PlanBadge({ plan = "Free" }) {
     Business:
       "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400",
 
-    Enterprise:
-      "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400",
+    Agency:
+      "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400",
   };
 
   return (
@@ -2152,6 +2346,46 @@ function EmptyUsers() {
       <p className="mt-3 text-lg font-black">No registered users found</p>
       <p className="mt-1 text-sm text-muted-foreground">
         Try changing the search, plan or status filter.
+      </p>
+    </div>
+  );
+}
+
+
+
+
+function ImportResultItem({
+  label,
+  value,
+  type = "info",
+}) {
+  const styles = {
+    success:
+      "border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400",
+
+    info:
+      "border-blue-200 bg-blue-50 text-blue-600 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-400",
+
+    warning:
+      "border-orange-200 bg-orange-50 text-orange-600 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-400",
+
+    danger:
+      "border-red-200 bg-red-50 text-red-600 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400",
+  };
+
+  return (
+    <div
+      className={`rounded-2xl border p-4 ${
+        styles[type] ||
+        styles.info
+      }`}
+    >
+      <p className="text-xs font-bold">
+        {label}
+      </p>
+
+      <p className="mt-1 text-2xl font-black">
+        {value}
       </p>
     </div>
   );
