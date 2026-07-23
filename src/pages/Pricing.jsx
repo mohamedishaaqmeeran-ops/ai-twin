@@ -10,6 +10,7 @@ import {
   Building2,
   HelpCircle,
   ArrowRight,
+  Zap,
 } from "lucide-react";
 import Nav from "../components/Nav";
 
@@ -18,17 +19,19 @@ const API_URL =
 
 const plans = [
   {
-    name: "Free",
+    name: "Free Trial",
+    planKey: "free",
     tag: "Try your AI Twin, on us.",
     monthly: "$0",
-    monthlyOriginal: "$0",
+    monthlyOriginal: "",
     yearly: "$0",
-    yearlyOriginal: "$0",
-    period: "Free forever",
-    button: "Get Started Free",
+    yearlyOriginal: "",
+    period: "Free for 7 days",
+    button: "Start Free Trial",
     link: "/signup",
     icon: Sparkles,
     popular: false,
+    badge: "",
     features: [
       "1 AI Twin",
       "1 connected live platform",
@@ -41,7 +44,32 @@ const plans = [
     ],
   },
   {
+    name: "Starter",
+    planKey: "starter",
+    tag: "For creators just getting serious.",
+    monthly: "$15",
+    monthlyOriginal: "",
+    yearly: "$150",
+    yearlyOriginal: "",
+    period: "/ month",
+    button: "Start",
+    icon: Zap,
+    popular: false,
+    badge: "NEW",
+    features: [
+      "Everything in Free Trial",
+      "Up to 2 AI Twins",
+      "Connect up to 2 platforms",
+      "Up to 30 products",
+      "Standard AI voice",
+      "Basic lip sync",
+      "300 AI replies / month",
+      "Email support",
+    ],
+  },
+  {
     name: "Pro",
+    planKey: "pro",
     tag: "For creators ready to go live.",
     monthly: "$29",
     monthlyOriginal: "$49",
@@ -51,8 +79,9 @@ const plans = [
     button: "Start",
     icon: Crown,
     popular: true,
+    badge: "{plan.badge}",
     features: [
-      "Everything in Free",
+      "Everything in Starter",
       "Up to 3 AI Twins",
       "Connect up to 4 platforms",
       "Up to 100 products",
@@ -66,6 +95,7 @@ const plans = [
   },
   {
     name: "Business",
+    planKey: "business",
     tag: "Scale across every channel.",
     monthly: "$99",
     monthlyOriginal: "$149",
@@ -75,6 +105,7 @@ const plans = [
     button: "Start",
     icon: Rocket,
     popular: false,
+    badge: "",
     features: [
       "Everything in Pro",
       "Unlimited AI Twins",
@@ -89,6 +120,7 @@ const plans = [
   },
   {
     name: "Agency",
+    planKey: "agency",
     tag: "Run AI Twins for every client.",
     monthly: "Custom",
     monthlyOriginal: "",
@@ -99,6 +131,7 @@ const plans = [
     link: "/waitlist",
     icon: Building2,
     popular: false,
+    badge: "",
     features: [
       "Everything in Business",
       "Multiple brand accounts",
@@ -113,17 +146,17 @@ const plans = [
 ];
 
 const comparison = [
-  ["AI Twins", "1", "Up to 3", "Unlimited", "Unlimited"],
-  ["Connected platforms", "1", "Up to 4", "IG, FB, YouTube, TikTok, LinkedIn", "All + custom"],
-  ["Products", "Up to 10", "Up to 100", "Unlimited", "Unlimited"],
-  ["Voice", "Standard", "Custom cloning", "Custom cloning", "Custom cloning"],
-  ["Lip Sync", "Basic", "Advanced", "Advanced", "Advanced"],
-  ["AI replies", "100 / month", "Unlimited", "Unlimited", "Unlimited"],
-  ["Analytics", "—", "Live sales", "Advanced reports", "Advanced reports"],
-  ["Store integrations", "—", "—", "Shopify, WooCommerce, Stripe", "All + API"],
-  ["Team seats", "1", "1", "Up to 5", "Custom"],
-  ["Branding", "Twin badge", "No badge", "No badge", "White-label"],
-  ["Support", "Community", "Email", "Priority + onboarding", "Dedicated manager"],
+  ["AI Twins", "1", "2", "Up to 3", "Unlimited", "Unlimited"],
+  ["Connected platforms", "1", "2", "Up to 4", "IG, FB, YouTube, TikTok, LinkedIn", "All + custom"],
+  ["Products", "Up to 10", "Up to 30", "Up to 100", "Unlimited", "Unlimited"],
+  ["Voice", "Standard", "Standard", "Custom cloning", "Custom cloning", "Custom cloning"],
+  ["Lip sync", "Basic", "Basic", "Advanced", "Advanced", "Advanced"],
+  ["AI replies", "100 / month", "300 / month", "Unlimited", "Unlimited", "Unlimited"],
+  ["Analytics", "—", "—", "Live sales", "Advanced reports", "Advanced reports"],
+  ["Store integrations", "—", "—", "—", "Shopify, WooCommerce, Stripe", "All + API"],
+  ["Team seats", "1", "1", "1", "Up to 5", "Custom"],
+  ["Branding", "Twin badge", "Twin badge", "No badge", "No badge", "White-label"],
+  ["Support", "Community", "Email", "Email", "Priority + onboarding", "Dedicated manager"],
 ];
 
 const faqs = [
@@ -133,15 +166,15 @@ const faqs = [
   },
   {
     q: "Is there a free trial on paid plans?",
-    a: "Yes. Pro and Business plans include a 14-day free trial, no credit card required.",
+    a: "The Free Trial plan includes 7 days at no cost. Any additional paid-plan trial offer will be shown clearly during checkout.",
   },
   {
     q: "What happens if I reach my limit?",
     a: "We will notify you before you hit your limit. You can upgrade anytime.",
   },
   {
-    q: "Do you offer annual billing discount?",
-    a: "Yes. Annual billing saves up to 20% compared to monthly billing.",
+    q: "Do you offer an annual billing discount?",
+    a: "Yes. Annual billing costs less than paying monthly. The exact saving depends on the selected plan.",
   },
   {
     q: "What payment methods are accepted?",
@@ -191,7 +224,7 @@ export default function Pricing() {
                   : "text-muted-foreground"
               }`}
             >
-              Annual · Save up to 20%
+              Annual · Save more
             </button>
            
             <button
@@ -209,7 +242,7 @@ export default function Pricing() {
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-7xl gap-6 px-4 pb-16 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
+        <section className="mx-auto grid max-w-[1500px] gap-6 px-4 pb-16 sm:px-6 md:grid-cols-2 xl:grid-cols-5 xl:px-8">
          {plans.map((plan) => (
   <PlanCard
     key={plan.name}
@@ -227,11 +260,12 @@ export default function Pricing() {
             <h2 className="text-3xl font-black brand-text">Compare Plans</h2>
 
             <div className="mt-6 overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left">
+              <table className="w-full min-w-[1150px] text-left">
                 <thead>
                   <tr className="border-b border-border">
                     <th className="py-4 text-sm font-black">Feature</th>
-                    <th>Free</th>
+                    <th>Free Trial</th>
+                    <th>Starter</th>
                     <th>Pro</th>
                     <th>Business</th>
                     <th>Agency</th>
@@ -302,7 +336,7 @@ export default function Pricing() {
                 to="/signup"
                 className="rounded-[5px] bg-white px-6 py-3 text-sm font-black text-[var(--brand-pink)]"
               >
-                Get Started Free →
+                Start Free Trial →
               </Link>
 
               <Link
@@ -350,7 +384,7 @@ function PlanCard({  plan,
   const [loading, setLoading] = useState(false);
 
 const handlePayment = async () => {
-  if (plan.name === "Free") {
+  if (plan.planKey === "free") {
   if (!user) {
     navigate("/signin", {
       state: {
@@ -361,26 +395,11 @@ const handlePayment = async () => {
     return;
   }
 
-  // User already has a paid plan
-  if (
-    user.plan?.toLowerCase() === "pro" ||
-    user.plan?.toLowerCase() === "business"
-  ) {
-    toast.info(
-  `You are already subscribed to the ${user.plan} plan. Redirecting to your dashboard...`
-);
-
-    navigate("/app");
-
-    return;
-  }
-
-  // Free user
   navigate("/app");
   return;
 }
 
-  if (plan.name === "Agency") {
+  if (plan.planKey === "agency") {
     navigate("/waitlist");
     return;
   }
@@ -390,7 +409,7 @@ const handlePayment = async () => {
       state: {
         from: currentLocation.pathname,
         paymentIntent: {
-          plan: plan.name.toLowerCase(),
+          plan: plan.planKey,
           billing,
         },
       },
@@ -409,7 +428,7 @@ const handlePayment = async () => {
       },
       credentials: "include",
       body: JSON.stringify({
-        plan: plan.name.toLowerCase(),
+        plan: plan.planKey,
         billing,
       }),
     });
@@ -456,7 +475,7 @@ const handlePayment = async () => {
               },
               credentials: "include",
               body: JSON.stringify({
-                plan: plan.name.toLowerCase(),
+                plan: plan.planKey,
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
@@ -514,9 +533,9 @@ const handlePayment = async () => {
           : "border-border bg-card"
       }`}
     >
-      {plan.popular && (
+      {plan.badge && (
         <span className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-[var(--brand-pink)] px-4 py-2 text-xs font-black text-white shadow-md">
-          MOST POPULAR
+          {plan.badge}
         </span>
       )}
 
@@ -531,7 +550,7 @@ const handlePayment = async () => {
       </p>
 
       <div className="mt-6">
-        {plan.name !== "Agency" && (
+        {plan.planKey !== "agency" && (
           <p className="text-sm font-bold text-muted-foreground line-through">
             {billing === "monthly" ? plan.monthlyOriginal : plan.yearlyOriginal}
           </p>
@@ -541,7 +560,7 @@ const handlePayment = async () => {
           {billing === "monthly" ? plan.monthly : plan.yearly}
         </p>
 
-        {plan.name !== "Free" && plan.name !== "Agency" && (
+        {plan.name !== "Free" && plan.planKey !== "agency" && (
           <p className="mt-1 text-xs font-black text-emerald-600">
             Limited time offer
           </p>

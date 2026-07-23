@@ -332,7 +332,7 @@ const toggleMute = async () => {
             <p className="text-sm font-medium text-muted-foreground">
               Trusted by{" "}
               <span className="font-bold text-[var(--brand-pink)]">
-                10,000+
+                1000+
               </span>{" "}
               creators and brands worldwide
             </p>
@@ -979,8 +979,8 @@ const moreLanguages = [
   ];
 
   const stats = [
-    ["10K+", "Creators & Brands", "Using Twin"],
-    ["1M+", "Live Sessions", "Conducted"],
+    ["1K+", "Creators & Brands", "Using Twin"],
+    ["3K+", "Users", "Regustered"],
     ["25M+", "Viewers", "Engaged"],
     ["₹500Cr+", "Revenue Generated", "Through Twin"],
   ];
