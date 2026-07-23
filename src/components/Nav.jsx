@@ -25,7 +25,7 @@ import { fetchMe, logoutUser } from "../features/auth/authSlice";
 const discoverMenu = [
   { icon: Radio, title: "Multistreaming", desc: "Go Live Everywhere", link: "/multistreaming" },
   { icon: UploadCloud, title: "Upload and Stream", desc: "Upload Your First Video", link: "/uploadandstream" },
-  { icon: Scissors, title: "Short Clips", desc: "See Your Clips", link: "/shortclips" },
+  { icon: Scissors, title: "AI UGC Ads", desc: "See Your Ads", link: "/shortclips" },
   { icon: Bot, title: "AI Twins", desc: "Browse AI Twins", link: "/aitwins" },
 ];
 

@@ -115,7 +115,7 @@ const clipsPath = user ? "/app/analytics" : "/signin";
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-sm font-black tracking-tight brand-text">
-                        AI Clip Studio
+                        AI UGC Ad Studio
                       </p>
                       <p className="mt-1 text-xs font-medium text-muted-foreground">
                         Auto-generated clips from live sessions
