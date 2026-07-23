@@ -79,7 +79,7 @@ const plans = [
     button: "Start",
     icon: Crown,
     popular: true,
-    badge: "{plan.badge}",
+    badge: "Popular",
     features: [
       "Everything in Starter",
       "Up to 3 AI Twins",
