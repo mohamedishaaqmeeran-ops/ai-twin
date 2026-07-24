@@ -981,8 +981,8 @@ const moreLanguages = [
   const stats = [
     ["1K+", "Creators & Brands", "Using Twin"],
     ["3K+", "Users", "Regustered"],
-    ["25M+", "Viewers", "Engaged"],
-    ["₹500Cr+", "Revenue Generated", "Through Twin"],
+    ["40+", "Languages", "Supported"],
+    ["10+", "Social Media", "Livestream Across"],
   ];
 
   return (
