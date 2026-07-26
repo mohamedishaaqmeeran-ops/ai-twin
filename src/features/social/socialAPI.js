@@ -14,7 +14,7 @@ const LIVE_API =
   `${API}/live`;
 
 /* =========================================================
-   COMMON ERROR HANDLER
+   ERROR MESSAGE
 ========================================================= */
 
 const getErrorMessage = (
@@ -28,6 +28,71 @@ const getErrorMessage = (
     fallbackMessage
   );
 };
+
+/* =========================================================
+   CONNECT SOCIAL PLATFORM
+========================================================= */
+
+export const connectAPI =
+  async (
+    platform
+  ) => {
+    try {
+      const normalizedPlatform =
+        String(
+          platform || ""
+        )
+          .trim()
+          .toLowerCase();
+
+      if (
+        !normalizedPlatform
+      ) {
+        throw new Error(
+          "Platform is required."
+        );
+      }
+
+      const response =
+        await axios.get(
+          `${SOCIAL_API}/connect/${normalizedPlatform}`,
+          {
+            withCredentials: true,
+          }
+        );
+
+      const data =
+        response.data;
+
+      const oauthUrl =
+        data?.url ||
+        data?.authUrl ||
+        data?.oauthUrl ||
+        data?.redirectUrl ||
+        data?.data?.url ||
+        data?.data?.authUrl ||
+        data?.data?.oauthUrl ||
+        data?.data?.redirectUrl;
+
+      if (!oauthUrl) {
+        throw new Error(
+          "OAuth URL was not returned by the backend."
+        );
+      }
+
+      return {
+        ...data,
+        url: oauthUrl,
+      };
+    } catch (error) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          "Unable to connect social platform."
+        )
+      );
+    }
+  };
 
 /* =========================================================
    GET SOCIAL CONNECTIONS
@@ -74,7 +139,8 @@ export const getConnectionsAPI =
           data?.data?.connections
         )
       ) {
-        return data.data.connections;
+        return data.data
+          .connections;
       }
 
       return [];
