@@ -35,6 +35,10 @@ import {
   Twitter,
   RadioTower,
   Zap,
+  StopCircle,
+  RefreshCw,
+  Upload,
+  CheckCircle2,
 } from "lucide-react";
 
 import {
@@ -42,9 +46,15 @@ import {
 } from "../../features/auth/authSlice";
 
 import {
+  createYouTubeLive,
+  endYouTubeBroadcast,
   fetchConnections,
-  startYouTubeLive,
-  stopYouTubeLive,
+  fetchLiveStatus,
+  startLive,
+  startYouTubeBroadcast,
+  stopAllLive,
+  stopPlatformLive,
+  waitForYouTubeStream,
 } from "../../features/social/socialSlice";
 
 /* =========================================================
@@ -52,10 +62,8 @@ import {
 ========================================================= */
 
 const API =
+  import.meta.env.VITE_API_URL ||
   "https://twinn-backend.onrender.com/api";
-
-const LIVE_API =
-  `${API}/live`;
 
 /* =========================================================
    PLATFORM CONFIGURATION
@@ -67,58 +75,69 @@ const platforms = [
     name: "Instagram",
     icon: Instagram,
     pro: false,
-    connectionType: "oauth",
+    liveSupported: true,
   },
   {
     id: "youtube",
     name: "YouTube",
     icon: Youtube,
     pro: true,
-    connectionType: "oauth",
+    liveSupported: true,
   },
   {
     id: "facebook",
     name: "Facebook",
     icon: Facebook,
     pro: true,
-    connectionType: "oauth",
+    liveSupported: false,
   },
   {
     id: "tiktok",
     name: "TikTok",
     icon: Music2,
     pro: true,
-    connectionType: "oauth",
+    liveSupported: false,
   },
   {
     id: "rumble",
     name: "Rumble",
     icon: RadioTower,
     pro: true,
-    connectionType: "rtmp",
+    liveSupported: true,
   },
   {
     id: "twitter",
     name: "Twitter / X",
     icon: Twitter,
     pro: true,
-    connectionType: "rtmp",
+    liveSupported: true,
   },
   {
     id: "twitch",
     name: "Twitch",
     icon: Twitch,
     pro: true,
-    connectionType: "rtmp",
+    liveSupported: true,
   },
   {
     id: "kick",
     name: "Kick",
     icon: Zap,
     pro: true,
-    connectionType: "rtmp",
+    liveSupported: true,
   },
 ];
+
+const livePlatformIds =
+  platforms
+    .filter(
+      (item) =>
+        item.liveSupported
+    )
+    .map(
+      (item) =>
+        item.id
+    );
 
 /* =========================================================
    HELPERS
@@ -127,9 +146,14 @@ const platforms = [
 const normalizePlatform = (
   platform = ""
 ) => {
-  return String(platform)
-    .trim()
-    .toLowerCase();
+  const value =
+    String(platform)
+      .trim()
+      .toLowerCase();
+
+  return value === "x"
+    ? "twitter"
+    : value;
 };
 
 const getTwinDisplayName = (
@@ -224,6 +248,24 @@ const extractProductList = (
   return [];
 };
 
+const getErrorMessage = (
+  error,
+  fallback
+) => {
+  if (
+    typeof error ===
+    "string"
+  ) {
+    return error;
+  }
+
+  return (
+    error?.message ||
+    error?.response?.data?.message ||
+    fallback
+  );
+};
+
 /* =========================================================
    GO LIVE PAGE
 ========================================================= */
@@ -248,10 +290,14 @@ export default function GoLive() {
   const {
     connections = [],
     loading: socialLoading = false,
-
-    youtubeLiveLoading = false,
-    youtubeLiveStatus = "idle",
-    youtubeLiveData = null,
+    liveLoading = false,
+    youtubeLoading = false,
+    statusLoading = false,
+    currentYouTubeLive = null,
+    youtubeStreamStatus = null,
+    liveStatus: platformStatuses = [],
+    activePlatforms = [],
+    error: socialError = null,
   } = useSelector(
     (state) =>
       state.social || {}
@@ -265,7 +311,7 @@ export default function GoLive() {
     plan === "business";
 
   const maxPlatforms =
-    isPro ? 8 : 1;
+    isPro ? 6 : 1;
 
   const scheduleState =
     location.state?.schedule;
@@ -275,15 +321,6 @@ export default function GoLive() {
 
   const platformState =
     location.state?.platforms;
-
-  /* =========================================================
-     LOCAL STATE
-  ========================================================= */
-
-  const [
-    videoFile,
-    setVideoFile,
-  ] = useState(null);
 
   const [
     twins,
@@ -311,30 +348,28 @@ export default function GoLive() {
   ] = useState([]);
 
   const [
-    rtmpUrl,
-    setRtmpUrl,
-  ] = useState(
-    "rtmps://live-upload.instagram.com:443/rtmp"
-  );
+    videoFile,
+    setVideoFile,
+  ] = useState(null);
 
   const [
-    streamKey,
-    setStreamKey,
+    inputUrl,
+    setInputUrl,
   ] = useState("");
 
   const [
-    videoPath,
-    setVideoPath,
-  ] = useState("");
+    sourceMode,
+    setSourceMode,
+  ] = useState("file");
 
   const [
-    liveLoading,
-    setLiveLoading,
+    loopVideo,
+    setLoopVideo,
   ] = useState(false);
 
   const [
-    liveStatus,
-    setLiveStatus,
+    localStatus,
+    setLocalStatus,
   ] = useState("");
 
   const [
@@ -357,9 +392,13 @@ export default function GoLive() {
     multiPlatformSync: false,
   });
 
-  /* =========================================================
-     SELECTED TWIN AND PRODUCT
-  ========================================================= */
+  const busy =
+    socialLoading ||
+    liveLoading ||
+    youtubeLoading ||
+    statusLoading ||
+    loadingTwins ||
+    loadingProducts;
 
   const selectedTwin =
     useMemo(() => {
@@ -399,13 +438,24 @@ export default function GoLive() {
       selectedProduct
     );
 
-  /* =========================================================
-     CONNECTED PLATFORMS
-  ========================================================= */
+  const normalizedConnections =
+    useMemo(() => {
+      return connections.map(
+        (item) => ({
+          ...item,
+          platform:
+            normalizePlatform(
+              item?.platform
+            ),
+        })
+      );
+    }, [
+      connections,
+    ]);
 
   const connectedPlatforms =
     useMemo(() => {
-      return connections
+      return normalizedConnections
         .filter(
           (item) =>
             item?.connected !==
@@ -413,68 +463,40 @@ export default function GoLive() {
         )
         .map(
           (item) =>
-            normalizePlatform(
-              item.platform
-            )
+            item.platform
         )
         .filter(Boolean);
-    }, [connections]);
+    }, [
+      normalizedConnections,
+    ]);
 
-  const instagramConnected =
-    connectedPlatforms.includes(
-      "instagram"
-    );
+  const connectedLivePlatforms =
+    useMemo(() => {
+      return connectedPlatforms.filter(
+        (platform) =>
+          livePlatformIds.includes(
+            platform
+          )
+      );
+    }, [
+      connectedPlatforms,
+    ]);
 
-  const facebookConnected =
-    connectedPlatforms.includes(
-      "facebook"
-    );
-
-  const youtubeConnected =
-    connectedPlatforms.includes(
-      "youtube"
-    );
-
-  const tiktokConnected =
-    connectedPlatforms.includes(
-      "tiktok"
-    );
-
-  const rumbleConnected =
-    connectedPlatforms.includes(
-      "rumble"
-    );
-
-  const twitterConnected =
-    connectedPlatforms.includes(
-      "twitter"
-    );
-
-  const twitchConnected =
-    connectedPlatforms.includes(
-      "twitch"
-    );
-
-  const kickConnected =
-    connectedPlatforms.includes(
-      "kick"
-    );
-
-  const getConnection = (
-    platform
-  ) => {
-    return connections.find(
-      (item) =>
-        normalizePlatform(
-          item?.platform
-        ) === platform &&
-        item?.connected !== false
-    );
-  };
-
-  /* =========================================================
-     INPUT CLASS
-  ========================================================= */
+  const statusMap =
+    useMemo(() => {
+      return new Map(
+        platformStatuses.map(
+          (item) => [
+            normalizePlatform(
+              item.platform
+            ),
+            item,
+          ]
+        )
+      );
+    }, [
+      platformStatuses,
+    ]);
 
   const inputClass =
     "w-full rounded-[5px] border border-border bg-background px-4 py-3 text-sm font-medium text-foreground outline-none transition focus:border-[var(--brand-pink)] focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-500/20 disabled:cursor-not-allowed disabled:opacity-60";
@@ -483,10 +505,6 @@ export default function GoLive() {
     () => {
       navigate("/pricing");
     };
-
-  /* =========================================================
-     LOAD AI TWINS
-  ========================================================= */
 
   const loadTwins =
     async () => {
@@ -499,7 +517,9 @@ export default function GoLive() {
           await fetch(
             `${API}/twin`,
             {
-              method: "GET",
+              method:
+                "GET",
+
               credentials:
                 "include",
             }
@@ -515,22 +535,20 @@ export default function GoLive() {
         if (!response.ok) {
           throw new Error(
             data.message ||
-              "Unable to load AI Twins."
+            "Unable to load AI Twins."
           );
         }
 
-        const twinList =
+        const list =
           extractTwinList(
             data
           );
 
         setTwins(
-          twinList
+          list
         );
 
-        if (
-          !twinList.length
-        ) {
+        if (!list.length) {
           setSelectedTwinId(
             ""
           );
@@ -539,29 +557,24 @@ export default function GoLive() {
         }
 
         const requestedTwinId =
-          scheduleState
-            ?.twinId ||
-          scheduleState
-            ?.twin?._id ||
-          location.state
-            ?.twinId ||
+          scheduleState?.twinId ||
+          scheduleState?.twin?._id ||
+          location.state?.twinId ||
           localStorage.getItem(
             "selectedTwinId"
           );
 
         const matchingTwin =
-          twinList.find(
+          list.find(
             (item) =>
-              String(
-                item?._id
-              ) ===
+              String(item?._id) ===
               String(
                 requestedTwinId
               )
           );
 
         const activeTwin =
-          twinList.find(
+          list.find(
             (item) =>
               item?.isTrained ===
                 true ||
@@ -569,25 +582,21 @@ export default function GoLive() {
                 "active"
           );
 
-        const initialTwin =
-          matchingTwin ||
-          activeTwin ||
-          twinList[0];
-
         setSelectedTwinId(
           String(
-            initialTwin._id
+            (
+              matchingTwin ||
+              activeTwin ||
+              list[0]
+            )._id
           )
         );
       } catch (error) {
-        console.error(
-          "LOAD TWINS ERROR:",
-          error
-        );
-
-        setLiveStatus(
-          error.message ||
+        setLocalStatus(
+          getErrorMessage(
+            error,
             "Unable to load AI Twins."
+          )
         );
       } finally {
         setLoadingTwins(
@@ -595,10 +604,6 @@ export default function GoLive() {
         );
       }
     };
-
-  /* =========================================================
-     LOAD PRODUCTS
-  ========================================================= */
 
   const loadProducts =
     async () => {
@@ -611,7 +616,9 @@ export default function GoLive() {
           await fetch(
             `${API}/products`,
             {
-              method: "GET",
+              method:
+                "GET",
+
               credentials:
                 "include",
             }
@@ -627,22 +634,20 @@ export default function GoLive() {
         if (!response.ok) {
           throw new Error(
             data.message ||
-              "Unable to load products."
+            "Unable to load products."
           );
         }
 
-        const productList =
+        const list =
           extractProductList(
             data
           );
 
         setProducts(
-          productList
+          list
         );
 
-        if (
-          !productList.length
-        ) {
+        if (!list.length) {
           setSelectedProductId(
             ""
           );
@@ -650,14 +655,21 @@ export default function GoLive() {
           return;
         }
 
-        const productStateId =
-          typeof productState ===
-          "object"
-            ? productState?._id ||
-              productState?.id
-            : "";
+        const requestedProductId =
+          (
+            typeof productState ===
+            "object"
+              ? productState?._id ||
+                productState?.id
+              : ""
+          ) ||
+          scheduleState?.productId ||
+          scheduleState?.product?._id ||
+          localStorage.getItem(
+            "selectedProductId"
+          );
 
-        const productStateName =
+        const requestedProductName =
           typeof productState ===
           "string"
             ? productState
@@ -665,39 +677,17 @@ export default function GoLive() {
                 productState
               );
 
-        const requestedProductId =
-          productStateId ||
-          scheduleState
-            ?.productId ||
-          scheduleState
-            ?.product?._id ||
-          localStorage.getItem(
-            "selectedProductId"
-          );
-
-        const requestedProductName =
-          productStateName ||
-          scheduleState
-            ?.productName ||
-          (typeof scheduleState
-            ?.product ===
-          "string"
-            ? scheduleState.product
-            : "");
-
         const matchingById =
-          productList.find(
+          list.find(
             (item) =>
-              String(
-                item?._id
-              ) ===
+              String(item?._id) ===
               String(
                 requestedProductId
               )
           );
 
         const matchingByName =
-          productList.find(
+          list.find(
             (item) =>
               getProductDisplayName(
                 item
@@ -706,31 +696,28 @@ export default function GoLive() {
                 .toLowerCase() ===
               String(
                 requestedProductName ||
-                  ""
+                scheduleState?.productName ||
+                ""
               )
                 .trim()
                 .toLowerCase()
           );
 
-        const initialProduct =
-          matchingById ||
-          matchingByName ||
-          productList[0];
-
         setSelectedProductId(
           String(
-            initialProduct._id
+            (
+              matchingById ||
+              matchingByName ||
+              list[0]
+            )._id
           )
         );
       } catch (error) {
-        console.error(
-          "LOAD PRODUCTS ERROR:",
-          error
-        );
-
-        setLiveStatus(
-          error.message ||
+        setLocalStatus(
+          getErrorMessage(
+            error,
             "Unable to load products."
+          )
         );
       } finally {
         setLoadingProducts(
@@ -738,10 +725,6 @@ export default function GoLive() {
         );
       }
     };
-
-  /* =========================================================
-     INITIAL LOAD
-  ========================================================= */
 
   useEffect(() => {
     if (!user) {
@@ -754,14 +737,17 @@ export default function GoLive() {
       fetchConnections()
     );
 
+    dispatch(
+      fetchLiveStatus()
+    );
+
     loadTwins();
     loadProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch]);
 
-  /* =========================================================
-     SAVE SELECTED IDS
-  ========================================================= */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    dispatch,
+  ]);
 
   useEffect(() => {
     if (selectedTwinId) {
@@ -775,9 +761,7 @@ export default function GoLive() {
   ]);
 
   useEffect(() => {
-    if (
-      selectedProductId
-    ) {
+    if (selectedProductId) {
       localStorage.setItem(
         "selectedProductId",
         selectedProductId
@@ -787,33 +771,23 @@ export default function GoLive() {
     selectedProductId,
   ]);
 
-  /* =========================================================
-     INITIAL PLATFORM SELECTION
-  ========================================================= */
-
   useEffect(() => {
     if (
-      !connectedPlatforms.length
+      !connectedLivePlatforms.length
     ) {
       setSelectedPlatforms(
         []
       );
 
-      setLiveStatus(
-        "Please connect a social platform before going live."
-      );
-
       return;
     }
 
-    let preferredPlatforms =
-      [];
+    let preferredPlatforms = [];
 
     if (
       Array.isArray(
         platformState
-      ) &&
-      platformState.length
+      )
     ) {
       preferredPlatforms =
         platformState.map(
@@ -821,8 +795,7 @@ export default function GoLive() {
         );
     } else if (
       Array.isArray(
-        scheduleState
-          ?.platforms
+        scheduleState?.platforms
       )
     ) {
       preferredPlatforms =
@@ -831,53 +804,83 @@ export default function GoLive() {
         );
     } else {
       preferredPlatforms =
-        connectedPlatforms;
+        connectedLivePlatforms;
     }
 
-    const allowedConnected =
+    const allowed =
       preferredPlatforms.filter(
         (platform) =>
-          connectedPlatforms.includes(
+          connectedLivePlatforms.includes(
             platform
           )
       );
 
     setSelectedPlatforms(
       isPro
-        ? allowedConnected
-        : allowedConnected.slice(
+        ? allowed.slice(
+            0,
+            maxPlatforms
+          )
+        : allowed.slice(
             0,
             1
           )
     );
-
-    setLiveStatus("");
   }, [
-    connectedPlatforms,
+    connectedLivePlatforms,
     isPro,
+    maxPlatforms,
     platformState,
     scheduleState,
   ]);
 
-  /* =========================================================
-     VALIDATE TWIN AND PRODUCT
-  ========================================================= */
-
-  const validateTwinAndProduct =
+  const validateStart =
     () => {
       if (!selectedTwinId) {
-        setLiveStatus(
+        setLocalStatus(
           "Please select an AI Twin."
         );
 
         return false;
       }
 
-      if (
-        !selectedProductId
-      ) {
-        setLiveStatus(
+      if (!selectedProductId) {
+        setLocalStatus(
           "Please select a product."
+        );
+
+        return false;
+      }
+
+      if (
+        !selectedPlatforms.length
+      ) {
+        setLocalStatus(
+          "Please select at least one connected platform."
+        );
+
+        return false;
+      }
+
+      if (
+        sourceMode ===
+          "file" &&
+        !videoFile
+      ) {
+        setLocalStatus(
+          "Please select a video file."
+        );
+
+        return false;
+      }
+
+      if (
+        sourceMode ===
+          "url" &&
+        !inputUrl.trim()
+      ) {
+        setLocalStatus(
+          "Please enter a public video URL."
         );
 
         return false;
@@ -886,1009 +889,421 @@ export default function GoLive() {
       return true;
     };
 
-  /* =========================================================
-     UPLOAD VIDEO
-  ========================================================= */
-
-  const uploadVideo =
-    async () => {
-      if (!videoFile) {
-        setLiveStatus(
-          "Please choose a video file."
+  const togglePlatform =
+    (
+      platformId
+    ) => {
+      const item =
+        platforms.find(
+          (platform) =>
+            platform.id ===
+            platformId
         );
 
-        return null;
+      if (
+        !item?.liveSupported
+      ) {
+        alert(
+          `${item?.name || platformId} live streaming is not configured in the current backend.`
+        );
+
+        return;
       }
 
-      const formData =
-        new FormData();
-
-      formData.append(
-        "video",
-        videoFile
-      );
-
-      const response =
-        await fetch(
-          `${LIVE_API}/upload-video`,
-          {
-            method: "POST",
-            credentials:
-              "include",
-            body: formData,
-          }
-        );
-
-      const data =
-        await response
-          .json()
-          .catch(
-            () => ({})
-          );
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "Video upload failed."
-        );
-      }
-
-      const uploadedUrl =
-        data.data
-          ?.videoUrl ||
-        data.videoPath ||
-        data.path ||
-        data.url;
-
-      if (!uploadedUrl) {
-        throw new Error(
-          "Backend did not return the uploaded video URL."
-        );
-      }
-
-      return uploadedUrl;
-    };
-
-  /* =========================================================
-     PLATFORM TOGGLE
-  ========================================================= */
-
-  const togglePlatform = (
-    platformId
-  ) => {
-    const item =
-      platforms.find(
-        (platform) =>
-          platform.id ===
+      if (
+        !connectedPlatforms.includes(
           platformId
-      );
+        )
+      ) {
+        alert(
+          "Connect this platform first."
+        );
 
-    const active =
-      selectedPlatforms.includes(
-        platformId
-      );
+        navigate(
+          "/app/connect"
+        );
 
-    const isConnected =
-      connectedPlatforms.includes(
-        platformId
-      );
+        return;
+      }
 
-    if (!isConnected) {
-      alert(
-        "Please connect this platform first."
-      );
+      if (
+        item.pro &&
+        !isPro
+      ) {
+        upgradeToPro();
 
-      navigate(
-        "/app/connect"
-      );
+        return;
+      }
 
-      return;
-    }
+      const active =
+        selectedPlatforms.includes(
+          platformId
+        );
 
-    if (
-      item?.pro &&
-      !isPro &&
-      !active
-    ) {
-      upgradeToPro();
-      return;
-    }
+      if (active) {
+        setSelectedPlatforms(
+          (previous) =>
+            previous.filter(
+              (itemId) =>
+                itemId !==
+                platformId
+            )
+        );
 
-    if (active) {
-      setSelectedPlatforms(
-        (previous) =>
-          previous.filter(
-            (item) =>
-              item !==
-              platformId
-          )
-      );
+        return;
+      }
 
-      return;
-    }
-
-    if (
-      !isPro &&
-      selectedPlatforms.length >=
+      if (
+        selectedPlatforms.length >=
         maxPlatforms
-    ) {
-      upgradeToPro();
-      return;
-    }
-
-    setSelectedPlatforms(
-      (previous) => [
-        ...previous,
-        platformId,
-      ]
-    );
-  };
-
-  /* =========================================================
-     SETTING TOGGLE
-  ========================================================= */
-
-  const toggleSetting = (
-    key,
-    proOnly = false
-  ) => {
-    if (
-      proOnly &&
-      !isPro
-    ) {
-      upgradeToPro();
-      return;
-    }
-
-    setSettings(
-      (previous) => ({
-        ...previous,
-        [key]:
-          !previous[key],
-      })
-    );
-  };
-
-  /* =========================================================
-     INSTAGRAM START
-  ========================================================= */
-
-  const startInstagramRTMP =
-    async () => {
-      try {
-        setLiveLoading(true);
-        setLiveStatus("");
-
-        if (
-          !validateTwinAndProduct()
-        ) {
-          return;
-        }
-
-        if (
-          !instagramConnected
-        ) {
-          setLiveStatus(
-            "Instagram is not connected. Please connect Instagram first."
-          );
-
-          navigate(
-            "/app/connect"
-          );
-
-          return;
-        }
-
-        if (
-          !rtmpUrl ||
-          !streamKey ||
-          !videoFile
-        ) {
-          setLiveStatus(
-            "RTMP URL, Stream Key and Video file are required."
-          );
-
-          return;
-        }
-
-        const uploadedVideoPath =
-          await uploadVideo();
-
-        if (
-          !uploadedVideoPath
-        ) {
-          return;
-        }
-
-        setVideoPath(
-          uploadedVideoPath
-        );
-
-        const response =
-          await fetch(
-            `${LIVE_API}/start-instagram-rtmp`,
-            {
-              method:
-                "POST",
-
-              credentials:
-                "include",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body:
-                JSON.stringify({
-                  rtmpUrl,
-                  streamKey,
-
-                  videoPath:
-                    uploadedVideoPath,
-
-                  twinId:
-                    selectedTwinId,
-
-                  twinName,
-
-                  productId:
-                    selectedProductId,
-
-                  product:
-                    productName,
-
-                  productName,
-
-                  platforms: [
-                    "instagram",
-                  ],
-                }),
-            }
-          );
-
-        const data =
-          await response
-            .json()
-            .catch(
-              () => ({})
-            );
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Failed to start Instagram live."
-          );
-        }
-
-        setLiveStatus(
-          "Instagram RTMP stream started successfully."
-        );
-      } catch (error) {
-        setLiveStatus(
-          error.message ||
-            "Failed to start Instagram live."
-        );
-      } finally {
-        setLiveLoading(
-          false
-        );
-      }
-    };
-
-  /* =========================================================
-     INSTAGRAM STOP
-  ========================================================= */
-
-  const stopInstagramRTMP =
-    async () => {
-      try {
-        setLiveLoading(true);
-        setLiveStatus("");
-
-        const response =
-          await fetch(
-            `${LIVE_API}/stop-instagram-rtmp`,
-            {
-              method:
-                "POST",
-
-              credentials:
-                "include",
-            }
-          );
-
-        const data =
-          await response
-            .json()
-            .catch(
-              () => ({})
-            );
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Failed to stop Instagram live."
-          );
-        }
-
-        setLiveStatus(
-          "Instagram RTMP stream stopped."
-        );
-      } catch (error) {
-        setLiveStatus(
-          error.message ||
-            "Failed to stop Instagram live."
-        );
-      } finally {
-        setLiveLoading(
-          false
-        );
-      }
-    };
-
-  /* =========================================================
-     FACEBOOK START
-  ========================================================= */
-
-  const startFacebookLive =
-    async () => {
-      try {
-        setLiveLoading(true);
-        setLiveStatus("");
-
-        if (
-          !validateTwinAndProduct()
-        ) {
-          return;
-        }
-
-        if (
-          !facebookConnected
-        ) {
-          setLiveStatus(
-            "Facebook is not connected. Please connect Facebook first."
-          );
-
-          navigate(
-            "/app/connect"
-          );
-
-          return;
-        }
-
-        if (!videoFile) {
-          setLiveStatus(
-            "Please choose a video file."
-          );
-
-          return;
-        }
-
-        const uploadedVideoPath =
-          await uploadVideo();
-
-        if (
-          !uploadedVideoPath
-        ) {
-          return;
-        }
-
-        setVideoPath(
-          uploadedVideoPath
-        );
-
-        const response =
-          await fetch(
-            `${LIVE_API}/start-facebook`,
-            {
-              method:
-                "POST",
-
-              credentials:
-                "include",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body:
-                JSON.stringify({
-                  videoPath:
-                    uploadedVideoPath,
-
-                  twinId:
-                    selectedTwinId,
-
-                  twinName,
-
-                  productId:
-                    selectedProductId,
-
-                  product:
-                    productName,
-
-                  productName,
-
-                  title:
-                    `${twinName} Live Selling`,
-
-                  description:
-                    `Live selling ${productName}`,
-                }),
-            }
-          );
-
-        const data =
-          await response
-            .json()
-            .catch(
-              () => ({})
-            );
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Failed to start Facebook live."
-          );
-        }
-
-        setLiveStatus(
-          "Facebook Live started successfully."
-        );
-      } catch (error) {
-        setLiveStatus(
-          error.message ||
-            "Failed to start Facebook live."
-        );
-      } finally {
-        setLiveLoading(
-          false
-        );
-      }
-    };
-
-  /* =========================================================
-     FACEBOOK STOP
-  ========================================================= */
-
-  const stopFacebookLive =
-    async () => {
-      try {
-        setLiveLoading(true);
-        setLiveStatus("");
-
-        const response =
-          await fetch(
-            `${LIVE_API}/stop-facebook`,
-            {
-              method:
-                "POST",
-
-              credentials:
-                "include",
-            }
-          );
-
-        const data =
-          await response
-            .json()
-            .catch(
-              () => ({})
-            );
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Failed to stop Facebook live."
-          );
-        }
-
-        setLiveStatus(
-          "Facebook Live stopped."
-        );
-      } catch (error) {
-        setLiveStatus(
-          error.message ||
-            "Failed to stop Facebook live."
-        );
-      } finally {
-        setLiveLoading(
-          false
-        );
-      }
-    };
-
-  /* =========================================================
-     YOUTUBE START
-  ========================================================= */
-
-  const handleStartYouTubeLive =
-    async () => {
-      try {
-        setLiveLoading(true);
-        setLiveStatus("");
-
-        if (
-          !validateTwinAndProduct()
-        ) {
-          return;
-        }
-
-        if (
-          !youtubeConnected
-        ) {
-          setLiveStatus(
-            "YouTube is not connected. Please connect YouTube first."
-          );
-
-          navigate(
-            "/app/connect"
-          );
-
-          return;
-        }
-
+      ) {
         if (!isPro) {
           upgradeToPro();
-          return;
+        } else {
+          alert(
+            `You can select up to ${maxPlatforms} platforms.`
+          );
         }
 
-        if (!videoFile) {
-          setLiveStatus(
-            "Please choose a video file."
+        return;
+      }
+
+      setSelectedPlatforms(
+        (previous) => [
+          ...previous,
+          platformId,
+        ]
+      );
+    };
+
+  const toggleSetting =
+    (
+      key,
+      proOnly = false
+    ) => {
+      if (
+        proOnly &&
+        !isPro
+      ) {
+        upgradeToPro();
+
+        return;
+      }
+
+      setSettings(
+        (previous) => ({
+          ...previous,
+          [key]:
+            !previous[key],
+        })
+      );
+    };
+
+  const handleStartLive =
+    async () => {
+      if (
+        !validateStart()
+      ) {
+        return;
+      }
+
+      try {
+        setLocalStatus(
+          "Preparing live stream..."
+        );
+
+        const youtubeSelected =
+          selectedPlatforms.includes(
+            "youtube"
           );
 
-          return;
-        }
-
-        setLiveStatus(
-          "Uploading video..."
-        );
-
-        const uploadedVideoPath =
-          await uploadVideo();
-
         if (
-          !uploadedVideoPath
+          youtubeSelected
         ) {
-          return;
-        }
+          setLocalStatus(
+            "Creating YouTube broadcast..."
+          );
 
-        setVideoPath(
-          uploadedVideoPath
-        );
-
-        setLiveStatus(
-          "Creating YouTube broadcast..."
-        );
-
-        const result =
           await dispatch(
-            startYouTubeLive({
-              videoPath:
-                uploadedVideoPath,
-
-              twinId:
-                selectedTwinId,
-
-              twinName,
-
-              productId:
-                selectedProductId,
-
-              product:
-                productName,
-
-              productName,
-
+            createYouTubeLive({
               title:
                 `${twinName} Live Selling`,
 
               description:
                 `Live product presentation for ${productName}.`,
 
-              onWaiting: (
-                current,
-                total,
-                status
-              ) => {
-                setLiveStatus(
-                  `Sending video to YouTube. Stream status: ${
-                    status
-                      ?.streamStatus ||
-                    "inactive"
-                  } (${current}/${total})`
-                );
-              },
+              privacyStatus:
+                "public",
+
+              scheduledStartTime:
+                new Date(
+                  Date.now() +
+                  2 *
+                    60 *
+                    1000
+                ).toISOString(),
+
+              madeForKids:
+                false,
+
+              enableAutoStart:
+                true,
+
+              enableAutoStop:
+                true,
+            })
+          ).unwrap();
+        }
+
+        setLocalStatus(
+          "Starting FFmpeg stream..."
+        );
+
+        const startResult =
+          await dispatch(
+            startLive({
+              platforms:
+                selectedPlatforms,
+
+              video:
+                sourceMode ===
+                "file"
+                  ? videoFile
+                  : null,
+
+              inputUrl:
+                sourceMode ===
+                "url"
+                  ? inputUrl.trim()
+                  : "",
+
+              sourceType:
+                sourceMode ===
+                "url"
+                  ? "url"
+                  : "file",
+
+              loop:
+                loopVideo,
+
+              videoBitrate:
+                4500,
+
+              audioBitrate:
+                128,
+
+              width:
+                1280,
+
+              height:
+                720,
+
+              fps:
+                30,
+
+              preset:
+                "veryfast",
+
+              twinId:
+                selectedTwinId,
+
+              productId:
+                selectedProductId,
+
+              twinName,
+
+              productName,
+
+              settings,
             })
           ).unwrap();
 
-        setLiveStatus(
-          "You are now live on YouTube."
-        );
+        if (
+          youtubeSelected
+        ) {
+          setLocalStatus(
+            "Waiting for YouTube to receive the stream..."
+          );
 
-        console.log(
-          "YOUTUBE LIVE RESULT:",
-          result
-        );
-      } catch (error) {
-        setLiveStatus(
-          typeof error ===
-            "string"
-            ? error
-            : error?.message ||
-                "Unable to start YouTube live."
-        );
-      } finally {
-        setLiveLoading(
-          false
-        );
-      }
-    };
+          await dispatch(
+            waitForYouTubeStream({
+              attempts:
+                30,
 
-  /* =========================================================
-     YOUTUBE STOP
-  ========================================================= */
+              interval:
+                4000,
+            })
+          ).unwrap();
 
-  const handleStopYouTubeLive =
-    async () => {
-      try {
-        setLiveLoading(true);
-        setLiveStatus("");
+          setLocalStatus(
+            "Starting YouTube broadcast..."
+          );
+
+          await dispatch(
+            startYouTubeBroadcast()
+          ).unwrap();
+        }
 
         await dispatch(
-          stopYouTubeLive()
-        ).unwrap();
+          fetchLiveStatus()
+        );
 
-        setLiveStatus(
-          "YouTube live stopped successfully."
+        const failed =
+          Array.isArray(
+            startResult?.failed
+          )
+            ? startResult.failed
+            : [];
+
+        setLocalStatus(
+          failed.length
+            ? `Live started with ${failed.length} platform error(s).`
+            : "Live stream started successfully."
         );
       } catch (error) {
-        setLiveStatus(
-          typeof error ===
-            "string"
-            ? error
-            : error?.message ||
-                "Unable to stop YouTube live."
-        );
-      } finally {
-        setLiveLoading(
-          false
+        setLocalStatus(
+          getErrorMessage(
+            error,
+            "Unable to start live stream."
+          )
         );
       }
     };
 
-  /* =========================================================
-     SAVED RTMP PLATFORM START
-  ========================================================= */
-
-  const startSavedRTMPLive =
+  const handleStopPlatform =
     async (
       platform
     ) => {
       try {
-        setLiveLoading(true);
-        setLiveStatus("");
+        setLocalStatus(
+          `Stopping ${platform}...`
+        );
 
-        if (
-          !validateTwinAndProduct()
-        ) {
-          return;
-        }
-
-        if (
-          !connectedPlatforms.includes(
+        await dispatch(
+          stopPlatformLive(
             platform
           )
-        ) {
-          setLiveStatus(
-            `${platform} is not connected. Please connect it first.`
-          );
-
-          navigate(
-            "/app/connect"
-          );
-
-          return;
-        }
-
-        if (!isPro) {
-          upgradeToPro();
-          return;
-        }
-
-        if (!videoFile) {
-          setLiveStatus(
-            "Please choose a video file."
-          );
-
-          return;
-        }
-
-        const uploadedVideoPath =
-          await uploadVideo();
+        ).unwrap();
 
         if (
-          !uploadedVideoPath
+          platform ===
+          "youtube"
         ) {
-          return;
+          await dispatch(
+            endYouTubeBroadcast()
+          ).unwrap();
         }
-
-        setVideoPath(
-          uploadedVideoPath
-        );
-
-        const response =
-          await fetch(
-            `${LIVE_API}/start-rtmp`,
-            {
-              method: "POST",
-              credentials:
-                "include",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body:
-                JSON.stringify({
-                  platform,
-                  videoPath:
-                    uploadedVideoPath,
-                  twinId:
-                    selectedTwinId,
-                  twinName,
-                  productId:
-                    selectedProductId,
-                  product:
-                    productName,
-                  productName,
-                  title:
-                    `${twinName} Live Selling`,
-                  description:
-                    `Live product presentation for ${productName}.`,
-                }),
-            }
-          );
-
-        const data =
-          await response
-            .json()
-            .catch(
-              () => ({})
-            );
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              `Failed to start ${platform} live.`
-          );
-        }
-
-        setLiveStatus(
-          `${platform} RTMP stream started successfully.`
-        );
 
         await dispatch(
-          fetchConnections()
+          fetchLiveStatus()
+        );
+
+        setLocalStatus(
+          `${platform} stream stopped successfully.`
         );
       } catch (error) {
-        setLiveStatus(
-          error.message ||
-            `Failed to start ${platform} live.`
-        );
-      } finally {
-        setLiveLoading(
-          false
+        setLocalStatus(
+          getErrorMessage(
+            error,
+            `Unable to stop ${platform}.`
+          )
         );
       }
     };
 
-  /* =========================================================
-     SAVED RTMP PLATFORM STOP
-  ========================================================= */
-
-  const stopSavedRTMPLive =
-    async (
-      platform
-    ) => {
-      try {
-        setLiveLoading(true);
-        setLiveStatus("");
-
-        const response =
-          await fetch(
-            `${LIVE_API}/stop-rtmp`,
-            {
-              method: "POST",
-              credentials:
-                "include",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body:
-                JSON.stringify({
-                  platform,
-                }),
-            }
-          );
-
-        const data =
-          await response
-            .json()
-            .catch(
-              () => ({})
-            );
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              `Failed to stop ${platform} live.`
-          );
-        }
-
-        setLiveStatus(
-          `${platform} RTMP stream stopped.`
-        );
-
-        await dispatch(
-          fetchConnections()
-        );
-      } catch (error) {
-        setLiveStatus(
-          error.message ||
-            `Failed to stop ${platform} live.`
-        );
-      } finally {
-        setLiveLoading(
-          false
-        );
-      }
-    };
-
-  /* =========================================================
-     CONTINUE PREVIEW
-  ========================================================= */
-
-  const continuePreview =
+  const handleStopAll =
     async () => {
       try {
-        setLiveLoading(true);
-        setLiveStatus("");
+        setLocalStatus(
+          "Stopping all active streams..."
+        );
+
+        const youtubeWasActive =
+          activePlatforms.includes(
+            "youtube"
+          ) ||
+          currentYouTubeLive
+            ?.liveStatus ===
+            "live";
+
+        await dispatch(
+          stopAllLive()
+        ).unwrap();
 
         if (
-          !validateTwinAndProduct()
+          youtubeWasActive
         ) {
-          return;
+          await dispatch(
+            endYouTubeBroadcast()
+          ).unwrap();
         }
 
-        const allowedPlatforms =
-          isPro
-            ? selectedPlatforms
-            : selectedPlatforms.slice(
-                0,
-                1
-              );
+        await dispatch(
+          fetchLiveStatus()
+        );
 
-        if (
-          !allowedPlatforms.length
-        ) {
-          setLiveStatus(
-            "Please select at least one connected platform."
-          );
-
-          return;
-        }
-
-        const response =
-          await fetch(
-            `${LIVE_API}/setup`,
-            {
-              method:
-                "POST",
-
-              credentials:
-                "include",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body:
-                JSON.stringify({
-                  scheduleId:
-                    scheduleState
-                      ?._id ||
-                    scheduleState
-                      ?.id ||
-                    null,
-
-                  twinId:
-                    selectedTwinId,
-
-                  twinName,
-
-                  productId:
-                    selectedProductId,
-
-                  product:
-                    productName,
-
-                  productName,
-
-                  platforms:
-                    allowedPlatforms,
-
-                  settings,
-                  rtmpUrl,
-                  videoPath,
-
-                  plan: isPro
-                    ? "pro"
-                    : "free",
-                }),
-            }
-          );
-
-        const data =
-          await response
-            .json()
-            .catch(
-              () => ({})
-            );
-
-        if (!response.ok) {
-          throw new Error(
-            data.message ||
-              "Unable to create live setup."
-          );
-        }
-
-        const liveSessionId =
-          data.liveSession
-            ?._id ||
-          data.data?._id ||
-          data._id;
-
-        if (
-          !liveSessionId
-        ) {
-          throw new Error(
-            "Live session ID was not returned."
-          );
-        }
-
-        navigate(
-          `/app/golive/preview/${liveSessionId}`
+        setLocalStatus(
+          "All active streams stopped."
         );
       } catch (error) {
-        setLiveStatus(
-          error.message ||
-            "Unable to continue preview."
-        );
-      } finally {
-        setLiveLoading(
-          false
+        setLocalStatus(
+          getErrorMessage(
+            error,
+            "Unable to stop all streams."
+          )
         );
       }
     };
 
-  const canContinue =
+  const refreshStatus =
+    async () => {
+      try {
+        setLocalStatus(
+          "Refreshing live status..."
+        );
+
+        await Promise.all([
+          dispatch(
+            fetchConnections()
+          ).unwrap(),
+
+          dispatch(
+            fetchLiveStatus()
+          ).unwrap(),
+        ]);
+
+        setLocalStatus(
+          "Live status refreshed."
+        );
+      } catch (error) {
+        setLocalStatus(
+          getErrorMessage(
+            error,
+            "Unable to refresh status."
+          )
+        );
+      }
+    };
+
+  const canStart =
     Boolean(
       selectedTwinId &&
       selectedProductId &&
-      selectedPlatforms.length
+      selectedPlatforms.length &&
+      (
+        (
+          sourceMode ===
+          "file" &&
+          videoFile
+        ) ||
+        (
+          sourceMode ===
+          "url" &&
+          inputUrl.trim()
+        )
+      )
     ) &&
-    !socialLoading &&
-    !loadingTwins &&
-    !loadingProducts;
-
-  /* =========================================================
-     UI
-  ========================================================= */
+    !busy;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 bg-background text-foreground transition-colors duration-300">
@@ -1906,204 +1321,210 @@ export default function GoLive() {
               : "GO LIVE SETUP"}
           </span>
 
-          <div className="flex flex-wrap gap-2">
-            {platforms.map(
-              ({
-                id,
-                name,
-                icon,
-              }) => (
-                <PlatformBadge
-                  key={id}
-                  icon={icon}
-                  label={
-                    socialLoading
-                      ? `Checking ${name}...`
-                      : connectedPlatforms.includes(
-                          id
-                        )
-                      ? `${name} Connected`
-                      : `${name} Not Connected`
-                  }
-                  active={
-                    connectedPlatforms.includes(
-                      id
-                    )
-                  }
-                  variant={
-                    id === "facebook"
-                      ? "blue"
-                      : id === "youtube"
-                      ? "red"
-                      : id === "twitch"
-                      ? "purple"
-                      : id === "kick"
-                      ? "lime"
-                      : undefined
-                  }
-                />
-              )
-            )}
-          </div>        </div>
+          <button
+            type="button"
+            onClick={
+              refreshStatus
+            }
+            disabled={
+              busy
+            }
+            className="inline-flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-2 text-xs font-black transition hover:border-[var(--brand-pink)] disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${statusLoading ? "animate-spin" : ""}`} />
 
-        <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
+            Refresh
+          </button>
+        </div>
+
+        <h1 className="mt-5 text-3xl font-black tracking-tight sm:text-4xl">
           <span className="brand-text">
             Go Live
           </span>{" "}
           With Your AI Twin
         </h1>
 
-        <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-          Select an AI Twin and product
-          from your backend, then stream
-          to a connected platform.
+        <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-muted-foreground">
+          Select a trained AI Twin, product, connected platforms and a video source. Your backend will create one FFmpeg stream per selected platform.
         </p>
       </section>
 
-      {liveStatus && (
-        <section className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-sm font-bold text-foreground shadow-sm">
-          <AlertCircle className="h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
+      {(localStatus || socialError) && (
+        <section className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4 text-sm font-bold shadow-sm">
+          <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
 
           <span>
-            {liveStatus}
+            {localStatus ||
+              socialError}
           </span>
         </section>
       )}
 
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat
+          title="Connected Live"
+          value={`${connectedLivePlatforms.length}/6`}
+          icon={CheckCircle2}
+        />
+
+        <Stat
+          title="Selected"
+          value={String(
+            selectedPlatforms.length
+          )}
+          icon={Radio}
+        />
+
+        <Stat
+          title="Active"
+          value={String(
+            activePlatforms.length
+          )}
+          icon={Zap}
+        />
+
+        <Stat
+          title="Plan"
+          value={
+            isPro
+              ? "Pro"
+              : "Free"
+          }
+          icon={
+            isPro
+              ? Crown
+              : Lock
+          }
+        />
+      </section>
+
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <div className="grid gap-5 md:grid-cols-2">
-            <Field
-              icon={ScanFace}
-              label="Select AI Twin"
-            >
-              <select
-                value={
-                  selectedTwinId
-                }
-                onChange={(
-                  event
-                ) =>
-                  setSelectedTwinId(
-                    event.target
-                      .value
-                  )
-                }
-                className={
-                  inputClass
-                }
-                disabled={
-                  loadingTwins ||
-                  !twins.length
-                }
+        <main className="space-y-6">
+          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <div className="grid gap-5 md:grid-cols-2">
+              <Field
+                icon={ScanFace}
+                label="Select AI Twin"
               >
-                {loadingTwins && (
-                  <option value="">
-                    Loading AI
-                    Twins...
-                  </option>
-                )}
-
-                {!loadingTwins &&
-                  !twins.length && (
+                <select
+                  value={
+                    selectedTwinId
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setSelectedTwinId(
+                      event.target.value
+                    )
+                  }
+                  className={
+                    inputClass
+                  }
+                  disabled={
+                    loadingTwins ||
+                    !twins.length
+                  }
+                >
+                  {loadingTwins && (
                     <option value="">
-                      No AI Twin
-                      found
+                      Loading AI Twins...
                     </option>
                   )}
 
-                {twins.map(
-                  (item) => (
-                    <option
-                      key={
-                        item._id
-                      }
-                      value={
-                        item._id
-                      }
-                    >
-                      {getTwinDisplayName(
-                        item
-                      )}
-                      {item.status
-                        ? ` - ${item.status}`
-                        : ""}
-                    </option>
-                  )
-                )}
-              </select>
-            </Field>
+                  {!loadingTwins &&
+                    !twins.length && (
+                      <option value="">
+                        No AI Twin found
+                      </option>
+                    )}
 
-            <Field
-              icon={Package}
-              label="Select Product"
-            >
-              <select
-                value={
-                  selectedProductId
-                }
-                onChange={(
-                  event
-                ) =>
-                  setSelectedProductId(
-                    event.target
-                      .value
-                  )
-                }
-                className={
-                  inputClass
-                }
-                disabled={
-                  loadingProducts ||
-                  !products.length
-                }
+                  {twins.map(
+                    (item) => (
+                      <option
+                        key={
+                          item._id
+                        }
+                        value={
+                          item._id
+                        }
+                      >
+                        {getTwinDisplayName(
+                          item
+                        )}
+
+                        {item.status
+                          ? ` - ${item.status}`
+                          : ""}
+                      </option>
+                    )
+                  )}
+                </select>
+              </Field>
+
+              <Field
+                icon={Package}
+                label="Select Product"
               >
-                {loadingProducts && (
-                  <option value="">
-                    Loading
-                    products...
-                  </option>
-                )}
-
-                {!loadingProducts &&
-                  !products.length && (
+                <select
+                  value={
+                    selectedProductId
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setSelectedProductId(
+                      event.target.value
+                    )
+                  }
+                  className={
+                    inputClass
+                  }
+                  disabled={
+                    loadingProducts ||
+                    !products.length
+                  }
+                >
+                  {loadingProducts && (
                     <option value="">
-                      No product
-                      found
+                      Loading products...
                     </option>
                   )}
 
-                {products.map(
-                  (item) => (
-                    <option
-                      key={
-                        item._id
-                      }
-                      value={
-                        item._id
-                      }
-                    >
-                      {getProductDisplayName(
-                        item
-                      )}
-                    </option>
-                  )
-                )}
-              </select>
-            </Field>
-          </div>
+                  {!loadingProducts &&
+                    !products.length && (
+                      <option value="">
+                        No product found
+                      </option>
+                    )}
 
-          <div className="mt-6">
+                  {products.map(
+                    (item) => (
+                      <option
+                        key={
+                          item._id
+                        }
+                        value={
+                          item._id
+                        }
+                      >
+                        {getProductDisplayName(
+                          item
+                        )}
+                      </option>
+                    )
+                  )}
+                </select>
+              </Field>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
             <h2 className="text-xl font-black tracking-tight brand-text">
-              Select Connected
-              Platforms
+              Select Connected Platforms
             </h2>
 
             <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
-              Free plan allows one
-              connected platform. Pro
-              can select multiple
-              platforms.
+              The Free plan supports one live platform. Pro and Business plans can select all supported live destinations.
             </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -2113,9 +1534,15 @@ export default function GoLive() {
                   name,
                   icon: Icon,
                   pro,
+                  liveSupported,
                 }) => {
-                  const active =
+                  const selected =
                     selectedPlatforms.includes(
+                      id
+                    );
+
+                  const connected =
+                    connectedPlatforms.includes(
                       id
                     );
 
@@ -2123,9 +1550,15 @@ export default function GoLive() {
                     pro &&
                     !isPro;
 
-                  const isConnected =
-                    connectedPlatforms.includes(
+                  const runtimeStatus =
+                    statusMap.get(
                       id
+                    );
+
+                  const processActive =
+                    Boolean(
+                      runtimeStatus
+                        ?.processActive
                     );
 
                   return (
@@ -2137,13 +1570,18 @@ export default function GoLive() {
                           id
                         )
                       }
-                      className={`relative rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
-                        active
-                          ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
-                          : "border-border bg-background text-foreground"
+                      disabled={
+                        busy ||
+                        processActive
+                      }
+                      className={`relative rounded-2xl border p-4 text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md disabled:cursor-not-allowed ${
+                        selected
+                          ? "border-[var(--brand-pink)] bg-pink-50 dark:bg-white/10"
+                          : "border-border bg-background"
                       } ${
-                        !isConnected
-                          ? "opacity-70"
+                        !connected ||
+                        !liveSupported
+                          ? "opacity-65"
                           : ""
                       }`}
                     >
@@ -2153,21 +1591,28 @@ export default function GoLive() {
                         </span>
                       )}
 
-                      {!isConnected ||
-                      locked ? (
+                      {processActive ? (
+                        <Radio className="h-6 w-6 animate-pulse text-red-500" />
+                      ) : !connected ||
+                        locked ||
+                        !liveSupported ? (
                         <Lock className="h-6 w-6 text-[var(--brand-pink)]" />
                       ) : (
                         <Icon className="h-6 w-6 text-[var(--brand-pink)]" />
                       )}
 
-                      <p className="mt-3 text-base font-black tracking-tight text-foreground">
+                      <p className="mt-3 text-base font-black">
                         {name}
                       </p>
 
                       <p className="mt-1 text-xs font-medium text-muted-foreground">
-                        {active
+                        {processActive
+                          ? "Live now"
+                          : selected
                           ? "Selected"
-                          : !isConnected
+                          : !liveSupported
+                          ? "Backend not configured"
+                          : !connected
                           ? "Connect first"
                           : locked
                           ? "Pro only"
@@ -2178,699 +1623,417 @@ export default function GoLive() {
                 }
               )}
             </div>
-          </div>
+          </section>
 
-          <div className="mt-6 rounded-3xl border border-border bg-background p-5">
+          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
             <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
-              <Package className="h-5 w-5" />
-              Upload Live Video
+              <Upload className="h-5 w-5" />
+              Video Source
             </h2>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setSourceMode(
+                    "file"
+                  )
+                }
+                className={`rounded-[5px] border px-4 py-3 text-sm font-black transition ${
+                  sourceMode ===
+                  "file"
+                    ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+                    : "border-border bg-background"
+                }`}
+              >
+                Upload Video
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setSourceMode(
+                    "url"
+                  )
+                }
+                className={`rounded-[5px] border px-4 py-3 text-sm font-black transition ${
+                  sourceMode ===
+                  "url"
+                    ? "border-[var(--brand-pink)] bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10"
+                    : "border-border bg-background"
+                }`}
+              >
+                Public Video URL
+              </button>
+            </div>
 
             <div className="mt-5">
-              <Field
-                icon={Package}
-                label="Choose Video"
-              >
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={(
-                    event
-                  ) =>
-                    setVideoFile(
-                      event.target
-                        .files?.[0] ||
+              {sourceMode ===
+              "file" ? (
+                <Field
+                  icon={Package}
+                  label="Choose Video"
+                >
+                  <input
+                    type="file"
+                    accept="video/mp4,video/quicktime,video/webm,video/x-matroska,video/avi"
+                    onChange={(
+                      event
+                    ) =>
+                      setVideoFile(
+                        event.target
+                          .files?.[0] ||
                         null
-                    )
-                  }
-                  className={
-                    inputClass
-                  }
-                />
-              </Field>
+                      )
+                    }
+                    className={
+                      inputClass
+                    }
+                  />
 
-              {videoFile && (
-                <p className="mt-3 text-sm font-bold text-muted-foreground">
-                  Selected:{" "}
-                  {
-                    videoFile.name
-                  }
-                </p>
+                  {videoFile && (
+                    <p className="mt-3 text-sm font-bold text-muted-foreground">
+                      Selected:{" "}
+                      {videoFile.name}
+                    </p>
+                  )}
+                </Field>
+              ) : (
+                <Field
+                  icon={Link2}
+                  label="Public Video URL"
+                >
+                  <input
+                    type="url"
+                    value={
+                      inputUrl
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setInputUrl(
+                        event.target.value
+                      )
+                    }
+                    className={
+                      inputClass
+                    }
+                    placeholder="https://example.com/product-video.mp4"
+                  />
+                </Field>
               )}
             </div>
-          </div>
 
-          <div className="mt-6 rounded-3xl border border-border bg-background p-5">
-            <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
-              <Instagram className="h-5 w-5" />
-              Instagram RTMP Details
-            </h2>
+            <label className="mt-5 flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-border bg-background p-4">
+              <div>
+                <p className="font-black">
+                  Loop video
+                </p>
 
-            <div className="mt-5 space-y-4">
-              <Field
-                icon={Radio}
-                label="RTMP URL"
-              >
-                <input
-                  value={
-                    rtmpUrl
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setRtmpUrl(
-                      event.target
-                        .value
-                    )
-                  }
-                  className={
-                    inputClass
-                  }
-                  placeholder="rtmps://live-upload.instagram.com:443/rtmp"
-                />
-              </Field>
-
-              <Field
-                icon={Lock}
-                label="Stream Key"
-              >
-                <input
-                  value={
-                    streamKey
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setStreamKey(
-                      event.target
-                        .value
-                    )
-                  }
-                  className={
-                    inputClass
-                  }
-                  placeholder="Paste Instagram stream key"
-                  type="password"
-                />
-              </Field>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={
-                    startInstagramRTMP
-                  }
-                  disabled={
-                    liveLoading ||
-                    socialLoading ||
-                    !instagramConnected
-                  }
-                  className="brand-gradient rounded-[5px] py-3 text-sm font-bold tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {instagramConnected
-                    ? liveLoading
-                      ? "Please wait..."
-                      : "Start Instagram RTMP"
-                    : "Connect Instagram First"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={
-                    stopInstagramRTMP
-                  }
-                  disabled={
-                    liveLoading
-                  }
-                  className="rounded-[5px] border border-red-500 py-3 text-sm font-bold tracking-wide text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Stop Instagram Live
-                </button>
+                <p className="mt-1 text-xs font-medium text-muted-foreground">
+                  Restart the video automatically when it reaches the end.
+                </p>
               </div>
-            </div>
-          </div>
 
-          <div className="mt-6 rounded-3xl border border-border bg-background p-5">
-            <h2 className="flex items-center gap-2 text-xl font-black tracking-tight text-blue-600">
-              <Facebook className="h-5 w-5" />
-              Facebook Live
+              <input
+                type="checkbox"
+                checked={
+                  loopVideo
+                }
+                onChange={(
+                  event
+                ) =>
+                  setLoopVideo(
+                    event.target.checked
+                  )
+                }
+                className="h-5 w-5 accent-pink-500"
+              />
+            </label>
+          </section>
+
+          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+            <h2 className="text-xl font-black tracking-tight brand-text">
+              Live Controls
             </h2>
-
-            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-              Facebook Live uses your
-              connected Facebook Page
-              token. No manual stream
-              key is required.
-            </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 onClick={
-                  startFacebookLive
+                  handleStartLive
                 }
                 disabled={
-                  liveLoading ||
-                  socialLoading ||
-                  !facebookConnected
+                  !canStart
                 }
-                className="rounded-[5px] bg-blue-600 py-3 text-sm font-bold tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-60"
+                className="brand-gradient flex items-center justify-center gap-2 rounded-[5px] px-6 py-3 text-sm font-black text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {facebookConnected
-                  ? liveLoading
-                    ? "Please wait..."
-                    : "Start Facebook Live"
-                  : "Connect Facebook First"}
+                <Radio className="h-4 w-4" />
+
+                {busy
+                  ? "Please wait..."
+                  : "Start Selected Live"}
               </button>
 
               <button
                 type="button"
                 onClick={
-                  stopFacebookLive
+                  handleStopAll
                 }
                 disabled={
-                  liveLoading
+                  busy ||
+                  !activePlatforms.length
                 }
-                className="rounded-[5px] border border-blue-600 py-3 text-sm font-bold tracking-wide text-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center justify-center gap-2 rounded-[5px] border border-red-500 px-6 py-3 text-sm font-black text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-red-500/10"
               >
-                Stop Facebook Live
+                <StopCircle className="h-4 w-4" />
+
+                Stop All Live
               </button>
             </div>
-          </div>
+          </section>
 
-          <div className="mt-6 rounded-3xl border border-border bg-background p-5">
-            <h2 className="flex items-center gap-2 text-xl font-black tracking-tight text-red-600">
-              <Youtube className="h-5 w-5" />
-              YouTube Live
+          {activePlatforms.length >
+            0 && (
+            <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+              <h2 className="text-xl font-black tracking-tight brand-text">
+                Active Streams
+              </h2>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {activePlatforms.map(
+                  (platformId) => {
+                    const item =
+                      platforms.find(
+                        (platform) =>
+                          platform.id ===
+                          platformId
+                      );
+
+                    const Icon =
+                      item?.icon ||
+                      Radio;
+
+                    return (
+                      <div
+                        key={
+                          platformId
+                        }
+                        className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-4"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className="h-5 w-5 text-red-500" />
+
+                          <div>
+                            <p className="font-black">
+                              {item?.name ||
+                                platformId}
+                            </p>
+
+                            <p className="text-xs font-medium text-red-500">
+                              Streaming
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleStopPlatform(
+                              platformId
+                            )
+                          }
+                          disabled={
+                            busy
+                          }
+                          className="rounded-[5px] border border-red-500 px-3 py-2 text-xs font-black text-red-500 disabled:opacity-50"
+                        >
+                          Stop
+                        </button>
+                      </div>
+                    );
+                  }
+                )}
+              </div>
+            </section>
+          )}
+        </main>
+
+        <aside className="space-y-6">
+          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="text-xl font-black tracking-tight brand-text">
+              Live Preview
             </h2>
 
-            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-              Create a YouTube
-              broadcast, stream the
-              uploaded video using
-              FFmpeg and automatically
-              start the broadcast when
-              YouTube receives the
-              video.
-            </p>
-
-            <div className="mt-4 rounded-2xl border border-border bg-card p-4">
+            <div className="mt-5 space-y-3">
               <PreviewItem
-                label="Connection"
+                label="AI Twin"
                 value={
-                  youtubeConnected
-                    ? "YouTube connected"
-                    : "YouTube not connected"
+                  selectedTwin
+                    ? twinName
+                    : "Not selected"
                 }
               />
 
-              <div className="mt-3">
-                <PreviewItem
-                  label="Live Status"
-                  value={
-                    youtubeLiveStatus ||
-                    "idle"
-                  }
-                />
-              </div>
+              <PreviewItem
+                label="Product"
+                value={
+                  selectedProduct
+                    ? productName
+                    : "Not selected"
+                }
+              />
+
+              <PreviewItem
+                label="Platforms"
+                value={
+                  selectedPlatforms.length
+                    ? selectedPlatforms
+                        .join(", ")
+                    : "None"
+                }
+              />
+
+              <PreviewItem
+                label="Video Source"
+                value={
+                  sourceMode ===
+                  "file"
+                    ? videoFile?.name ||
+                      "No file"
+                    : inputUrl ||
+                      "No URL"
+                }
+              />
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="text-xl font-black tracking-tight brand-text">
+              AI Live Settings
+            </h2>
+
+            <div className="mt-4 space-y-3">
+              <SettingRow
+                icon={MessageSquare}
+                label="Live Chat"
+                active={
+                  settings.liveChat
+                }
+                onClick={() =>
+                  toggleSetting(
+                    "liveChat"
+                  )
+                }
+              />
+
+              <SettingRow
+                icon={Link2}
+                label="Product Link"
+                active={
+                  settings.productLink
+                }
+                onClick={() =>
+                  toggleSetting(
+                    "productLink"
+                  )
+                }
+              />
+
+              <SettingRow
+                icon={Bot}
+                label="Auto Answer"
+                active={
+                  settings.autoAnswer
+                }
+                onClick={() =>
+                  toggleSetting(
+                    "autoAnswer"
+                  )
+                }
+              />
+
+              <SettingRow
+                icon={Sparkles}
+                label="Multi-platform Sync"
+                active={
+                  settings.multiPlatformSync
+                }
+                locked={
+                  !isPro
+                }
+                onClick={() =>
+                  toggleSetting(
+                    "multiPlatformSync",
+                    true
+                  )
+                }
+              />
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="text-xl font-black tracking-tight brand-text">
+              YouTube Status
+            </h2>
+
+            <div className="mt-4 space-y-3">
+              <PreviewItem
+                label="Broadcast"
+                value={
+                  currentYouTubeLive
+                    ?.liveStatus ||
+                  "idle"
+                }
+              />
+
+              <PreviewItem
+                label="Ingestion"
+                value={
+                  youtubeStreamStatus
+                    ?.ingestionStatus ||
+                  youtubeStreamStatus
+                    ?.streamStatus
+                    ?.streamStatus ||
+                  "inactive"
+                }
+              />
             </div>
 
-            {youtubeLiveData
+            {currentYouTubeLive
               ?.watchUrl && (
               <a
                 href={
-                  youtubeLiveData
+                  currentYouTubeLive
                     .watchUrl
                 }
                 target="_blank"
                 rel="noreferrer"
-                className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-red-600 underline"
+                className="mt-4 flex items-center justify-center gap-2 rounded-[5px] bg-red-600 px-4 py-3 text-sm font-black text-white"
               >
                 Open YouTube Live
 
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
-
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={
-                  handleStartYouTubeLive
-                }
-                disabled={
-                  liveLoading ||
-                  socialLoading ||
-                  youtubeLiveLoading ||
-                  !youtubeConnected ||
-                  youtubeLiveStatus ===
-                    "live"
-                }
-                className="rounded-[5px] bg-red-600 py-3 text-sm font-bold tracking-wide text-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {!youtubeConnected
-                  ? "Connect YouTube First"
-                  : youtubeLiveLoading ||
-                    liveLoading
-                  ? "Starting YouTube..."
-                  : youtubeLiveStatus ===
-                    "live"
-                  ? "YouTube Live Active"
-                  : "Start YouTube Live"}
-              </button>
-
-              <button
-                type="button"
-                onClick={
-                  handleStopYouTubeLive
-                }
-                disabled={
-                  liveLoading ||
-                  youtubeLiveLoading ||
-                  youtubeLiveStatus !==
-                    "live"
-                }
-                className="rounded-[5px] border border-red-600 py-3 text-sm font-bold tracking-wide text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Stop YouTube Live
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-3xl border border-border bg-background p-5">
-            <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
-              <RadioTower className="h-5 w-5" />
-              Saved RTMP Platforms
-            </h2>
-
-            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
-              Rumble, Twitter/X, Twitch and Kick use the RTMP URL and stream key saved securely in your backend connection.
-            </p>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              {[
-                "rumble",
-                "twitter",
-                "twitch",
-                "kick",
-              ].map(
-                (platformId) => {
-                  const item =
-                    platforms.find(
-                      (platform) =>
-                        platform.id ===
-                        platformId
-                    );
-
-                  const connection =
-                    getConnection(
-                      platformId
-                    );
-
-                  const connected =
-                    Boolean(
-                      connection
-                    );
-
-                  const configured =
-                    Boolean(
-                      connection
-                        ?.rtmpConfigured ||
-                        connection?.[
-                          `${platformId}RtmpConfigured`
-                        ]
-                    );
-
-                  const liveState =
-                    connection
-                      ?.liveStatus ||
-                    connection?.[
-                      `${platformId}LiveStatus`
-                    ] ||
-                    "idle";
-
-                  const Icon =
-                    item?.icon ||
-                    Radio;
-
-                  return (
-                    <div
-                      key={
-                        platformId
-                      }
-                      className="rounded-2xl border border-border bg-card p-4"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="grid h-11 w-11 place-items-center rounded-xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-                            <Icon className="h-5 w-5" />
-                          </div>
-
-                          <div>
-                            <p className="font-black text-foreground">
-                              {item?.name}
-                            </p>
-
-                            <p className="text-xs font-medium text-muted-foreground">
-                              {connected
-                                ? configured
-                                  ? "RTMP configured"
-                                  : "Connected, RTMP missing"
-                                : "Not connected"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold capitalize text-muted-foreground">
-                          {liveState}
-                        </span>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            startSavedRTMPLive(
-                              platformId
-                            )
-                          }
-                          disabled={
-                            liveLoading ||
-                            !connected ||
-                            !configured
-                          }
-                          className="brand-gradient rounded-[5px] py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Start Live
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            stopSavedRTMPLive(
-                              platformId
-                            )
-                          }
-                          disabled={
-                            liveLoading ||
-                            !connected
-                          }
-                          className="rounded-[5px] border border-red-500 py-3 text-sm font-bold text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          Stop Live
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <LiveToggle
-              icon={
-                MessageSquare
-              }
-              title="Enable Live Chat"
-              desc="Allow viewers to comment and ask questions."
-              active={
-                settings.liveChat
-              }
-              onClick={() =>
-                toggleSetting(
-                  "liveChat"
-                )
-              }
-            />
-
-            <LiveToggle
-              icon={Link2}
-              title="Show Product Link"
-              desc="Display buy link while AI Twin is selling."
-              active={
-                settings.productLink
-              }
-              onClick={() =>
-                toggleSetting(
-                  "productLink"
-                )
-              }
-            />
-
-            <LiveToggle
-              icon={Bot}
-              title="Auto Answer Customer Questions"
-              desc="AI Twin answers product questions automatically."
-              active={
-                settings.autoAnswer
-              }
-              onClick={() =>
-                toggleSetting(
-                  "autoAnswer"
-                )
-              }
-            />
-
-            <LiveToggle
-              icon={Radio}
-              title="Multi-Platform Sync"
-              desc="Sync AI Twin live flow across all selected platforms."
-              active={
-                settings.multiPlatformSync
-              }
-              proOnly={
-                !isPro
-              }
-              onClick={() =>
-                toggleSetting(
-                  "multiPlatformSync",
-                  true
-                )
-              }
-            />
-          </div>
+          </section>
 
           <button
             type="button"
-            onClick={
-              continuePreview
+            onClick={() =>
+              navigate(
+                "/app/connect"
+              )
             }
-            disabled={
-              !canContinue
-            }
-            className="brand-gradient mt-8 flex w-full items-center justify-center gap-2 rounded-[5px] py-3 text-sm font-bold tracking-wide text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-[5px] border border-border bg-card px-5 py-3 text-sm font-black transition hover:border-[var(--brand-pink)]"
           >
-            Continue to Preview
+            Manage Connections
 
             <ArrowRight className="h-4 w-4" />
           </button>
-        </section>
-
-        <aside className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-          <h2 className="text-xl font-black tracking-tight brand-text">
-            Live Setup Preview
-          </h2>
-
-          <div className="mt-5 space-y-3 rounded-3xl border border-border bg-background p-5">
-            <PreviewItem
-              label="AI Twin"
-              value={
-                selectedTwin
-                  ? twinName
-                  : "No AI Twin selected"
-              }
-            />
-
-            <PreviewItem
-              label="Twin ID"
-              value={
-                selectedTwinId ||
-                "Not selected"
-              }
-            />
-
-            <PreviewItem
-              label="Product"
-              value={
-                selectedProduct
-                  ? productName
-                  : "No product selected"
-              }
-            />
-
-            <PreviewItem
-              label="Product ID"
-              value={
-                selectedProductId ||
-                "Not selected"
-              }
-            />
-
-            <PreviewItem
-              label="Platforms"
-              value={
-                selectedPlatforms.length
-                  ? selectedPlatforms
-                      .map(
-                        (id) =>
-                          platforms.find(
-                            (
-                              item
-                            ) =>
-                              item.id ===
-                              id
-                          )?.name ||
-                          id
-                      )
-                      .join(", ")
-                  : "No platform selected"
-              }
-            />
-
-            <PreviewItem
-              label="Instagram"
-              value={
-                instagramConnected
-                  ? "Connected"
-                  : "Not connected"
-              }
-            />
-
-            <PreviewItem
-              label="Facebook"
-              value={
-                facebookConnected
-                  ? "Connected"
-                  : "Not connected"
-              }
-            />
-
-            <PreviewItem
-              label="YouTube"
-              value={
-                youtubeConnected
-                  ? "Connected"
-                  : "Not connected"
-              }
-            />
-
-            <PreviewItem
-              label="TikTok"
-              value={
-                tiktokConnected
-                  ? "Connected"
-                  : "Not connected"
-              }
-            />
-
-            <PreviewItem
-              label="Rumble"
-              value={
-                rumbleConnected
-                  ? "Connected"
-                  : "Not connected"
-              }
-            />
-
-            <PreviewItem
-              label="Twitter / X"
-              value={
-                twitterConnected
-                  ? "Connected"
-                  : "Not connected"
-              }
-            />
-
-            <PreviewItem
-              label="Twitch"
-              value={
-                twitchConnected
-                  ? "Connected"
-                  : "Not connected"
-              }
-            />
-
-            <PreviewItem
-              label="Kick"
-              value={
-                kickConnected
-                  ? "Connected"
-                  : "Not connected"
-              }
-            />
-
-            <PreviewItem
-              label="YouTube Live"
-              value={
-                youtubeLiveStatus
-              }
-            />
-
-            <PreviewItem
-              label="Video"
-              value={
-                videoFile
-                  ? videoFile.name
-                  : "No video selected"
-              }
-            />
-          </div>
-
-          {youtubeLiveData
-            ?.watchUrl && (
-            <a
-              href={
-                youtubeLiveData
-                  .watchUrl
-              }
-              target="_blank"
-              rel="noreferrer"
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-[5px] bg-red-600 px-5 py-3 text-sm font-bold text-white"
-            >
-              Open YouTube Live
-
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          )}
         </aside>
       </div>
     </div>
-  );
-}
-
-/* =========================================================
-   PLATFORM BADGE
-========================================================= */
-
-function PlatformBadge({
-  icon: Icon,
-  label,
-  active,
-  variant,
-}) {
-  const activeClass =
-    variant === "blue"
-      ? "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-      : variant === "red"
-      ? "bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400"
-      : variant === "purple"
-      ? "bg-purple-100 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
-      : variant === "lime"
-      ? "bg-lime-100 text-lime-700 dark:bg-lime-500/10 dark:text-lime-400"
-      : "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400";
-
-  return (
-    <span
-      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ${
-        active
-          ? activeClass
-          : "bg-orange-100 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
-      }`}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </span>
   );
 }
 
@@ -2884,65 +2047,45 @@ function Field({
   children,
 }) {
   return (
-    <div>
-      <label className="mb-2 flex items-center gap-2 text-sm font-black tracking-tight text-foreground">
+    <label className="block">
+      <span className="mb-2 flex items-center gap-2 text-sm font-black">
         <Icon className="h-4 w-4 text-[var(--brand-pink)]" />
+
         {label}
-      </label>
+      </span>
 
       {children}
-    </div>
+    </label>
   );
 }
 
 /* =========================================================
-   LIVE TOGGLE
+   STAT
 ========================================================= */
 
-function LiveToggle({
-  icon: Icon,
+function Stat({
   title,
-  desc,
-  active,
-  onClick,
-  proOnly,
+  value,
+  icon: Icon,
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-background p-5 text-left transition hover:border-[var(--brand-pink)]"
-    >
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-center gap-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
-          {proOnly ? (
-            <Lock className="h-5 w-5" />
-          ) : (
-            <Icon className="h-5 w-5" />
-          )}
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+          <Icon className="h-6 w-6" />
         </div>
 
         <div>
-          <p className="text-sm font-black tracking-tight text-foreground">
+          <p className="text-sm font-medium text-muted-foreground">
             {title}
           </p>
 
-          <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
-            {proOnly
-              ? "Unlock with Pro plan."
-              : desc}
-          </p>
+          <h2 className="text-2xl font-black tracking-tight brand-text">
+            {value}
+          </h2>
         </div>
       </div>
-
-      <span className="shrink-0 rounded-full bg-emerald-50 px-4 py-2 text-xs font-bold tracking-wide text-emerald-600">
-        {proOnly
-          ? "PRO"
-          : active
-          ? "ON"
-          : "OFF"}
-      </span>
-    </button>
+    </div>
   );
 }
 
@@ -2955,17 +2098,73 @@ function PreviewItem({
   value,
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-xs font-bold tracking-wide text-muted-foreground">
+    <div className="rounded-2xl border border-border bg-background p-4">
+      <p className="text-xs font-black uppercase tracking-wide text-muted-foreground">
         {label}
       </p>
 
-      <p className="mt-1 break-words text-sm font-black text-foreground">
+      <p className="mt-1 break-words text-sm font-bold">
         {String(
           value ??
-            "Not available"
+          "Not available"
         )}
       </p>
     </div>
+  );
+}
+
+/* =========================================================
+   SETTING ROW
+========================================================= */
+
+function SettingRow({
+  icon: Icon,
+  label,
+  active,
+  locked = false,
+  onClick,
+}) {
+  return (
+    <button
+      type="button"
+      onClick={
+        onClick
+      }
+      className="flex w-full items-center justify-between gap-4 rounded-2xl border border-border bg-background p-4 text-left transition hover:border-[var(--brand-pink)]"
+    >
+      <div className="flex items-center gap-3">
+        <Icon className="h-5 w-5 text-[var(--brand-pink)]" />
+
+        <div>
+          <p className="text-sm font-black">
+            {label}
+          </p>
+
+          <p className="mt-1 text-xs font-medium text-muted-foreground">
+            {locked
+              ? "Pro only"
+              : active
+              ? "Enabled"
+              : "Disabled"}
+          </p>
+        </div>
+      </div>
+
+      <span
+        className={`rounded-full px-3 py-1 text-[10px] font-black ${
+          locked
+            ? "bg-pink-100 text-[var(--brand-pink)] dark:bg-white/10"
+            : active
+            ? "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400"
+            : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {locked
+          ? "PRO"
+          : active
+          ? "ON"
+          : "OFF"}
+      </span>
+    </button>
   );
 }
