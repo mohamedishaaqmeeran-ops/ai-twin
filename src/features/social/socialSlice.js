@@ -5,26 +5,17 @@ import {
 
 import {
   getConnectionsAPI,
-  disconnectAPI,
+  disconnectSocialAPI,
+  saveRTMPConnectionAPI,
 } from "./socialAPI";
 
-import {
-  createYouTubeLiveAPI,
-  startYouTubeRtmpAPI,
-  waitForYouTubeStreamAPI,
-  startYouTubeBroadcastAPI,
-  endYouTubeBroadcastAPI,
-  stopYouTubeRtmpAPI,
-} from "./youtubeLiveAPI";
-
 /* =========================================================
-   CONNECTIONS
+   FETCH CONNECTIONS
 ========================================================= */
 
 export const fetchConnections =
   createAsyncThunk(
     "social/fetchConnections",
-
     async (
       _,
       {
@@ -35,16 +26,21 @@ export const fetchConnections =
         return await getConnectionsAPI();
       } catch (error) {
         return rejectWithValue(
-          error.message
+          error.response?.data?.message ||
+            error.message ||
+            "Unable to load social connections."
         );
       }
     }
   );
 
+/* =========================================================
+   DISCONNECT
+========================================================= */
+
 export const disconnectSocial =
   createAsyncThunk(
     "social/disconnectSocial",
-
     async (
       platform,
       {
@@ -52,112 +48,65 @@ export const disconnectSocial =
       }
     ) => {
       try {
-        await disconnectAPI(
+        await disconnectSocialAPI(
           platform
         );
 
         return platform;
       } catch (error) {
         return rejectWithValue(
-          error.message
+          error.response?.data?.message ||
+            error.message ||
+            "Unable to disconnect platform."
         );
       }
     }
   );
 
 /* =========================================================
-   START YOUTUBE LIVE
+   SAVE RTMP CONNECTION
 ========================================================= */
 
-export const startYouTubeLive =
+export const saveRTMPConnection =
   createAsyncThunk(
-    "social/startYouTubeLive",
-
+    "social/saveRTMPConnection",
     async (
       {
-        videoPath,
-        title,
-        description,
-        onWaiting,
+        platform,
+        data,
       },
       {
         rejectWithValue,
       }
     ) => {
       try {
-        const created =
-          await createYouTubeLiveAPI({
-            title,
-            description,
-            privacyStatus:
-              "unlisted",
-          });
-
-        await startYouTubeRtmpAPI({
-          videoPath,
-        });
-
-        await waitForYouTubeStreamAPI({
-          onWaiting,
-        });
-
-        const started =
-          await startYouTubeBroadcastAPI();
+        await saveRTMPConnectionAPI(
+          platform,
+          data
+        );
 
         return {
-          ...created,
-          ...started,
+          platform,
         };
       } catch (error) {
-        /*
-         * Stop FFmpeg if any later
-         * operation failed.
-         */
-        await stopYouTubeRtmpAPI()
-          .catch(() => {});
-
         return rejectWithValue(
-          error.message
+          error.response?.data?.message ||
+            error.message ||
+            "Unable to save RTMP connection."
         );
       }
     }
   );
 
 /* =========================================================
-   STOP YOUTUBE LIVE
+   INITIAL STATE
 ========================================================= */
 
-export const stopYouTubeLive =
-  createAsyncThunk(
-    "social/stopYouTubeLive",
-
-    async (
-      _,
-      {
-        rejectWithValue,
-      }
-    ) => {
-      try {
-        /*
-         * Complete YouTube first,
-         * then stop FFmpeg.
-         */
-        const result =
-          await endYouTubeBroadcastAPI();
-
-        await stopYouTubeRtmpAPI();
-
-        return result;
-      } catch (error) {
-        await stopYouTubeRtmpAPI()
-          .catch(() => {});
-
-        return rejectWithValue(
-          error.message
-        );
-      }
-    }
-  );
+const initialState = {
+  connections: [],
+  loading: false,
+  error: null,
+};
 
 /* =========================================================
    SLICE
@@ -167,201 +116,146 @@ const socialSlice =
   createSlice({
     name: "social",
 
-    initialState: {
-      connections: [],
-      loading: false,
-      error: null,
-
-      youtubeLiveLoading:
-        false,
-
-      youtubeLiveStatus:
-        "idle",
-
-      youtubeLiveData: null,
-    },
+    initialState,
 
     reducers: {
-      clearSocialError: (
-        state
-      ) => {
-        state.error = null;
-      },
-
-      resetYouTubeLive: (
-        state
-      ) => {
-        state.youtubeLiveStatus =
-          "idle";
-
-        state.youtubeLiveData =
-          null;
-      },
+      clearSocialError:
+        (
+          state
+        ) => {
+          state.error = null;
+        },
     },
 
-    extraReducers: (
-      builder
-    ) => {
-      builder
-        .addCase(
-          fetchConnections.pending,
-          (state) => {
-            state.loading = true;
-            state.error = null;
-          }
-        )
+    extraReducers:
+      (
+        builder
+      ) => {
+        builder
+          /* FETCH */
 
-        .addCase(
-          fetchConnections.fulfilled,
-          (
-            state,
-            action
-          ) => {
-            state.loading = false;
+          .addCase(
+            fetchConnections.pending,
+            (
+              state
+            ) => {
+              state.loading = true;
+              state.error = null;
+            }
+          )
 
-            state.connections =
-              action.payload || [];
-          }
-        )
+          .addCase(
+            fetchConnections.fulfilled,
+            (
+              state,
+              action
+            ) => {
+              state.loading = false;
 
-        .addCase(
-          fetchConnections.rejected,
-          (
-            state,
-            action
-          ) => {
-            state.loading = false;
-
-            state.error =
-              action.payload;
-          }
-        )
-
-        .addCase(
-          disconnectSocial.pending,
-          (state) => {
-            state.loading = true;
-            state.error = null;
-          }
-        )
-
-        .addCase(
-          disconnectSocial.fulfilled,
-          (
-            state,
-            action
-          ) => {
-            state.loading = false;
-
-            state.connections =
-              state.connections.filter(
-                (item) =>
-                  item.platform !==
+              state.connections =
+                Array.isArray(
                   action.payload
-              );
-          }
-        )
+                )
+                  ? action.payload
+                  : [];
+            }
+          )
 
-        .addCase(
-          disconnectSocial.rejected,
-          (
-            state,
-            action
-          ) => {
-            state.loading = false;
+          .addCase(
+            fetchConnections.rejected,
+            (
+              state,
+              action
+            ) => {
+              state.loading = false;
 
-            state.error =
-              action.payload;
-          }
-        )
+              state.error =
+                action.payload;
+            }
+          )
 
-        .addCase(
-          startYouTubeLive.pending,
-          (state) => {
-            state.youtubeLiveLoading =
-              true;
+          /* DISCONNECT */
 
-            state.youtubeLiveStatus =
-              "starting";
+          .addCase(
+            disconnectSocial.pending,
+            (
+              state
+            ) => {
+              state.loading = true;
+              state.error = null;
+            }
+          )
 
-            state.error = null;
-          }
-        )
+          .addCase(
+            disconnectSocial.fulfilled,
+            (
+              state,
+              action
+            ) => {
+              state.loading = false;
 
-        .addCase(
-          startYouTubeLive.fulfilled,
-          (
-            state,
-            action
-          ) => {
-            state.youtubeLiveLoading =
-              false;
+              state.connections =
+                state.connections.filter(
+                  (
+                    connection
+                  ) =>
+                    connection.platform !==
+                    action.payload
+                );
+            }
+          )
 
-            state.youtubeLiveStatus =
-              "live";
+          .addCase(
+            disconnectSocial.rejected,
+            (
+              state,
+              action
+            ) => {
+              state.loading = false;
 
-            state.youtubeLiveData =
-              action.payload;
-          }
-        )
+              state.error =
+                action.payload;
+            }
+          )
 
-        .addCase(
-          startYouTubeLive.rejected,
-          (
-            state,
-            action
-          ) => {
-            state.youtubeLiveLoading =
-              false;
+          /* SAVE RTMP */
 
-            state.youtubeLiveStatus =
-              "failed";
+          .addCase(
+            saveRTMPConnection.pending,
+            (
+              state
+            ) => {
+              state.loading = true;
+              state.error = null;
+            }
+          )
 
-            state.error =
-              action.payload;
-          }
-        )
+          .addCase(
+            saveRTMPConnection.fulfilled,
+            (
+              state
+            ) => {
+              state.loading = false;
+            }
+          )
 
-        .addCase(
-          stopYouTubeLive.pending,
-          (state) => {
-            state.youtubeLiveLoading =
-              true;
+          .addCase(
+            saveRTMPConnection.rejected,
+            (
+              state,
+              action
+            ) => {
+              state.loading = false;
 
-            state.error = null;
-          }
-        )
-
-        .addCase(
-          stopYouTubeLive.fulfilled,
-          (state) => {
-            state.youtubeLiveLoading =
-              false;
-
-            state.youtubeLiveStatus =
-              "stopped";
-          }
-        )
-
-        .addCase(
-          stopYouTubeLive.rejected,
-          (
-            state,
-            action
-          ) => {
-            state.youtubeLiveLoading =
-              false;
-
-            state.error =
-              action.payload;
-          }
-        );
-    },
+              state.error =
+                action.payload;
+            }
+          );
+      },
   });
 
 export const {
   clearSocialError,
-  resetYouTubeLive,
 } = socialSlice.actions;
 
 export default socialSlice.reducer;

@@ -31,6 +31,10 @@ import {
   Lock,
   AlertCircle,
   ExternalLink,
+  Twitch,
+  Twitter,
+  RadioTower,
+  Zap,
 } from "lucide-react";
 
 import {
@@ -63,24 +67,56 @@ const platforms = [
     name: "Instagram",
     icon: Instagram,
     pro: false,
+    connectionType: "oauth",
   },
   {
     id: "youtube",
     name: "YouTube",
     icon: Youtube,
     pro: true,
+    connectionType: "oauth",
   },
   {
     id: "facebook",
     name: "Facebook",
     icon: Facebook,
     pro: true,
+    connectionType: "oauth",
   },
   {
     id: "tiktok",
     name: "TikTok",
     icon: Music2,
     pro: true,
+    connectionType: "oauth",
+  },
+  {
+    id: "rumble",
+    name: "Rumble",
+    icon: RadioTower,
+    pro: true,
+    connectionType: "rtmp",
+  },
+  {
+    id: "twitter",
+    name: "Twitter / X",
+    icon: Twitter,
+    pro: true,
+    connectionType: "rtmp",
+  },
+  {
+    id: "twitch",
+    name: "Twitch",
+    icon: Twitch,
+    pro: true,
+    connectionType: "rtmp",
+  },
+  {
+    id: "kick",
+    name: "Kick",
+    icon: Zap,
+    pro: true,
+    connectionType: "rtmp",
   },
 ];
 
@@ -229,7 +265,7 @@ export default function GoLive() {
     plan === "business";
 
   const maxPlatforms =
-    isPro ? 4 : 1;
+    isPro ? 8 : 1;
 
   const scheduleState =
     location.state?.schedule;
@@ -398,6 +434,43 @@ export default function GoLive() {
     connectedPlatforms.includes(
       "youtube"
     );
+
+  const tiktokConnected =
+    connectedPlatforms.includes(
+      "tiktok"
+    );
+
+  const rumbleConnected =
+    connectedPlatforms.includes(
+      "rumble"
+    );
+
+  const twitterConnected =
+    connectedPlatforms.includes(
+      "twitter"
+    );
+
+  const twitchConnected =
+    connectedPlatforms.includes(
+      "twitch"
+    );
+
+  const kickConnected =
+    connectedPlatforms.includes(
+      "kick"
+    );
+
+  const getConnection = (
+    platform
+  ) => {
+    return connections.find(
+      (item) =>
+        normalizePlatform(
+          item?.platform
+        ) === platform &&
+        item?.connected !== false
+    );
+  };
 
   /* =========================================================
      INPUT CLASS
@@ -1488,6 +1561,194 @@ export default function GoLive() {
     };
 
   /* =========================================================
+     SAVED RTMP PLATFORM START
+  ========================================================= */
+
+  const startSavedRTMPLive =
+    async (
+      platform
+    ) => {
+      try {
+        setLiveLoading(true);
+        setLiveStatus("");
+
+        if (
+          !validateTwinAndProduct()
+        ) {
+          return;
+        }
+
+        if (
+          !connectedPlatforms.includes(
+            platform
+          )
+        ) {
+          setLiveStatus(
+            `${platform} is not connected. Please connect it first.`
+          );
+
+          navigate(
+            "/app/connect"
+          );
+
+          return;
+        }
+
+        if (!isPro) {
+          upgradeToPro();
+          return;
+        }
+
+        if (!videoFile) {
+          setLiveStatus(
+            "Please choose a video file."
+          );
+
+          return;
+        }
+
+        const uploadedVideoPath =
+          await uploadVideo();
+
+        if (
+          !uploadedVideoPath
+        ) {
+          return;
+        }
+
+        setVideoPath(
+          uploadedVideoPath
+        );
+
+        const response =
+          await fetch(
+            `${LIVE_API}/start-rtmp`,
+            {
+              method: "POST",
+              credentials:
+                "include",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body:
+                JSON.stringify({
+                  platform,
+                  videoPath:
+                    uploadedVideoPath,
+                  twinId:
+                    selectedTwinId,
+                  twinName,
+                  productId:
+                    selectedProductId,
+                  product:
+                    productName,
+                  productName,
+                  title:
+                    `${twinName} Live Selling`,
+                  description:
+                    `Live product presentation for ${productName}.`,
+                }),
+            }
+          );
+
+        const data =
+          await response
+            .json()
+            .catch(
+              () => ({})
+            );
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              `Failed to start ${platform} live.`
+          );
+        }
+
+        setLiveStatus(
+          `${platform} RTMP stream started successfully.`
+        );
+
+        await dispatch(
+          fetchConnections()
+        );
+      } catch (error) {
+        setLiveStatus(
+          error.message ||
+            `Failed to start ${platform} live.`
+        );
+      } finally {
+        setLiveLoading(
+          false
+        );
+      }
+    };
+
+  /* =========================================================
+     SAVED RTMP PLATFORM STOP
+  ========================================================= */
+
+  const stopSavedRTMPLive =
+    async (
+      platform
+    ) => {
+      try {
+        setLiveLoading(true);
+        setLiveStatus("");
+
+        const response =
+          await fetch(
+            `${LIVE_API}/stop-rtmp`,
+            {
+              method: "POST",
+              credentials:
+                "include",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body:
+                JSON.stringify({
+                  platform,
+                }),
+            }
+          );
+
+        const data =
+          await response
+            .json()
+            .catch(
+              () => ({})
+            );
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              `Failed to stop ${platform} live.`
+          );
+        }
+
+        setLiveStatus(
+          `${platform} RTMP stream stopped.`
+        );
+
+        await dispatch(
+          fetchConnections()
+        );
+      } catch (error) {
+        setLiveStatus(
+          error.message ||
+            `Failed to stop ${platform} live.`
+        );
+      } finally {
+        setLiveLoading(
+          false
+        );
+      }
+    };
+
+  /* =========================================================
      CONTINUE PREVIEW
   ========================================================= */
 
@@ -1646,55 +1907,44 @@ export default function GoLive() {
           </span>
 
           <div className="flex flex-wrap gap-2">
-            <PlatformBadge
-              icon={
-                Instagram
-              }
-              label={
-                socialLoading
-                  ? "Checking Instagram..."
-                  : instagramConnected
-                  ? "Instagram Connected"
-                  : "Instagram Not Connected"
-              }
-              active={
-                instagramConnected
-              }
-            />
-
-            <PlatformBadge
-              icon={
-                Facebook
-              }
-              label={
-                socialLoading
-                  ? "Checking Facebook..."
-                  : facebookConnected
-                  ? "Facebook Connected"
-                  : "Facebook Not Connected"
-              }
-              active={
-                facebookConnected
-              }
-              variant="blue"
-            />
-
-            <PlatformBadge
-              icon={Youtube}
-              label={
-                socialLoading
-                  ? "Checking YouTube..."
-                  : youtubeConnected
-                  ? "YouTube Connected"
-                  : "YouTube Not Connected"
-              }
-              active={
-                youtubeConnected
-              }
-              variant="red"
-            />
-          </div>
-        </div>
+            {platforms.map(
+              ({
+                id,
+                name,
+                icon,
+              }) => (
+                <PlatformBadge
+                  key={id}
+                  icon={icon}
+                  label={
+                    socialLoading
+                      ? `Checking ${name}...`
+                      : connectedPlatforms.includes(
+                          id
+                        )
+                      ? `${name} Connected`
+                      : `${name} Not Connected`
+                  }
+                  active={
+                    connectedPlatforms.includes(
+                      id
+                    )
+                  }
+                  variant={
+                    id === "facebook"
+                      ? "blue"
+                      : id === "youtube"
+                      ? "red"
+                      : id === "twitch"
+                      ? "purple"
+                      : id === "kick"
+                      ? "lime"
+                      : undefined
+                  }
+                />
+              )
+            )}
+          </div>        </div>
 
         <h1 className="mt-5 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
           <span className="brand-text">
@@ -2207,6 +2457,136 @@ export default function GoLive() {
             </div>
           </div>
 
+          <div className="mt-6 rounded-3xl border border-border bg-background p-5">
+            <h2 className="flex items-center gap-2 text-xl font-black tracking-tight brand-text">
+              <RadioTower className="h-5 w-5" />
+              Saved RTMP Platforms
+            </h2>
+
+            <p className="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+              Rumble, Twitter/X, Twitch and Kick use the RTMP URL and stream key saved securely in your backend connection.
+            </p>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {[
+                "rumble",
+                "twitter",
+                "twitch",
+                "kick",
+              ].map(
+                (platformId) => {
+                  const item =
+                    platforms.find(
+                      (platform) =>
+                        platform.id ===
+                        platformId
+                    );
+
+                  const connection =
+                    getConnection(
+                      platformId
+                    );
+
+                  const connected =
+                    Boolean(
+                      connection
+                    );
+
+                  const configured =
+                    Boolean(
+                      connection
+                        ?.rtmpConfigured ||
+                        connection?.[
+                          `${platformId}RtmpConfigured`
+                        ]
+                    );
+
+                  const liveState =
+                    connection
+                      ?.liveStatus ||
+                    connection?.[
+                      `${platformId}LiveStatus`
+                    ] ||
+                    "idle";
+
+                  const Icon =
+                    item?.icon ||
+                    Radio;
+
+                  return (
+                    <div
+                      key={
+                        platformId
+                      }
+                      className="rounded-2xl border border-border bg-card p-4"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="grid h-11 w-11 place-items-center rounded-xl bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10">
+                            <Icon className="h-5 w-5" />
+                          </div>
+
+                          <div>
+                            <p className="font-black text-foreground">
+                              {item?.name}
+                            </p>
+
+                            <p className="text-xs font-medium text-muted-foreground">
+                              {connected
+                                ? configured
+                                  ? "RTMP configured"
+                                  : "Connected, RTMP missing"
+                                : "Not connected"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold capitalize text-muted-foreground">
+                          {liveState}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            startSavedRTMPLive(
+                              platformId
+                            )
+                          }
+                          disabled={
+                            liveLoading ||
+                            !connected ||
+                            !configured
+                          }
+                          className="brand-gradient rounded-[5px] py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Start Live
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            stopSavedRTMPLive(
+                              platformId
+                            )
+                          }
+                          disabled={
+                            liveLoading ||
+                            !connected
+                          }
+                          className="rounded-[5px] border border-red-500 py-3 text-sm font-bold text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Stop Live
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+              )}
+            </div>
+          </div>
+
           <div className="mt-6 space-y-4">
             <LiveToggle
               icon={
@@ -2376,6 +2756,51 @@ export default function GoLive() {
             />
 
             <PreviewItem
+              label="TikTok"
+              value={
+                tiktokConnected
+                  ? "Connected"
+                  : "Not connected"
+              }
+            />
+
+            <PreviewItem
+              label="Rumble"
+              value={
+                rumbleConnected
+                  ? "Connected"
+                  : "Not connected"
+              }
+            />
+
+            <PreviewItem
+              label="Twitter / X"
+              value={
+                twitterConnected
+                  ? "Connected"
+                  : "Not connected"
+              }
+            />
+
+            <PreviewItem
+              label="Twitch"
+              value={
+                twitchConnected
+                  ? "Connected"
+                  : "Not connected"
+              }
+            />
+
+            <PreviewItem
+              label="Kick"
+              value={
+                kickConnected
+                  ? "Connected"
+                  : "Not connected"
+              }
+            />
+
+            <PreviewItem
               label="YouTube Live"
               value={
                 youtubeLiveStatus
@@ -2429,6 +2854,10 @@ function PlatformBadge({
       ? "bg-blue-100 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
       : variant === "red"
       ? "bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+      : variant === "purple"
+      ? "bg-purple-100 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
+      : variant === "lime"
+      ? "bg-lime-100 text-lime-700 dark:bg-lime-500/10 dark:text-lime-400"
       : "bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400";
 
   return (

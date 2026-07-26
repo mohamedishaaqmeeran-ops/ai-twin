@@ -1,5 +1,3 @@
-// src/pages/ConnectSocial.jsx
-
 import {
   useEffect,
   useMemo,
@@ -21,6 +19,12 @@ import {
   X,
   ExternalLink,
   UserRound,
+  Twitch,
+  Twitter,
+  RadioTower,
+  Zap,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 import {
@@ -35,6 +39,7 @@ import {
 import {
   fetchConnections,
   disconnectSocial,
+  saveRTMPConnection,
   clearSocialError,
 } from "../features/social/socialSlice";
 
@@ -56,6 +61,8 @@ const socialData = [
     defaultUsername:
       "@instagram",
     pro: false,
+    connectionType:
+      "oauth",
   },
   {
     id: "facebook",
@@ -66,6 +73,8 @@ const socialData = [
     defaultUsername:
       "Facebook Page",
     pro: true,
+    connectionType:
+      "oauth",
   },
   {
     id: "youtube",
@@ -76,6 +85,8 @@ const socialData = [
     defaultUsername:
       "YouTube Channel",
     pro: true,
+    connectionType:
+      "oauth",
   },
   {
     id: "tiktok",
@@ -86,6 +97,62 @@ const socialData = [
     defaultUsername:
       "@tiktok",
     pro: true,
+    connectionType:
+      "oauth",
+  },
+  {
+    id: "rumble",
+    name: "Rumble",
+    color:
+      "bg-green-50 dark:bg-white/10",
+    icon: RadioTower,
+    defaultUsername:
+      "Rumble Channel",
+    pro: true,
+    connectionType:
+      "rtmp",
+    defaultRtmpUrl:
+      "rtmp://rtmp.rumble.com/live",
+  },
+  {
+    id: "twitter",
+    name: "Twitter / X",
+    color:
+      "bg-sky-50 dark:bg-white/10",
+    icon: Twitter,
+    defaultUsername:
+      "@twitter",
+    pro: true,
+    connectionType:
+      "rtmp",
+    defaultRtmpUrl: "",
+  },
+  {
+    id: "twitch",
+    name: "Twitch",
+    color:
+      "bg-purple-50 dark:bg-white/10",
+    icon: Twitch,
+    defaultUsername:
+      "Twitch Channel",
+    pro: true,
+    connectionType:
+      "rtmp",
+    defaultRtmpUrl:
+      "rtmp://live.twitch.tv/app",
+  },
+  {
+    id: "kick",
+    name: "Kick",
+    color:
+      "bg-lime-50 dark:bg-white/10",
+    icon: Zap,
+    defaultUsername:
+      "Kick Channel",
+    pro: true,
+    connectionType:
+      "rtmp",
+    defaultRtmpUrl: "",
   },
 ];
 
@@ -113,10 +180,11 @@ const getAccountDisplayName = (
     return defaultUsername;
   }
 
-  if (
-    account.platform ===
-    "youtube"
-  ) {
+  const platform = normalizePlatform(
+    account.platform
+  );
+
+  if (platform === "youtube") {
     return (
       account.youtubeChannelTitle ||
       account.name ||
@@ -125,10 +193,7 @@ const getAccountDisplayName = (
     );
   }
 
-  if (
-    account.platform ===
-    "facebook"
-  ) {
+  if (platform === "facebook") {
     return (
       account.pageName ||
       account.name ||
@@ -137,34 +202,46 @@ const getAccountDisplayName = (
     );
   }
 
-  if (
-  account.platform ===
-  "instagram"
-) {
-  const username =
-    account.username ||
-    account.instagramUsername ||
-    account.platformUsername ||
-    account.metadata?.username ||
-    "";
+  if (platform === "instagram") {
+    const username =
+      account.username ||
+      account.instagramUsername ||
+      account.platformUsername ||
+      account.metadata?.username ||
+      "";
 
-  if (username) {
-    return username.startsWith("@")
-      ? username
-      : `@${username}`;
+    if (username) {
+      return username.startsWith("@")
+        ? username
+        : `@${username}`;
+    }
+
+    return (
+      account.name ||
+      account.pageName ||
+      "Instagram Account"
+    );
   }
 
-  return (
-    account.name ||
-    account.pageName ||
-    "Instagram Account"
-  );
-}
+  if (
+    [
+      "rumble",
+      "twitter",
+      "twitch",
+      "kick",
+    ].includes(platform)
+  ) {
+    return (
+      account.username ||
+      account.name ||
+      account.channelName ||
+      account.metadata?.channelName ||
+      defaultUsername
+    );
+  }
 
   if (account.username) {
-    return account.username.startsWith(
-      "@"
-    )
+    return account.username.startsWith("@")
       ? account.username
       : `@${account.username}`;
   }
@@ -230,7 +307,25 @@ export default function ConnectSocial() {
     processingPlatform,
     setProcessingPlatform,
   ] = useState("");
+const [
+  rtmpPlatform,
+  setRtmpPlatform,
+] = useState(null);
 
+const [
+  rtmpForm,
+  setRtmpForm,
+] = useState({
+  rtmpUrl: "",
+  streamKey: "",
+  channelUrl: "",
+  username: "",
+});
+
+const [
+  showStreamKey,
+  setShowStreamKey,
+] = useState(false);
   const plan =
     user?.plan || "free";
 
@@ -239,7 +334,7 @@ export default function ConnectSocial() {
     plan === "business";
 
   const maxPlatforms =
-    isPro ? 4 : 1;
+    isPro ? 8 : 1;
 
   /* =========================================================
      NORMALIZED CONNECTIONS
@@ -376,106 +471,317 @@ export default function ConnectSocial() {
       navigate("/pricing");
     };
 
+
+
+    /* =========================================================
+   OPEN RTMP CONNECTION MODAL
+========================================================= */
+
+const openRTMPModal =
+  (
+    platformItem,
+    existingConnection = null
+  ) => {
+    setRtmpPlatform(
+      platformItem
+    );
+
+    setRtmpForm({
+      rtmpUrl:
+        existingConnection
+          ?.rumbleRtmpUrl ||
+        existingConnection
+          ?.twitchRtmpUrl ||
+        existingConnection
+          ?.kickRtmpUrl ||
+        existingConnection
+          ?.twitterRtmpUrl ||
+        platformItem
+          ?.defaultRtmpUrl ||
+        "",
+
+      streamKey: "",
+
+      channelUrl:
+        existingConnection
+          ?.rumbleChannelUrl ||
+        existingConnection
+          ?.twitchChannelUrl ||
+        existingConnection
+          ?.kickChannelUrl ||
+        existingConnection
+          ?.twitterChannelUrl ||
+        existingConnection
+          ?.channelUrl ||
+        "",
+
+      username:
+        existingConnection
+          ?.username ||
+        existingConnection
+          ?.name ||
+        "",
+    });
+
+    setShowStreamKey(false);
+  };
   /* =========================================================
      TOGGLE CONNECTION
   ========================================================= */
 
-  const toggleConnection =
-    async (platform) => {
-      const normalizedPlatform =
-        normalizePlatform(
-          platform
+ const toggleConnection =
+  async (
+    platform
+  ) => {
+    const normalizedPlatform =
+      normalizePlatform(
+        platform
+      );
+
+    const platformItem =
+      socialData.find(
+        (
+          item
+        ) =>
+          item.id ===
+          normalizedPlatform
+      );
+
+    if (!platformItem) {
+      alert(
+        "Unsupported platform."
+      );
+
+      return;
+    }
+
+    const account =
+      normalizedConnections.find(
+        (
+          connection
+        ) =>
+          connection.platform ===
+            normalizedPlatform &&
+          connection.connected !==
+            false
+      );
+
+    const alreadyConnected =
+      Boolean(account);
+
+    if (
+      platformItem.pro &&
+      !isPro &&
+      !alreadyConnected
+    ) {
+      upgradeToPro();
+      return;
+    }
+
+    if (
+      alreadyConnected
+    ) {
+      const shouldDisconnect =
+        window.confirm(
+          `Disconnect ${platformItem.name}?`
         );
 
-      const platformItem =
-        socialData.find(
-          (item) =>
-            item.id ===
-            normalizedPlatform
-        );
+      if (!shouldDisconnect) {
+        return;
+      }
 
-      const alreadyConnected =
-        connectedPlatforms.includes(
+      try {
+        setProcessingPlatform(
           normalizedPlatform
         );
 
-      if (
-        platformItem?.pro &&
-        !isPro &&
-        !alreadyConnected
-      ) {
-        upgradeToPro();
-        return;
-      }
-
-      if (
-        alreadyConnected
-      ) {
-        const shouldDisconnect =
-          window.confirm(
-            `Disconnect ${platformItem?.name || normalizedPlatform}?`
-          );
+        await dispatch(
+          disconnectSocial(
+            normalizedPlatform
+          )
+        ).unwrap();
 
         if (
-          !shouldDisconnect
+          selectedAccount
+            ?.platform ===
+          normalizedPlatform
         ) {
-          return;
-        }
-
-        try {
-          setProcessingPlatform(
-            normalizedPlatform
-          );
-
-          await dispatch(
-            disconnectSocial(
-              normalizedPlatform
-            )
-          ).unwrap();
-
-          if (
-            selectedAccount?.platform ===
-            normalizedPlatform
-          ) {
-            setSelectedAccount(
-              null
-            );
-          }
-        } catch (disconnectError) {
-          alert(
-            typeof disconnectError ===
-              "string"
-              ? disconnectError
-              : disconnectError
-                  ?.message ||
-                  "Unable to disconnect account."
-          );
-        } finally {
-          setProcessingPlatform(
-            ""
+          setSelectedAccount(
+            null
           );
         }
 
-        return;
-      }
-
-      if (
-        !isPro &&
-        connectedPlatforms.length >=
-          maxPlatforms
+        await dispatch(
+          fetchConnections()
+        );
+      } catch (
+        disconnectError
       ) {
-        upgradeToPro();
-        return;
+        alert(
+          typeof disconnectError ===
+            "string"
+            ? disconnectError
+            : disconnectError
+                ?.message ||
+              "Unable to disconnect account."
+        );
+      } finally {
+        setProcessingPlatform(
+          ""
+        );
       }
 
-      setProcessingPlatform(
-        normalizedPlatform
+      return;
+    }
+
+    if (
+      !isPro &&
+      connectedPlatforms.length >=
+        maxPlatforms
+    ) {
+      upgradeToPro();
+      return;
+    }
+
+    /*
+     * Rumble, Twitch, Kick and
+     * Twitter/X use manual RTMP
+     * credentials.
+     */
+    if (
+      platformItem.connectionType ===
+      "rtmp"
+    ) {
+      openRTMPModal(
+        platformItem,
+        account
       );
 
-      connectAPI(
-        normalizedPlatform
+      return;
+    }
+
+    /*
+     * Existing Instagram, Facebook,
+     * YouTube and TikTok OAuth flow.
+     */
+    setProcessingPlatform(
+      normalizedPlatform
+    );
+
+    connectAPI(
+      normalizedPlatform
+    );
+  };
+
+  /* =========================================================
+   SAVE RTMP CONNECTION
+========================================================= */
+
+const handleSaveRTMP =
+  async (
+    event
+  ) => {
+    event.preventDefault();
+
+    if (!rtmpPlatform) {
+      return;
+    }
+
+    const rtmpUrl =
+      rtmpForm.rtmpUrl.trim();
+
+    const streamKey =
+      rtmpForm.streamKey.trim();
+
+    const channelUrl =
+      rtmpForm.channelUrl.trim();
+
+    const username =
+      rtmpForm.username.trim();
+
+    if (!rtmpUrl) {
+      alert(
+        "RTMP URL is required."
       );
-    };
+
+      return;
+    }
+
+    if (!streamKey) {
+      alert(
+        "Stream key is required."
+      );
+
+      return;
+    }
+
+    if (
+      !rtmpUrl.startsWith(
+        "rtmp://"
+      ) &&
+      !rtmpUrl.startsWith(
+        "rtmps://"
+      )
+    ) {
+      alert(
+        "RTMP URL must start with rtmp:// or rtmps://."
+      );
+
+      return;
+    }
+
+    try {
+      setProcessingPlatform(
+        rtmpPlatform.id
+      );
+
+      await dispatch(
+        saveRTMPConnection({
+          platform:
+            rtmpPlatform.id,
+
+          data: {
+            rtmpUrl,
+            streamKey,
+            channelUrl,
+            username,
+          },
+        })
+      ).unwrap();
+
+      await dispatch(
+        fetchConnections()
+      ).unwrap();
+
+      setRtmpPlatform(null);
+
+      setRtmpForm({
+        rtmpUrl: "",
+        streamKey: "",
+        channelUrl: "",
+        username: "",
+      });
+
+      alert(
+        `${rtmpPlatform.name} connected successfully.`
+      );
+    } catch (
+      saveError
+    ) {
+      alert(
+        typeof saveError ===
+          "string"
+          ? saveError
+          : saveError
+              ?.message ||
+            "Unable to save RTMP connection."
+      );
+    } finally {
+      setProcessingPlatform(
+        ""
+      );
+    }
+  };
 
   /* =========================================================
      OPEN ACCOUNT MODAL
@@ -573,10 +879,10 @@ export default function ConnectSocial() {
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-          {isPro
-            ? "Connect Instagram, Facebook, YouTube and TikTok for multi-platform AI Twin live selling."
-            : "The Free plan allows one platform. Upgrade to Pro to connect Facebook, YouTube and TikTok."}
-        </p>
+  {isPro
+    ? "Connect Instagram, Facebook, YouTube, TikTok, Rumble, Twitter/X, Twitch and Kick."
+    : "The Free plan allows one platform. Upgrade to Pro to unlock all supported platforms."}
+</p>
       </section>
 
       {/* =====================================================
@@ -599,7 +905,7 @@ export default function ConnectSocial() {
         <Stat
           title="Available"
           value={
-            isPro ? "4" : "1"
+            isPro ? "8" : "1"
           }
           icon={
             ShieldCheck
@@ -862,6 +1168,40 @@ export default function ConnectSocial() {
           }
         />
       )}
+
+      {rtmpPlatform && (
+        <RTMPConnectionModal
+          platform={
+            rtmpPlatform
+          }
+          form={
+            rtmpForm
+          }
+          setForm={
+            setRtmpForm
+          }
+          showStreamKey={
+            showStreamKey
+          }
+          setShowStreamKey={
+            setShowStreamKey
+          }
+          processing={
+            processingPlatform ===
+            rtmpPlatform.id
+          }
+          onSubmit={
+            handleSaveRTMP
+          }
+          onClose={() => {
+            if (processingPlatform) {
+              return;
+            }
+
+            setRtmpPlatform(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1010,24 +1350,24 @@ function AccountModal({
             "instagram" && (
             <>
               <AccountRow
-  label="Instagram Username"
-  value={(() => {
-    const username =
-      account.username ||
-      account.instagramUsername ||
-      account.platformUsername ||
-      account.metadata?.username ||
-      "";
+                label="Instagram Username"
+                value={(() => {
+                  const username =
+                    account.username ||
+                    account.instagramUsername ||
+                    account.platformUsername ||
+                    account.metadata?.username ||
+                    "";
 
-    if (!username) {
-      return "Not available";
-    }
+                  if (!username) {
+                    return "Not available";
+                  }
 
-    return username.startsWith("@")
-      ? username
-      : `@${username}`;
-  })()}
-/>
+                  return username.startsWith("@")
+                    ? username
+                    : `@${username}`;
+                })()}
+              />
 
               <AccountRow
                 label="Linked Facebook Page"
@@ -1087,7 +1427,76 @@ function AccountModal({
               )}
             </>
           )}
+{[
+  "rumble",
+  "twitter",
+  "twitch",
+  "kick",
+].includes(
+  platform
+) && (
+  <>
+    <AccountRow
+      label="Channel"
+      value={
+        account.username ||
+        account.name ||
+        account.channelName ||
+        accountName
+      }
+    />
 
+    <AccountRow
+      label="RTMP Configured"
+      value={
+        account.rtmpConfigured ||
+        account.rumbleRtmpConfigured ||
+        account.twitchRtmpConfigured ||
+        account.kickRtmpConfigured ||
+        account.twitterRtmpConfigured
+          ? "Yes"
+          : "No"
+      }
+    />
+
+    <AccountRow
+      label="Live Status"
+      value={
+        account.liveStatus ||
+        account.rumbleLiveStatus ||
+        account.twitchLiveStatus ||
+        account.kickLiveStatus ||
+        account.twitterLiveStatus ||
+        "Idle"
+      }
+    />
+
+    {(
+      account.channelUrl ||
+      account.rumbleChannelUrl ||
+      account.twitchChannelUrl ||
+      account.kickChannelUrl ||
+      account.twitterChannelUrl
+    ) && (
+      <a
+        href={
+          account.channelUrl ||
+          account.rumbleChannelUrl ||
+          account.twitchChannelUrl ||
+          account.kickChannelUrl ||
+          account.twitterChannelUrl
+        }
+        target="_blank"
+        rel="noreferrer"
+        className="flex w-full items-center justify-center gap-2 rounded-[5px] border border-border bg-background px-5 py-3 text-sm font-bold transition hover:border-[var(--brand-pink)]"
+      >
+        Open Channel
+
+        <ExternalLink className="h-4 w-4" />
+      </a>
+    )}
+  </>
+)}
           <AccountRow
             label="Status"
             value={
@@ -1116,10 +1525,251 @@ function AccountModal({
             </a>
           )}
       </div>
-    </div>
+          </div>
   );
 }
 
+
+/* =========================================================
+   RTMP CONNECTION MODAL
+========================================================= */
+
+function RTMPConnectionModal({
+  platform,
+  form,
+  setForm,
+  showStreamKey,
+  setShowStreamKey,
+  processing,
+  onSubmit,
+  onClose,
+}) {
+  const PlatformIcon =
+    platform.icon ||
+    Radio;
+
+  const updateField =
+    (
+      field,
+      value
+    ) => {
+      setForm(
+        (
+          previous
+        ) => ({
+          ...previous,
+          [field]: value,
+        })
+      );
+    };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/60 p-4"
+      onClick={
+        onClose
+      }
+    >
+      <form
+        onSubmit={
+          onSubmit
+        }
+        onClick={(
+          event
+        ) =>
+          event.stopPropagation()
+        }
+        className="my-8 w-full max-w-xl rounded-3xl border border-border bg-card p-6 text-foreground shadow-xl"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className={`grid h-14 w-14 place-items-center rounded-2xl ${platform.color}`}>
+              <PlatformIcon className="h-7 w-7 text-[var(--brand-pink)]" />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-black tracking-tight brand-text">
+                Connect{" "}
+                {platform.name}
+              </h2>
+
+              <p className="mt-1 text-sm font-medium text-muted-foreground">
+                Enter the streaming details provided by{" "}
+                {platform.name}.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={
+              onClose
+            }
+            disabled={
+              processing
+            }
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-border bg-background transition hover:border-[var(--brand-pink)] disabled:opacity-50"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-5">
+          <label className="block">
+            <span className="text-sm font-black text-foreground">
+              Channel name
+            </span>
+
+            <input
+              type="text"
+              value={
+                form.username
+              }
+              onChange={(
+                event
+              ) =>
+                updateField(
+                  "username",
+                  event.target.value
+                )
+              }
+              placeholder={`${platform.name} channel`}
+              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium outline-none transition focus:border-[var(--brand-pink)]"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-black text-foreground">
+              RTMP URL
+            </span>
+
+            <input
+              type="text"
+              required
+              value={
+                form.rtmpUrl
+              }
+              onChange={(
+                event
+              ) =>
+                updateField(
+                  "rtmpUrl",
+                  event.target.value
+                )
+              }
+              placeholder="rtmp://stream-server/live"
+              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium outline-none transition focus:border-[var(--brand-pink)]"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-black text-foreground">
+              Stream key
+            </span>
+
+            <div className="relative mt-2">
+              <input
+                type={
+                  showStreamKey
+                    ? "text"
+                    : "password"
+                }
+                required
+                value={
+                  form.streamKey
+                }
+                onChange={(
+                  event
+                ) =>
+                  updateField(
+                    "streamKey",
+                    event.target.value
+                  )
+                }
+                placeholder="Enter stream key"
+                autoComplete="off"
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 pr-12 text-sm font-medium outline-none transition focus:border-[var(--brand-pink)]"
+              />
+
+              <button
+                type="button"
+                onClick={() =>
+                  setShowStreamKey(
+                    (
+                      previous
+                    ) =>
+                      !previous
+                  )
+                }
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+              >
+                {showStreamKey ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-black text-foreground">
+              Channel URL
+            </span>
+
+            <input
+              type="url"
+              value={
+                form.channelUrl
+              }
+              onChange={(
+                event
+              ) =>
+                updateField(
+                  "channelUrl",
+                  event.target.value
+                )
+              }
+              placeholder="https://platform.com/your-channel"
+              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm font-medium outline-none transition focus:border-[var(--brand-pink)]"
+            />
+          </label>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-orange-200 bg-orange-50 p-4 text-sm font-medium leading-6 text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300">
+          The stream key is private. It will be sent securely to your backend and must never be displayed in the connection response.
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={
+              onClose
+            }
+            disabled={
+              processing
+            }
+            className="rounded-[5px] border border-border bg-background px-5 py-3 text-sm font-bold transition hover:border-[var(--brand-pink)] disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            disabled={
+              processing
+            }
+            className="brand-gradient rounded-[5px] px-5 py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {processing
+              ? "Connecting..."
+              : `Connect ${platform.name}`}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
 /* =========================================================
    STAT
 ========================================================= */

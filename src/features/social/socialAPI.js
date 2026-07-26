@@ -1,56 +1,71 @@
+import axios from "axios";
+
 const API =
-  "https://twinn-backend.onrender.com/api/social";
+  import.meta.env.VITE_API_URL ||
+  "https://twinn-backend.onrender.com/api";
 
-export const getConnectionsAPI =
-  async () => {
-    const res = await fetch(
-      `${API}/connections`,
-      {
-        credentials: "include",
-      }
-    );
+const socialAxios = axios.create({
+  baseURL: `${API}/social`,
+  withCredentials: true,
+});
 
-    const data = await res
-      .json()
-      .catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(
-        data.message ||
-          "Failed to fetch connections"
-      );
-    }
-
-    return data.data || [];
-  };
-
-export const disconnectAPI =
-  async (platform) => {
-    const res = await fetch(
-      `${API}/connections/${platform}`,
-      {
-        method: "DELETE",
-        credentials: "include",
-      }
-    );
-
-    const data = await res
-      .json()
-      .catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(
-        data.message ||
-          "Failed to disconnect"
-      );
-    }
-
-    return data;
-  };
+/* =========================================================
+   START OAUTH CONNECTION
+========================================================= */
 
 export const connectAPI = (
   platform
 ) => {
   window.location.href =
-    `${API}/connect/${platform}`;
+    `${API}/social/connect/${platform}`;
 };
+
+/* =========================================================
+   FETCH CONNECTIONS
+========================================================= */
+
+export const getConnectionsAPI =
+  async () => {
+    const response =
+      await socialAxios.get(
+        "/connections"
+      );
+
+    return (
+      response.data?.data || []
+    );
+  };
+
+/* =========================================================
+   SAVE MANUAL RTMP CONNECTION
+========================================================= */
+
+export const saveRTMPConnectionAPI =
+  async (
+    platform,
+    payload
+  ) => {
+    const response =
+      await socialAxios.patch(
+        `/connections/${platform}/rtmp`,
+        payload
+      );
+
+    return response.data;
+  };
+
+/* =========================================================
+   DISCONNECT PLATFORM
+========================================================= */
+
+export const disconnectSocialAPI =
+  async (
+    platform
+  ) => {
+    const response =
+      await socialAxios.delete(
+        `/connections/${platform}`
+      );
+
+    return response.data;
+  };
