@@ -7,6 +7,8 @@ import {
   getConnectionsAPI,
   disconnectSocialAPI,
   saveRTMPConnectionAPI,
+  startYouTubeLiveAPI,
+  stopYouTubeLiveAPI,
 } from "./socialAPI";
 
 /* =========================================================
@@ -35,7 +37,7 @@ export const fetchConnections =
   );
 
 /* =========================================================
-   DISCONNECT
+   DISCONNECT SOCIAL PLATFORM
 ========================================================= */
 
 export const disconnectSocial =
@@ -80,13 +82,18 @@ export const saveRTMPConnection =
       }
     ) => {
       try {
-        await saveRTMPConnectionAPI(
-          platform,
-          data
-        );
+        const response =
+          await saveRTMPConnectionAPI(
+            platform,
+            data
+          );
 
         return {
           platform,
+          connection:
+            response?.connection ||
+            response?.data ||
+            response,
         };
       } catch (error) {
         return rejectWithValue(
@@ -99,13 +106,77 @@ export const saveRTMPConnection =
   );
 
 /* =========================================================
+   START YOUTUBE LIVE
+========================================================= */
+
+export const startYouTubeLive =
+  createAsyncThunk(
+    "social/startYouTubeLive",
+    async (
+      payload,
+      {
+        rejectWithValue,
+      }
+    ) => {
+      try {
+        const {
+          onWaiting,
+          ...requestData
+        } = payload || {};
+
+        return await startYouTubeLiveAPI(
+          requestData,
+          onWaiting
+        );
+      } catch (error) {
+        return rejectWithValue(
+          error.response?.data?.message ||
+            error.message ||
+            "Unable to start YouTube live."
+        );
+      }
+    }
+  );
+
+/* =========================================================
+   STOP YOUTUBE LIVE
+========================================================= */
+
+export const stopYouTubeLive =
+  createAsyncThunk(
+    "social/stopYouTubeLive",
+    async (
+      _,
+      {
+        rejectWithValue,
+      }
+    ) => {
+      try {
+        return await stopYouTubeLiveAPI();
+      } catch (error) {
+        return rejectWithValue(
+          error.response?.data?.message ||
+            error.message ||
+            "Unable to stop YouTube live."
+        );
+      }
+    }
+  );
+
+/* =========================================================
    INITIAL STATE
 ========================================================= */
 
 const initialState = {
   connections: [],
+
   loading: false,
   error: null,
+
+  youtubeLiveLoading: false,
+  youtubeLiveStatus: "idle",
+  youtubeLiveData: null,
+  youtubeLiveError: null,
 };
 
 /* =========================================================
@@ -124,6 +195,25 @@ const socialSlice =
           state
         ) => {
           state.error = null;
+          state.youtubeLiveError =
+            null;
+        },
+
+      resetYouTubeLive:
+        (
+          state
+        ) => {
+          state.youtubeLiveLoading =
+            false;
+
+          state.youtubeLiveStatus =
+            "idle";
+
+          state.youtubeLiveData =
+            null;
+
+          state.youtubeLiveError =
+            null;
         },
     },
 
@@ -132,7 +222,10 @@ const socialSlice =
         builder
       ) => {
         builder
-          /* FETCH */
+
+          /* =================================================
+             FETCH CONNECTIONS
+          ================================================= */
 
           .addCase(
             fetchConnections.pending,
@@ -152,11 +245,26 @@ const socialSlice =
             ) => {
               state.loading = false;
 
+              const payload =
+                action.payload;
+
               state.connections =
-                Array.isArray(
-                  action.payload
-                )
-                  ? action.payload
+                Array.isArray(payload)
+                  ? payload
+                  : Array.isArray(
+                      payload?.connections
+                    )
+                  ? payload.connections
+                  : Array.isArray(
+                      payload?.data
+                    )
+                  ? payload.data
+                  : Array.isArray(
+                      payload?.data
+                        ?.connections
+                    )
+                  ? payload.data
+                      .connections
                   : [];
             }
           )
@@ -170,11 +278,14 @@ const socialSlice =
               state.loading = false;
 
               state.error =
-                action.payload;
+                action.payload ||
+                "Unable to load social connections.";
             }
           )
 
-          /* DISCONNECT */
+          /* =================================================
+             DISCONNECT
+          ================================================= */
 
           .addCase(
             disconnectSocial.pending,
@@ -194,13 +305,21 @@ const socialSlice =
             ) => {
               state.loading = false;
 
+              const platform =
+                String(
+                  action.payload || ""
+                ).toLowerCase();
+
               state.connections =
                 state.connections.filter(
                   (
                     connection
                   ) =>
-                    connection.platform !==
-                    action.payload
+                    String(
+                      connection
+                        ?.platform || ""
+                    ).toLowerCase() !==
+                    platform
                 );
             }
           )
@@ -214,11 +333,14 @@ const socialSlice =
               state.loading = false;
 
               state.error =
-                action.payload;
+                action.payload ||
+                "Unable to disconnect platform.";
             }
           )
 
-          /* SAVE RTMP */
+          /* =================================================
+             SAVE RTMP
+          ================================================= */
 
           .addCase(
             saveRTMPConnection.pending,
@@ -233,9 +355,63 @@ const socialSlice =
           .addCase(
             saveRTMPConnection.fulfilled,
             (
-              state
+              state,
+              action
             ) => {
               state.loading = false;
+
+              const platform =
+                String(
+                  action.payload
+                    ?.platform || ""
+                ).toLowerCase();
+
+              const returnedConnection =
+                action.payload
+                  ?.connection;
+
+              const connection =
+                returnedConnection &&
+                typeof returnedConnection ===
+                  "object"
+                  ? {
+                      ...returnedConnection,
+                      platform,
+                      connected: true,
+                    }
+                  : {
+                      platform,
+                      connected: true,
+                    };
+
+              const existingIndex =
+                state.connections.findIndex(
+                  (
+                    item
+                  ) =>
+                    String(
+                      item?.platform ||
+                        ""
+                    ).toLowerCase() ===
+                    platform
+                );
+
+              if (
+                existingIndex >= 0
+              ) {
+                state.connections[
+                  existingIndex
+                ] = {
+                  ...state.connections[
+                    existingIndex
+                  ],
+                  ...connection,
+                };
+              } else {
+                state.connections.push(
+                  connection
+                );
+              }
             }
           )
 
@@ -248,7 +424,126 @@ const socialSlice =
               state.loading = false;
 
               state.error =
-                action.payload;
+                action.payload ||
+                "Unable to save RTMP connection.";
+            }
+          )
+
+          /* =================================================
+             START YOUTUBE LIVE
+          ================================================= */
+
+          .addCase(
+            startYouTubeLive.pending,
+            (
+              state
+            ) => {
+              state.youtubeLiveLoading =
+                true;
+
+              state.youtubeLiveStatus =
+                "starting";
+
+              state.youtubeLiveError =
+                null;
+            }
+          )
+
+          .addCase(
+            startYouTubeLive.fulfilled,
+            (
+              state,
+              action
+            ) => {
+              state.youtubeLiveLoading =
+                false;
+
+              state.youtubeLiveStatus =
+                action.payload
+                  ?.status ||
+                action.payload?.data
+                  ?.status ||
+                "live";
+
+              state.youtubeLiveData =
+                action.payload?.data ||
+                action.payload ||
+                null;
+            }
+          )
+
+          .addCase(
+            startYouTubeLive.rejected,
+            (
+              state,
+              action
+            ) => {
+              state.youtubeLiveLoading =
+                false;
+
+              state.youtubeLiveStatus =
+                "failed";
+
+              state.youtubeLiveError =
+                action.payload ||
+                "Unable to start YouTube live.";
+            }
+          )
+
+          /* =================================================
+             STOP YOUTUBE LIVE
+          ================================================= */
+
+          .addCase(
+            stopYouTubeLive.pending,
+            (
+              state
+            ) => {
+              state.youtubeLiveLoading =
+                true;
+
+              state.youtubeLiveStatus =
+                "stopping";
+
+              state.youtubeLiveError =
+                null;
+            }
+          )
+
+          .addCase(
+            stopYouTubeLive.fulfilled,
+            (
+              state,
+              action
+            ) => {
+              state.youtubeLiveLoading =
+                false;
+
+              state.youtubeLiveStatus =
+                "stopped";
+
+              state.youtubeLiveData =
+                action.payload?.data ||
+                action.payload ||
+                null;
+            }
+          )
+
+          .addCase(
+            stopYouTubeLive.rejected,
+            (
+              state,
+              action
+            ) => {
+              state.youtubeLiveLoading =
+                false;
+
+              state.youtubeLiveStatus =
+                "failed";
+
+              state.youtubeLiveError =
+                action.payload ||
+                "Unable to stop YouTube live.";
             }
           );
       },
@@ -256,6 +551,7 @@ const socialSlice =
 
 export const {
   clearSocialError,
+  resetYouTubeLive,
 } = socialSlice.actions;
 
 export default socialSlice.reducer;
