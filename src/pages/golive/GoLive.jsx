@@ -314,6 +314,9 @@ export default function GoLive() {
   const maxPlatforms =
     isPro ? livePlatformIds.length : 1;
 
+  const totalPlatformCount =
+    platforms.length;
+
   const scheduleState =
     location.state?.schedule;
 
@@ -1270,8 +1273,8 @@ export default function GoLive() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
-          title="Connected Live"
-          value={`${connectedLivePlatforms.length}/${livePlatformIds.length}`}
+          title="Connected Platforms"
+          value={`${connectedPlatforms.length}/${totalPlatformCount}`}
           icon={CheckCircle2}
         />
 
