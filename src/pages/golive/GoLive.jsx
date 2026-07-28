@@ -1072,34 +1072,34 @@ export default function GoLive() {
           fetchLiveStatus()
         );
 
-       const startedCount =
-  Number(
-    startResult?.started
-  ) || 0;
+        const startedCount =
+          Number(
+            startResult?.started
+          ) || 0;
 
-const failedCount =
-  Number(
-    startResult?.failed
-  ) || 0;
+        const failedCount =
+          Number(
+            startResult?.failed
+          ) || 0;
 
-if (
-  startedCount > 0 &&
-  failedCount > 0
-) {
-  setLocalStatus(
-    `${startedCount} platform(s) started. ${failedCount} platform(s) failed.`
-  );
-} else if (
-  startedCount > 0
-) {
-  setLocalStatus(
-    `${startedCount} platform(s) are live.`
-  );
-} else {
-  setLocalStatus(
-    "No platform could be started."
-  );
-}
+        if (
+          startedCount > 0 &&
+          failedCount > 0
+        ) {
+          setLocalStatus(
+            `${startedCount} platform(s) started. ${failedCount} platform(s) failed.`
+          );
+        } else if (
+          startedCount > 0
+        ) {
+          setLocalStatus(
+            `${startedCount} platform(s) are live.`
+          );
+        } else {
+          setLocalStatus(
+            "No platform could be started."
+          );
+        }
       } catch (error) {
         setLocalStatus(
           getErrorMessage(
@@ -1765,7 +1765,7 @@ if (
                           }
                           className="rounded-[5px] border border-red-500 px-3 py-2 text-xs font-black text-red-500 disabled:opacity-50"
                         >
-                          Stop
+                          Stop Shared Live
                         </button>
                       </div>
                     );

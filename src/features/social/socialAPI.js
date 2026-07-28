@@ -47,19 +47,19 @@ export const MANUAL_RTMP_PLATFORMS = [
   "facebook",
   "youtube",
   "linkedin",
+  "tiktok",
   "rumble",
   "twitter",
   "twitch",
   "kick",
 ];
 
-// TikTok is displayed in the UI but is not streamable until
-// the backend receives a valid TikTok RTMP URL and stream key.
 export const LIVE_PLATFORMS = [
   "instagram",
   "facebook",
   "youtube",
   "linkedin",
+  "tiktok",
   "rumble",
   "twitter",
   "twitch",
@@ -576,17 +576,17 @@ export const startLiveAPI =
     inputUrl = "",
     sourceUrl = "",
     sourceType = "",
-    loop = false,
-    videoBitrate = 4500,
-    audioBitrate = 128,
-    width = 1280,
-    height = 720,
+    loop = true,
+    videoBitrate = 2000,
+    audioBitrate = 96,
+    width = 720,
+    height = 1280,
     fps = 30,
-    preset = "veryfast",
+    preset = "ultrafast",
     includeAudio = true,
     reconnect = true,
-    rollbackOnFailure = true,
-    keyframeInterval,
+    rollbackOnFailure = false,
+    keyframeInterval = 2,
     sessionId,
     twinId,
     productId,
@@ -599,7 +599,10 @@ export const startLiveAPI =
     const normalizedPlatforms =
       [
         ...new Set(
-          platforms
+          (Array.isArray(platforms)
+            ? platforms
+            : String(platforms || "")
+                .split(","))
             .map(
               normalizePlatform
             )
@@ -718,11 +721,8 @@ export const startLiveAPI =
               timeout:
                 120000,
 
-              headers: {
-                "Content-Type":
-                  "multipart/form-data",
-              },
-
+              // Do not manually set multipart Content-Type.
+              // Axios adds the required boundary automatically.
               onUploadProgress:
                 (
                   progressEvent
@@ -756,7 +756,11 @@ export const startLiveAPI =
             }
           );
 
-        return response.data;
+        return (
+          response.data?.data ||
+          response.data?.result ||
+          response.data
+        );
       }
 
       const finalInputUrl =
@@ -822,7 +826,11 @@ export const startLiveAPI =
           }
         );
 
-      return response.data;
+      return (
+        response.data?.data ||
+        response.data?.result ||
+        response.data
+      );
     } catch (error) {
       throw new Error(
         getErrorMessage(
