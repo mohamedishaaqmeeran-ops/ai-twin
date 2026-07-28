@@ -1370,13 +1370,7 @@ function AccountModal({
             }
           />
 
-          <AccountRow
-            label="Platform User ID"
-            value={
-              account.platformUserId ||
-              "Not available"
-            }
-          />
+         
 
           {platform ===
             "facebook" && (
@@ -1422,13 +1416,7 @@ function AccountModal({
                 })()}
               />
 
-              <AccountRow
-                label="Linked Facebook Page"
-                value={
-                  account.pageName ||
-                  "Not available"
-                }
-              />
+              
 
               <AccountRow
                 label="RTMP Configured"
