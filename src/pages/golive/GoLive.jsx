@@ -369,7 +369,7 @@ export default function GoLive() {
   const [
     loopVideo,
     setLoopVideo,
-  ] = useState(false);
+  ] = useState(true);
 
   const [
     localStatus,
@@ -393,7 +393,7 @@ export default function GoLive() {
     liveChat: true,
     productLink: true,
     autoAnswer: true,
-    multiPlatformSync: false,
+    multiPlatformSync: true,
   });
 
   const busy =
@@ -1045,18 +1045,8 @@ export default function GoLive() {
 
               loop:
                 loopVideo,
-
-              videoBitrate:
-                4500,
-
-              audioBitrate:
-                128,
-
-              width:
-                1280,
-
-              height:
-                720,
+      rollbackOnFailure: false,
+              
 
               fps:
                 30,
