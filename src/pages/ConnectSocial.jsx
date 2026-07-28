@@ -284,6 +284,7 @@ const getAccountDisplayName = (
 
   if (
     [
+      "tiktok",
       "rumble",
       "twitter",
       "twitch",
@@ -547,33 +548,26 @@ const openRTMPModal =
     );
 
     setRtmpForm({
-      rtmpUrl:
-        existingConnection
-          ?.rumbleRtmpUrl ||
-        existingConnection
-          ?.twitchRtmpUrl ||
-        existingConnection
-          ?.kickRtmpUrl ||
-        existingConnection
-          ?.twitterRtmpUrl ||
-        platformItem
-          ?.defaultRtmpUrl ||
-        "",
+     rtmpUrl:
+  existingConnection?.tiktokRtmpUrl ||
+  existingConnection?.rumbleRtmpUrl ||
+  existingConnection?.twitchRtmpUrl ||
+  existingConnection?.kickRtmpUrl ||
+  existingConnection?.twitterRtmpUrl ||
+  existingConnection?.rtmpUrl ||
+  platformItem?.defaultRtmpUrl ||
+  "",
 
       streamKey: "",
 
       channelUrl:
-        existingConnection
-          ?.rumbleChannelUrl ||
-        existingConnection
-          ?.twitchChannelUrl ||
-        existingConnection
-          ?.kickChannelUrl ||
-        existingConnection
-          ?.twitterChannelUrl ||
-        existingConnection
-          ?.channelUrl ||
-        "",
+  existingConnection?.tiktokChannelUrl ||
+  existingConnection?.rumbleChannelUrl ||
+  existingConnection?.twitchChannelUrl ||
+  existingConnection?.kickChannelUrl ||
+  existingConnection?.twitterChannelUrl ||
+  existingConnection?.channelUrl ||
+  "",
 
       username:
         existingConnection
@@ -1526,6 +1520,7 @@ function AccountModal({
           )}
 
 {[
+  "tiktok",
   "rumble",
   "twitter",
   "twitch",
@@ -1548,10 +1543,11 @@ function AccountModal({
       label="RTMP Configured"
       value={
         account.rtmpConfigured ||
-        account.rumbleRtmpConfigured ||
-        account.twitchRtmpConfigured ||
-        account.kickRtmpConfigured ||
-        account.twitterRtmpConfigured
+account.tiktokRtmpConfigured ||
+account.rumbleRtmpConfigured ||
+account.twitchRtmpConfigured ||
+account.kickRtmpConfigured ||
+account.twitterRtmpConfigured
           ? "Yes"
           : "No"
       }
@@ -1560,21 +1556,23 @@ function AccountModal({
     <AccountRow
       label="Live Status"
       value={
-        account.liveStatus ||
-        account.rumbleLiveStatus ||
-        account.twitchLiveStatus ||
-        account.kickLiveStatus ||
-        account.twitterLiveStatus ||
-        "Idle"
+       account.liveStatus ||
+account.tiktokLiveStatus ||
+account.rumbleLiveStatus ||
+account.twitchLiveStatus ||
+account.kickLiveStatus ||
+account.twitterLiveStatus ||
+"Idle"
       }
     />
 
     {(
-      account.channelUrl ||
-      account.rumbleChannelUrl ||
-      account.twitchChannelUrl ||
-      account.kickChannelUrl ||
-      account.twitterChannelUrl
+     account.channelUrl ||
+account.tiktokChannelUrl ||
+account.rumbleChannelUrl ||
+account.twitchChannelUrl ||
+account.kickChannelUrl ||
+account.twitterChannelUrl
     ) && (
       <a
         href={
