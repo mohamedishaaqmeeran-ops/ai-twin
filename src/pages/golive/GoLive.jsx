@@ -100,7 +100,7 @@ const platforms = [
     name: "TikTok",
     icon: Music2,
     pro: true,
-    liveSupported: false,
+    liveSupported: true,
   },
   {
     id: "rumble",
@@ -1072,18 +1072,34 @@ export default function GoLive() {
           fetchLiveStatus()
         );
 
-        const failed =
-          Array.isArray(
-            startResult?.failed
-          )
-            ? startResult.failed
-            : [];
+       const startedCount =
+  Number(
+    startResult?.started
+  ) || 0;
 
-        setLocalStatus(
-          failed.length
-            ? `Live started with ${failed.length} platform error(s).`
-            : "Live stream started successfully."
-        );
+const failedCount =
+  Number(
+    startResult?.failed
+  ) || 0;
+
+if (
+  startedCount > 0 &&
+  failedCount > 0
+) {
+  setLocalStatus(
+    `${startedCount} platform(s) started. ${failedCount} platform(s) failed.`
+  );
+} else if (
+  startedCount > 0
+) {
+  setLocalStatus(
+    `${startedCount} platform(s) are live.`
+  );
+} else {
+  setLocalStatus(
+    "No platform could be started."
+  );
+}
       } catch (error) {
         setLocalStatus(
           getErrorMessage(
