@@ -98,18 +98,34 @@ const socialData = [
       "https://studio.youtube.com/",
     defaultRtmpUrl: "",
   },
-  {
-    id: "tiktok",
-    name: "TikTok",
-    color:
-      "bg-gray-100 dark:bg-white/10",
-    icon: Music2,
-    defaultUsername:
-      "@tiktok",
-    pro: true,
-    connectionType:
-      "unsupported",
-  },
+ {
+  id:
+    "tiktok",
+
+  name:
+    "TikTok",
+
+  color:
+    "bg-gray-100 dark:bg-white/10",
+
+  icon:
+    Music2,
+
+  defaultUsername:
+    "@tiktok",
+
+  pro:
+    true,
+
+  connectionType:
+    "rtmp",
+
+  dashboardUrl:
+    "https://www.tiktok.com/studio/download",
+
+  defaultRtmpUrl:
+    "",
+},
   {
     id: "linkedin",
     name: "LinkedIn",
