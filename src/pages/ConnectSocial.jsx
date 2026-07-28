@@ -63,7 +63,10 @@ const socialData = [
       "@instagram",
     pro: false,
     connectionType:
-      "oauth",
+      "rtmp",
+    dashboardUrl:
+      "https://www.instagram.com/",
+    defaultRtmpUrl: "",
   },
   {
     id: "facebook",
@@ -75,7 +78,10 @@ const socialData = [
       "Facebook Page",
     pro: true,
     connectionType:
-      "oauth",
+      "rtmp",
+    dashboardUrl:
+      "https://www.facebook.com/live/producer",
+    defaultRtmpUrl: "",
   },
   {
     id: "youtube",
@@ -87,7 +93,10 @@ const socialData = [
       "YouTube Channel",
     pro: true,
     connectionType:
-      "oauth",
+      "rtmp",
+    dashboardUrl:
+      "https://studio.youtube.com/",
+    defaultRtmpUrl: "",
   },
   {
     id: "tiktok",
@@ -99,7 +108,7 @@ const socialData = [
       "@tiktok",
     pro: true,
     connectionType:
-      "oauth",
+      "unsupported",
   },
   {
     id: "linkedin",
@@ -111,7 +120,10 @@ const socialData = [
       "LinkedIn Profile",
     pro: true,
     connectionType:
-      "oauth",
+      "rtmp",
+    dashboardUrl:
+      "https://www.linkedin.com/video/golive/manage/",
+    defaultRtmpUrl: "",
   },
   {
     id: "rumble",
@@ -124,6 +136,8 @@ const socialData = [
     pro: true,
     connectionType:
       "rtmp",
+    dashboardUrl:
+      "https://rumble.com/account/livestreams",
     defaultRtmpUrl:
       "rtmp://rtmp.rumble.com/live",
   },
@@ -138,6 +152,8 @@ const socialData = [
     pro: true,
     connectionType:
       "rtmp",
+    dashboardUrl:
+      "https://studio.x.com/producer",
     defaultRtmpUrl: "",
   },
   {
@@ -151,6 +167,8 @@ const socialData = [
     pro: true,
     connectionType:
       "rtmp",
+    dashboardUrl:
+      "https://dashboard.twitch.tv/settings/stream",
     defaultRtmpUrl:
       "rtmp://live.twitch.tv/app",
   },
@@ -165,6 +183,8 @@ const socialData = [
     pro: true,
     connectionType:
       "rtmp",
+    dashboardUrl:
+      "https://kick.com/dashboard/settings/stream",
     defaultRtmpUrl: "",
   },
 ];
@@ -667,10 +687,19 @@ const openRTMPModal =
       return;
     }
 
+    if (
+      platformItem.connectionType ===
+      "unsupported"
+    ) {
+      alert(
+        `${platformItem.name} connection is not configured in the current backend.`
+      );
+      return;
+    }
+
     /*
-     * Rumble, Twitch, Kick and
-     * Twitter/X use manual RTMP
-     * credentials.
+     * Manual RTMP platforms open the
+     * credential form instead of OAuth.
      */
     if (
       platformItem.connectionType ===
@@ -1662,6 +1691,18 @@ function RTMPConnectionModal({
                 Enter the streaming details provided by{" "}
                 {platform.name}.
               </p>
+
+              {platform.dashboardUrl && (
+                <a
+                  href={platform.dashboardUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-black text-[var(--brand-pink)] hover:underline"
+                >
+                  Open {platform.name} live dashboard
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+              )}
             </div>
           </div>
 

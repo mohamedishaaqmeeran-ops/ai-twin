@@ -18,6 +18,7 @@ import {
   Youtube,
   Facebook,
   Instagram,
+  Linkedin,
   Music2,
   Radio,
   Sparkles,
@@ -46,15 +47,11 @@ import {
 } from "../../features/auth/authSlice";
 
 import {
-  createYouTubeLive,
-  endYouTubeBroadcast,
   fetchConnections,
   fetchLiveStatus,
   startLive,
-  startYouTubeBroadcast,
   stopAllLive,
   stopPlatformLive,
-  waitForYouTubeStream,
 } from "../../features/social/socialSlice";
 
 /* =========================================================
@@ -89,7 +86,14 @@ const platforms = [
     name: "Facebook",
     icon: Facebook,
     pro: true,
-    liveSupported: false,
+    liveSupported: true,
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    icon: Linkedin,
+    pro: true,
+    liveSupported: true,
   },
   {
     id: "tiktok",
@@ -291,10 +295,7 @@ export default function GoLive() {
     connections = [],
     loading: socialLoading = false,
     liveLoading = false,
-    youtubeLoading = false,
     statusLoading = false,
-    currentYouTubeLive = null,
-    youtubeStreamStatus = null,
     liveStatus: platformStatuses = [],
     activePlatforms = [],
     error: socialError = null,
@@ -311,7 +312,7 @@ export default function GoLive() {
     plan === "business";
 
   const maxPlatforms =
-    isPro ? 6 : 1;
+    isPro ? livePlatformIds.length : 1;
 
   const scheduleState =
     location.state?.schedule;
@@ -395,7 +396,6 @@ export default function GoLive() {
   const busy =
     socialLoading ||
     liveLoading ||
-    youtubeLoading ||
     statusLoading ||
     loadingTwins ||
     loadingProducts;
@@ -1012,49 +1012,6 @@ export default function GoLive() {
           "Preparing live stream..."
         );
 
-        const youtubeSelected =
-          selectedPlatforms.includes(
-            "youtube"
-          );
-
-        if (
-          youtubeSelected
-        ) {
-          setLocalStatus(
-            "Creating YouTube broadcast..."
-          );
-
-          await dispatch(
-            createYouTubeLive({
-              title:
-                `${twinName} Live Selling`,
-
-              description:
-                `Live product presentation for ${productName}.`,
-
-              privacyStatus:
-                "public",
-
-              scheduledStartTime:
-                new Date(
-                  Date.now() +
-                  2 *
-                    60 *
-                    1000
-                ).toISOString(),
-
-              madeForKids:
-                false,
-
-              enableAutoStart:
-                true,
-
-              enableAutoStop:
-                true,
-            })
-          ).unwrap();
-        }
-
         setLocalStatus(
           "Starting FFmpeg stream..."
         );
@@ -1118,32 +1075,6 @@ export default function GoLive() {
             })
           ).unwrap();
 
-        if (
-          youtubeSelected
-        ) {
-          setLocalStatus(
-            "Waiting for YouTube to receive the stream..."
-          );
-
-          await dispatch(
-            waitForYouTubeStream({
-              attempts:
-                30,
-
-              interval:
-                4000,
-            })
-          ).unwrap();
-
-          setLocalStatus(
-            "Starting YouTube broadcast..."
-          );
-
-          await dispatch(
-            startYouTubeBroadcast()
-          ).unwrap();
-        }
-
         await dispatch(
           fetchLiveStatus()
         );
@@ -1185,14 +1116,6 @@ export default function GoLive() {
           )
         ).unwrap();
 
-        if (
-          platform ===
-          "youtube"
-        ) {
-          await dispatch(
-            endYouTubeBroadcast()
-          ).unwrap();
-        }
 
         await dispatch(
           fetchLiveStatus()
@@ -1218,25 +1141,10 @@ export default function GoLive() {
           "Stopping all active streams..."
         );
 
-        const youtubeWasActive =
-          activePlatforms.includes(
-            "youtube"
-          ) ||
-          currentYouTubeLive
-            ?.liveStatus ===
-            "live";
-
         await dispatch(
           stopAllLive()
         ).unwrap();
 
-        if (
-          youtubeWasActive
-        ) {
-          await dispatch(
-            endYouTubeBroadcast()
-          ).unwrap();
-        }
 
         await dispatch(
           fetchLiveStatus()
@@ -1345,7 +1253,7 @@ export default function GoLive() {
         </h1>
 
         <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-muted-foreground">
-          Select a trained AI Twin, product, connected platforms and a video source. Your backend will create one FFmpeg stream per selected platform.
+          Select a trained AI Twin, product, connected platforms and a video source. Your backend will create one FFmpeg process per selected platform using the saved RTMP URL and stream key.
         </p>
       </section>
 
@@ -1363,7 +1271,7 @@ export default function GoLive() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Stat
           title="Connected Live"
-          value={`${connectedLivePlatforms.length}/6`}
+          value={`${connectedLivePlatforms.length}/${livePlatformIds.length}`}
           icon={CheckCircle2}
         />
 
@@ -1524,7 +1432,7 @@ export default function GoLive() {
             </h2>
 
             <p className="mt-1 text-sm font-medium leading-6 text-muted-foreground">
-              The Free plan supports one live platform. Pro and Business plans can select all supported live destinations.
+              The Free plan supports one live platform. Pro and Business plans can select all nine backend-supported live destinations.
             </p>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -1972,51 +1880,6 @@ export default function GoLive() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-            <h2 className="text-xl font-black tracking-tight brand-text">
-              YouTube Status
-            </h2>
-
-            <div className="mt-4 space-y-3">
-              <PreviewItem
-                label="Broadcast"
-                value={
-                  currentYouTubeLive
-                    ?.liveStatus ||
-                  "idle"
-                }
-              />
-
-              <PreviewItem
-                label="Ingestion"
-                value={
-                  youtubeStreamStatus
-                    ?.ingestionStatus ||
-                  youtubeStreamStatus
-                    ?.streamStatus
-                    ?.streamStatus ||
-                  "inactive"
-                }
-              />
-            </div>
-
-            {currentYouTubeLive
-              ?.watchUrl && (
-              <a
-                href={
-                  currentYouTubeLive
-                    .watchUrl
-                }
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 flex items-center justify-center gap-2 rounded-[5px] bg-red-600 px-4 py-3 text-sm font-black text-white"
-              >
-                Open YouTube Live
-
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            )}
-          </section>
 
           <button
             type="button"
