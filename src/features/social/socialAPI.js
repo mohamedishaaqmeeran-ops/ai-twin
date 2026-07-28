@@ -5,15 +5,11 @@ import axios from "axios";
 ========================================================= */
 
 const API_BASE_URL =
-  import.meta.env
-    .VITE_API_URL ||
+  import.meta.env.VITE_API_URL ||
   "https://twinn-backend.onrender.com/api";
 
 const SOCIAL_API =
   `${API_BASE_URL}/social`;
-
-const LIVE_API =
-  `${API_BASE_URL}/live`;
 
 /* =========================================================
    AXIOS CLIENT
@@ -44,9 +40,15 @@ export const OAUTH_PLATFORMS = [
   "instagram",
   "facebook",
   "youtube",
+  "linkedin",
+  "tiktok",
 ];
 
 export const MANUAL_RTMP_PLATFORMS = [
+  "instagram",
+  "facebook",
+  "linkedin",
+  "tiktok",
   "rumble",
   "kick",
   "twitch",
@@ -55,7 +57,10 @@ export const MANUAL_RTMP_PLATFORMS = [
 
 export const LIVE_PLATFORMS = [
   "instagram",
+  "facebook",
   "youtube",
+  "linkedin",
+  "tiktok",
   "rumble",
   "kick",
   "twitch",
@@ -63,7 +68,7 @@ export const LIVE_PLATFORMS = [
 ];
 
 /* =========================================================
-   HELPERS
+   NORMALIZE PLATFORM
 ========================================================= */
 
 export const normalizePlatform = (
@@ -75,13 +80,68 @@ export const normalizePlatform = (
       .toLowerCase();
 
   if (
-    normalized === "x"
+    normalized === "x" ||
+    normalized === "twitter/x" ||
+    normalized === "x/twitter"
   ) {
     return "twitter";
   }
 
   return normalized;
 };
+
+/* =========================================================
+   NORMALIZE PLATFORM ARRAY
+========================================================= */
+
+export const normalizePlatforms = (
+  platforms = []
+) => {
+  const list =
+    Array.isArray(platforms)
+      ? platforms
+      : String(platforms || "")
+          .split(",");
+
+  return [
+    ...new Set(
+      list
+        .map(
+          normalizePlatform
+        )
+        .filter(Boolean)
+    ),
+  ];
+};
+
+/* =========================================================
+   VALIDATE LIVE PLATFORM
+========================================================= */
+
+const validateLivePlatform = (
+  platform
+) => {
+  const normalizedPlatform =
+    normalizePlatform(
+      platform
+    );
+
+  if (
+    !LIVE_PLATFORMS.includes(
+      normalizedPlatform
+    )
+  ) {
+    throw new Error(
+      "Unsupported live platform."
+    );
+  }
+
+  return normalizedPlatform;
+};
+
+/* =========================================================
+   ERROR MESSAGE
+========================================================= */
 
 const getErrorMessage = (
   error,
@@ -96,6 +156,24 @@ const getErrorMessage = (
     fallback
   );
 };
+
+/* =========================================================
+   EXTRACT RESPONSE DATA
+========================================================= */
+
+const extractData = (
+  response
+) => {
+  return (
+    response?.data?.data ??
+    response?.data ??
+    null
+  );
+};
+
+/* =========================================================
+   EXTRACT CONNECTIONS
+========================================================= */
 
 const extractConnections = (
   response
@@ -125,8 +203,23 @@ const extractConnections = (
     return payload.connections;
   }
 
+  if (
+    Array.isArray(
+      payload?.data
+        ?.connections
+    )
+  ) {
+    return payload
+      .data
+      .connections;
+  }
+
   return [];
 };
+
+/* =========================================================
+   OPEN URL
+========================================================= */
 
 const openUrl = (
   url
@@ -140,14 +233,6 @@ const openUrl = (
    CONNECT OAUTH PLATFORM
 ========================================================= */
 
-/*
- * OAuth is handled using a browser redirect.
- *
- * Do not use Axios for OAuth redirect because:
- * - the backend returns res.redirect(...)
- * - Google/Meta login must open in the browser
- * - cookies and redirects work correctly using window.location
- */
 export const connectAPI = (
   platform
 ) => {
@@ -229,8 +314,17 @@ export const saveInstagramRTMPAPI =
         await apiClient.patch(
           "/social/connections/instagram/rtmp",
           {
-            rtmpUrl,
-            streamKey,
+            rtmpUrl:
+              String(
+                rtmpUrl ||
+                ""
+              ).trim(),
+
+            streamKey:
+              String(
+                streamKey ||
+                ""
+              ).trim(),
           }
         );
 
@@ -252,7 +346,7 @@ export const saveInstagramRTMPAPI =
 export const saveRTMPConnectionAPI =
   async (
     platform,
-    data
+    data = {}
   ) => {
     const normalizedPlatform =
       normalizePlatform(
@@ -265,7 +359,28 @@ export const saveRTMPConnectionAPI =
       )
     ) {
       throw new Error(
-        "Manual RTMP is supported only for Rumble, Kick, Twitch and X/Twitter."
+        "Manual RTMP is not supported for this platform."
+      );
+    }
+
+    const rtmpUrl =
+      String(
+        data.rtmpUrl ||
+        ""
+      ).trim();
+
+    const streamKey =
+      String(
+        data.streamKey ||
+        ""
+      ).trim();
+
+    if (
+      !rtmpUrl ||
+      !streamKey
+    ) {
+      throw new Error(
+        "RTMP URL and stream key are required."
       );
     }
 
@@ -276,34 +391,26 @@ export const saveRTMPConnectionAPI =
             normalizedPlatform
           )}/rtmp`,
           {
-            rtmpUrl:
-              String(
-                data?.rtmpUrl ||
-                ""
-              ).trim(),
+            rtmpUrl,
 
-            streamKey:
-              String(
-                data?.streamKey ||
-                ""
-              ).trim(),
+            streamKey,
 
             channelUrl:
               String(
-                data?.channelUrl ||
+                data.channelUrl ||
                 ""
               ).trim(),
 
             username:
               String(
-                data?.username ||
+                data.username ||
                 ""
               ).trim(),
 
             channelName:
               String(
-                data?.channelName ||
-                data?.username ||
+                data.channelName ||
+                data.username ||
                 ""
               ).trim(),
           }
@@ -433,9 +540,9 @@ export const createYouTubeLiveAPI =
                 .scheduledStartTime ||
               new Date(
                 Date.now() +
-                  2 *
-                    60 *
-                    1000
+                2 *
+                  60 *
+                  1000
               ).toISOString(),
 
             madeForKids:
@@ -562,40 +669,104 @@ export const endYouTubeBroadcastAPI =
   };
 
 /* =========================================================
+   APPEND FORM DATA FIELD
+========================================================= */
+
+const appendFormField = (
+  formData,
+  name,
+  value
+) => {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) {
+    return;
+  }
+
+  formData.append(
+    name,
+    String(value)
+  );
+};
+
+/* =========================================================
    START UNIFIED LIVE STREAM
 ========================================================= */
 
 export const startLiveAPI =
   async ({
     platforms = [],
+
     video = null,
+
     inputUrl = "",
+
     sourceUrl = "",
+
     sourceType = "",
+
     loop = false,
+
+    includeAudio = true,
+
+    reconnect = true,
+
+    rollbackOnFailure = true,
+
     videoBitrate = 4500,
+
     audioBitrate = 128,
+
     width = 1280,
+
     height = 720,
+
     fps = 30,
+
+    keyframeInterval = 2,
+
     preset = "veryfast",
-  }) => {
+
+    sessionId = "",
+
+    twinId = "",
+
+    productId = "",
+
+    liveId = "",
+
+    metadata = {},
+  } = {}) => {
     const normalizedPlatforms =
-      [
-        ...new Set(
-          platforms
-            .map(
-              normalizePlatform
-            )
-            .filter(Boolean)
-        ),
-      ];
+      normalizePlatforms(
+        platforms
+      );
 
     if (
       !normalizedPlatforms.length
     ) {
       throw new Error(
         "Select at least one platform."
+      );
+    }
+
+    const unsupportedPlatforms =
+      normalizedPlatforms.filter(
+        (platform) =>
+          !LIVE_PLATFORMS.includes(
+            platform
+          )
+      );
+
+    if (
+      unsupportedPlatforms.length
+    ) {
+      throw new Error(
+        `Unsupported live platforms: ${unsupportedPlatforms.join(
+          ", "
+        )}`
       );
     }
 
@@ -616,46 +787,112 @@ export const startLiveAPI =
           )
         );
 
-        formData.append(
+        appendFormField(
+          formData,
           "loop",
-          String(
-            Boolean(loop)
+          Boolean(loop)
+        );
+
+        appendFormField(
+          formData,
+          "includeAudio",
+          Boolean(
+            includeAudio
           )
         );
 
-        formData.append(
+        appendFormField(
+          formData,
+          "reconnect",
+          Boolean(reconnect)
+        );
+
+        appendFormField(
+          formData,
+          "rollbackOnFailure",
+          Boolean(
+            rollbackOnFailure
+          )
+        );
+
+        appendFormField(
+          formData,
           "videoBitrate",
-          String(
-            videoBitrate
-          )
+          videoBitrate
         );
 
-        formData.append(
+        appendFormField(
+          formData,
           "audioBitrate",
-          String(
-            audioBitrate
-          )
+          audioBitrate
         );
 
-        formData.append(
+        appendFormField(
+          formData,
           "width",
-          String(width)
+          width
         );
 
-        formData.append(
+        appendFormField(
+          formData,
           "height",
-          String(height)
+          height
         );
 
-        formData.append(
+        appendFormField(
+          formData,
           "fps",
-          String(fps)
+          fps
         );
 
-        formData.append(
-          "preset",
-          String(preset)
+        appendFormField(
+          formData,
+          "keyframeInterval",
+          keyframeInterval
         );
+
+        appendFormField(
+          formData,
+          "preset",
+          preset
+        );
+
+        appendFormField(
+          formData,
+          "sessionId",
+          sessionId
+        );
+
+        appendFormField(
+          formData,
+          "twinId",
+          twinId
+        );
+
+        appendFormField(
+          formData,
+          "productId",
+          productId
+        );
+
+        appendFormField(
+          formData,
+          "liveId",
+          liveId
+        );
+
+        if (
+          metadata &&
+          typeof metadata ===
+            "object"
+        ) {
+          formData.append(
+            "metadata",
+            JSON.stringify(
+              metadata
+            )
+          );
+        }
 
         const response =
           await apiClient.post(
@@ -664,11 +901,6 @@ export const startLiveAPI =
             {
               timeout:
                 120000,
-
-              headers: {
-                "Content-Type":
-                  "multipart/form-data",
-              },
 
               onUploadProgress:
                 (
@@ -736,6 +968,19 @@ export const startLiveAPI =
             loop:
               Boolean(loop),
 
+            includeAudio:
+              Boolean(
+                includeAudio
+              ),
+
+            reconnect:
+              Boolean(reconnect),
+
+            rollbackOnFailure:
+              Boolean(
+                rollbackOnFailure
+              ),
+
             videoBitrate,
 
             audioBitrate,
@@ -746,7 +991,31 @@ export const startLiveAPI =
 
             fps,
 
+            keyframeInterval,
+
             preset,
+
+            sessionId:
+              sessionId ||
+              undefined,
+
+            twinId:
+              twinId ||
+              undefined,
+
+            productId:
+              productId ||
+              undefined,
+
+            liveId:
+              liveId ||
+              undefined,
+
+            metadata,
+          },
+          {
+            timeout:
+              120000,
           }
         );
 
@@ -762,34 +1031,162 @@ export const startLiveAPI =
   };
 
 /* =========================================================
-   STOP ONE PLATFORM
+   ADD PLATFORM TO SESSION
 ========================================================= */
 
-export const stopPlatformLiveAPI =
-  async (
-    platform
-  ) => {
+export const addPlatformToSessionAPI =
+  async ({
+    sessionId,
+
+    platform,
+
+    inputUrl = "",
+
+    sourceUrl = "",
+
+    sourceType = "url",
+
+    loop = false,
+
+    includeAudio = true,
+
+    reconnect = true,
+
+    videoBitrate = 4500,
+
+    audioBitrate = 128,
+
+    width = 1280,
+
+    height = 720,
+
+    fps = 30,
+
+    keyframeInterval = 2,
+
+    preset = "veryfast",
+
+    metadata = {},
+  }) => {
     const normalizedPlatform =
-      normalizePlatform(
+      validateLivePlatform(
         platform
       );
 
-    if (
-      !LIVE_PLATFORMS.includes(
-        normalizedPlatform
-      )
-    ) {
+    const normalizedSessionId =
+      String(
+        sessionId ||
+        ""
+      ).trim();
+
+    const input =
+      String(
+        inputUrl ||
+        sourceUrl ||
+        ""
+      ).trim();
+
+    if (!normalizedSessionId) {
       throw new Error(
-        "Unsupported live platform."
+        "Session ID is required."
+      );
+    }
+
+    if (!input) {
+      throw new Error(
+        "Video input URL is required."
       );
     }
 
     try {
       const response =
         await apiClient.post(
-          `/live/stop/${encodeURIComponent(
+          `/live/sessions/${encodeURIComponent(
+            normalizedSessionId
+          )}/platforms/${encodeURIComponent(
             normalizedPlatform
           )}`,
+          {
+            inputUrl:
+              input,
+
+            sourceType,
+
+            loop:
+              Boolean(loop),
+
+            includeAudio:
+              Boolean(
+                includeAudio
+              ),
+
+            reconnect:
+              Boolean(reconnect),
+
+            videoBitrate,
+
+            audioBitrate,
+
+            width,
+
+            height,
+
+            fps,
+
+            keyframeInterval,
+
+            preset,
+
+            metadata,
+          }
+        );
+
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          `Unable to add ${normalizedPlatform} to the live session.`
+        )
+      );
+    }
+  };
+
+/* =========================================================
+   STOP ONE PLATFORM
+========================================================= */
+
+export const stopPlatformLiveAPI =
+  async (
+    platform,
+    sessionId = ""
+  ) => {
+    const normalizedPlatform =
+      validateLivePlatform(
+        platform
+      );
+
+    const normalizedSessionId =
+      String(
+        sessionId ||
+        ""
+      ).trim();
+
+    const endpoint =
+      normalizedSessionId
+        ? `/live/sessions/${encodeURIComponent(
+            normalizedSessionId
+          )}/stop/${encodeURIComponent(
+            normalizedPlatform
+          )}`
+        : `/live/stop/${encodeURIComponent(
+            normalizedPlatform
+          )}`;
+
+    try {
+      const response =
+        await apiClient.post(
+          endpoint,
           {}
         );
 
@@ -805,16 +1202,72 @@ export const stopPlatformLiveAPI =
   };
 
 /* =========================================================
+   STOP SESSION
+========================================================= */
+
+export const stopLiveSessionAPI =
+  async (
+    sessionId,
+    {
+      temporaryFilePath = "",
+    } = {}
+  ) => {
+    const normalizedSessionId =
+      String(
+        sessionId ||
+        ""
+      ).trim();
+
+    if (!normalizedSessionId) {
+      throw new Error(
+        "Session ID is required."
+      );
+    }
+
+    try {
+      const response =
+        await apiClient.post(
+          `/live/sessions/${encodeURIComponent(
+            normalizedSessionId
+          )}/stop`,
+          {
+            temporaryFilePath:
+              temporaryFilePath ||
+              undefined,
+          }
+        );
+
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          "Unable to stop the live session."
+        )
+      );
+    }
+  };
+
+/* =========================================================
    STOP ALL LIVE STREAMS
 ========================================================= */
 
 export const stopAllLiveAPI =
-  async () => {
+  async (
+    temporaryFilePaths = []
+  ) => {
     try {
       const response =
         await apiClient.post(
           "/live/stop",
-          {}
+          {
+            temporaryFilePaths:
+              Array.isArray(
+                temporaryFilePaths
+              )
+                ? temporaryFilePaths
+                : [],
+          }
         );
 
       return response.data;
@@ -823,6 +1276,118 @@ export const stopAllLiveAPI =
         getErrorMessage(
           error,
           "Unable to stop active live streams."
+        )
+      );
+    }
+  };
+
+/* =========================================================
+   RESTART PLATFORM STREAM
+========================================================= */
+
+export const restartPlatformLiveAPI =
+  async ({
+    platform,
+
+    inputUrl = "",
+
+    sourceUrl = "",
+
+    sourceType = "url",
+
+    sessionId = "",
+
+    loop = false,
+
+    includeAudio = true,
+
+    reconnect = true,
+
+    videoBitrate = 4500,
+
+    audioBitrate = 128,
+
+    width = 1280,
+
+    height = 720,
+
+    fps = 30,
+
+    keyframeInterval = 2,
+
+    preset = "veryfast",
+
+    metadata = {},
+  }) => {
+    const normalizedPlatform =
+      validateLivePlatform(
+        platform
+      );
+
+    const input =
+      String(
+        inputUrl ||
+        sourceUrl ||
+        ""
+      ).trim();
+
+    if (!input) {
+      throw new Error(
+        "Video input URL is required."
+      );
+    }
+
+    try {
+      const response =
+        await apiClient.post(
+          `/live/restart/${encodeURIComponent(
+            normalizedPlatform
+          )}`,
+          {
+            inputUrl:
+              input,
+
+            sourceType,
+
+            sessionId:
+              sessionId ||
+              undefined,
+
+            loop:
+              Boolean(loop),
+
+            includeAudio:
+              Boolean(
+                includeAudio
+              ),
+
+            reconnect:
+              Boolean(reconnect),
+
+            videoBitrate,
+
+            audioBitrate,
+
+            width,
+
+            height,
+
+            fps,
+
+            keyframeInterval,
+
+            preset,
+
+            metadata,
+          }
+        );
+
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          `Unable to restart ${normalizedPlatform} stream.`
         )
       );
     }
@@ -840,10 +1405,14 @@ export const getLiveStatusAPI =
           "/live/status"
         );
 
-      return (
-        response.data?.data ||
-        []
-      );
+      const data =
+        extractData(
+          response
+        );
+
+      return Array.isArray(data)
+        ? data
+        : [];
     } catch (error) {
       throw new Error(
         getErrorMessage(
@@ -852,6 +1421,250 @@ export const getLiveStatusAPI =
         )
       );
     }
+  };
+
+/* =========================================================
+   GET SESSION STATUS
+========================================================= */
+
+export const getLiveSessionStatusAPI =
+  async (
+    sessionId
+  ) => {
+    const normalizedSessionId =
+      String(
+        sessionId ||
+        ""
+      ).trim();
+
+    if (!normalizedSessionId) {
+      throw new Error(
+        "Session ID is required."
+      );
+    }
+
+    try {
+      const response =
+        await apiClient.get(
+          `/live/sessions/${encodeURIComponent(
+            normalizedSessionId
+          )}/status`
+        );
+
+      return extractData(
+        response
+      );
+    } catch (error) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          "Unable to load live session status."
+        )
+      );
+    }
+  };
+
+/* =========================================================
+   GET USER LIVE SESSIONS
+========================================================= */
+
+export const getLiveSessionsAPI =
+  async () => {
+    try {
+      const response =
+        await apiClient.get(
+          "/live/sessions"
+        );
+
+      const data =
+        extractData(
+          response
+        );
+
+      return Array.isArray(data)
+        ? data
+        : [];
+    } catch (error) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          "Unable to load live sessions."
+        )
+      );
+    }
+  };
+
+/* =========================================================
+   GET PLATFORM HEALTH
+========================================================= */
+
+export const getPlatformHealthAPI =
+  async (
+    platform
+  ) => {
+    const normalizedPlatform =
+      validateLivePlatform(
+        platform
+      );
+
+    try {
+      const response =
+        await apiClient.get(
+          `/live/health/${encodeURIComponent(
+            normalizedPlatform
+          )}`
+        );
+
+      return extractData(
+        response
+      );
+    } catch (error) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          `Unable to load ${normalizedPlatform} stream health.`
+        )
+      );
+    }
+  };
+
+/* =========================================================
+   GET USER STREAM HEALTH
+========================================================= */
+
+export const getUserStreamHealthAPI =
+  async () => {
+    try {
+      const response =
+        await apiClient.get(
+          "/live/health"
+        );
+
+      return extractData(
+        response
+      );
+    } catch (error) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          "Unable to load stream health."
+        )
+      );
+    }
+  };
+
+/* =========================================================
+   RESET STALE LIVE STATUSES
+========================================================= */
+
+export const resetStaleLiveStatusesAPI =
+  async () => {
+    try {
+      const response =
+        await apiClient.post(
+          "/live/reset-stale-statuses",
+          {}
+        );
+
+      return response.data;
+    } catch (error) {
+      throw new Error(
+        getErrorMessage(
+          error,
+          "Unable to reset stale live statuses."
+        )
+      );
+    }
+  };
+
+/* =========================================================
+   WAIT FOR SESSION STREAMING
+========================================================= */
+
+export const waitForLiveSessionAPI =
+  async ({
+    sessionId,
+
+    attempts = 30,
+
+    interval = 2000,
+
+    requireAll = false,
+  }) => {
+    let latestStatus =
+      null;
+
+    for (
+      let attempt = 1;
+      attempt <= attempts;
+      attempt += 1
+    ) {
+      latestStatus =
+        await getLiveSessionStatusAPI(
+          sessionId
+        );
+
+      const processes =
+        latestStatus
+          ?.processes ||
+        latestStatus
+          ?.platforms ||
+        latestStatus
+          ?.streams ||
+        [];
+
+      const activeProcesses =
+        Array.isArray(processes)
+          ? processes.filter(
+              (item) =>
+                item.active ===
+                  true ||
+                item.status ===
+                  "streaming"
+            )
+          : [];
+
+      const expectedTotal =
+        Number(
+          latestStatus
+            ?.total ||
+          processes.length ||
+          0
+        );
+
+      const ready =
+        requireAll
+          ? expectedTotal > 0 &&
+            activeProcesses
+              .length >=
+              expectedTotal
+          : activeProcesses
+              .length > 0 ||
+            latestStatus
+              ?.streaming ===
+              true;
+
+      if (ready) {
+        return latestStatus;
+      }
+
+      if (
+        attempt < attempts
+      ) {
+        await new Promise(
+          (resolve) => {
+            setTimeout(
+              resolve,
+              interval
+            );
+          }
+        );
+      }
+    }
+
+    throw new Error(
+      "The live session did not become active in time."
+    );
   };
 
 /* =========================================================
@@ -898,13 +1711,10 @@ export const waitForYouTubeStreamAPI =
       }
 
       if (
-        attempt <
-        attempts
+        attempt < attempts
       ) {
         await new Promise(
-          (
-            resolve
-          ) => {
+          (resolve) => {
             setTimeout(
               resolve,
               interval
@@ -929,21 +1739,62 @@ export const startYouTubeLiveAPI =
 export const stopYouTubeLiveAPI =
   endYouTubeBroadcastAPI;
 
+/* =========================================================
+   DEFAULT EXPORT
+========================================================= */
+
 export default {
   connectAPI,
+
   getConnectionsAPI,
+
   saveInstagramRTMPAPI,
+
   saveRTMPConnectionAPI,
+
   openManualPlatformAPI,
+
   disconnectSocialAPI,
+
   createYouTubeLiveAPI,
+
   getCurrentYouTubeLiveAPI,
+
   getYouTubeStreamStatusAPI,
+
   startYouTubeBroadcastAPI,
+
   endYouTubeBroadcastAPI,
+
+  startYouTubeLiveAPI,
+
+  stopYouTubeLiveAPI,
+
   startLiveAPI,
+
+  addPlatformToSessionAPI,
+
   stopPlatformLiveAPI,
+
+  stopLiveSessionAPI,
+
   stopAllLiveAPI,
+
+  restartPlatformLiveAPI,
+
   getLiveStatusAPI,
+
+  getLiveSessionStatusAPI,
+
+  getLiveSessionsAPI,
+
+  getPlatformHealthAPI,
+
+  getUserStreamHealthAPI,
+
+  resetStaleLiveStatusesAPI,
+
+  waitForLiveSessionAPI,
+
   waitForYouTubeStreamAPI,
 };

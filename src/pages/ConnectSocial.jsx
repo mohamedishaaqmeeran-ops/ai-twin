@@ -21,6 +21,7 @@ import {
   UserRound,
   Twitch,
   Twitter,
+  Linkedin,
   RadioTower,
   Zap,
   Eye,
@@ -96,6 +97,18 @@ const socialData = [
     icon: Music2,
     defaultUsername:
       "@tiktok",
+    pro: true,
+    connectionType:
+      "oauth",
+  },
+  {
+    id: "linkedin",
+    name: "LinkedIn",
+    color:
+      "bg-blue-50 dark:bg-white/10",
+    icon: Linkedin,
+    defaultUsername:
+      "LinkedIn Profile",
     pro: true,
     connectionType:
       "oauth",
@@ -223,6 +236,16 @@ const getAccountDisplayName = (
     );
   }
 
+  if (platform === "linkedin") {
+    return (
+      account.linkedinName ||
+      account.name ||
+      account.username ||
+      account.metadata?.name ||
+      "LinkedIn Profile"
+    );
+  }
+
   if (
     [
       "rumble",
@@ -265,6 +288,7 @@ const getAccountAvatar = (
     account?.profilePictureUrl ||
     account?.profilePicture ||
     account?.instagramProfilePictureUrl ||
+    account?.linkedinProfilePictureUrl ||
     account?.metadata?.avatarUrl ||
     account?.metadata?.profile_picture_url ||
     ""
@@ -334,7 +358,7 @@ const [
     plan === "business";
 
   const maxPlatforms =
-    isPro ? 8 : 1;
+    isPro ? 9 : 1;
 
   /* =========================================================
      NORMALIZED CONNECTIONS
@@ -662,7 +686,7 @@ const openRTMPModal =
 
     /*
      * Existing Instagram, Facebook,
-     * YouTube and TikTok OAuth flow.
+     * YouTube, TikTok and LinkedIn OAuth flow.
      */
     setProcessingPlatform(
       normalizedPlatform
@@ -880,7 +904,7 @@ const handleSaveRTMP =
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
   {isPro
-    ? "Connect Instagram, Facebook, YouTube, TikTok, Rumble, Twitter/X, Twitch and Kick."
+    ? "Connect Instagram, Facebook, YouTube, TikTok, LinkedIn, Rumble, Twitter/X, Twitch and Kick."
     : "The Free plan allows one platform. Upgrade to Pro to unlock all supported platforms."}
 </p>
       </section>
@@ -905,7 +929,7 @@ const handleSaveRTMP =
         <Stat
           title="Available"
           value={
-            isPro ? "8" : "1"
+            isPro ? "9" : "1"
           }
           icon={
             ShieldCheck
@@ -1427,6 +1451,47 @@ function AccountModal({
               )}
             </>
           )}
+          {platform ===
+            "linkedin" && (
+            <>
+              <AccountRow
+                label="LinkedIn Name"
+                value={
+                  account.linkedinName ||
+                  account.name ||
+                  accountName ||
+                  "Not available"
+                }
+              />
+
+              <AccountRow
+                label="LinkedIn ID"
+                value={
+                  account.linkedinId ||
+                  account.platformUserId ||
+                  "Not available"
+                }
+              />
+
+              {(account.linkedinProfileUrl ||
+                account.profileUrl) && (
+                <a
+                  href={
+                    account.linkedinProfileUrl ||
+                    account.profileUrl
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-[5px] border border-border bg-background px-5 py-3 text-sm font-bold transition hover:border-[var(--brand-pink)]"
+                >
+                  Open LinkedIn Profile
+
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              )}
+            </>
+          )}
+
 {[
   "rumble",
   "twitter",
