@@ -1073,14 +1073,28 @@ export default function GoLive() {
         );
 
         const startedCount =
-          Number(
-            startResult?.started
-          ) || 0;
+  Number(
+    startResult?.started
+  ) || 0;
 
-        const failedCount =
-          Number(
-            startResult?.failed
-          ) || 0;
+const failedCount =
+  Number(
+    startResult?.failed
+  ) || 0;
+
+const successfulPlatforms =
+  Array.isArray(
+    startResult?.platforms
+  )
+    ? startResult.platforms
+    : [];
+
+const failedPlatforms =
+  Array.isArray(
+    startResult?.failedPlatforms
+  )
+    ? startResult.failedPlatforms
+    : [];
 
         if (
           startedCount > 0 &&
