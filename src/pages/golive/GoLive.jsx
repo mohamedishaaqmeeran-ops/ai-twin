@@ -1019,68 +1019,98 @@ export default function GoLive() {
           "Starting FFmpeg stream..."
         );
 
-        const startResult =
-          await dispatch(
-            startLive({
-              platforms:
-                selectedPlatforms,
+     const startResult =
+  await dispatch(
+    startLive({
+      platforms:
+        selectedPlatforms,
 
-              video:
-                sourceMode ===
-                "file"
-                  ? videoFile
-                  : null,
+      video:
+        sourceMode ===
+        "file"
+          ? videoFile
+          : null,
 
-              inputUrl:
-                sourceMode ===
-                "url"
-                  ? inputUrl.trim()
-                  : "",
+      inputUrl:
+        sourceMode ===
+        "url"
+          ? inputUrl.trim()
+          : "",
 
-              sourceType:
-                sourceMode ===
-                "url"
-                  ? "url"
-                  : "file",
+      sourceType:
+        sourceMode ===
+        "url"
+          ? "url"
+          : "file",
 
-              loop:
-                loopVideo,
-      rollbackOnFailure: false,
-              
+      loop:
+        loopVideo,
 
-              fps:
-                30,
+      rollbackOnFailure:
+        false,
 
-              preset:
-                "veryfast",
+      videoBitrate:
+        600,
 
-              twinId:
-                selectedTwinId,
+      audioBitrate:
+        48,
 
-              productId:
-                selectedProductId,
+      width:
+        426,
 
-              twinName,
+      height:
+        240,
 
-              productName,
+      fps:
+        15,
 
-              settings,
-            })
-          ).unwrap();
+      keyframeInterval:
+        2,
+
+      preset:
+        "ultrafast",
+
+      includeAudio:
+        true,
+
+      reconnect:
+        true,
+
+      twinId:
+        selectedTwinId,
+
+      productId:
+        selectedProductId,
+
+      twinName,
+
+      productName,
+
+      settings,
+    })
+  ).unwrap();
 
         await dispatch(
           fetchLiveStatus()
         );
 
         const startedCount =
-  Number(
+  Array.isArray(
     startResult?.started
-  ) || 0;
+  )
+    ? startResult.started.length
+    : Number(
+        startResult?.started || 0
+      );
 
 const failedCount =
-  Number(
+  Array.isArray(
     startResult?.failed
-  ) || 0;
+  )
+    ? startResult.failed.length
+    : Number(
+        startResult?.failed || 0
+      );
 
 const successfulPlatforms =
   Array.isArray(
