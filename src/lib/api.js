@@ -1,62 +1,102 @@
-const RAW_API_URL =
-  import.meta.env.VITE_API_URL ||
+// src/lib/api.js
+
+const API_URL =
+  import.meta.env
+    .VITE_API_URL ||
   "https://twinn-backend.onrender.com";
 
-export const API_URL =
-  RAW_API_URL.replace(/\/$/, "");
+export const apiRequest =
+  async (
+    endpoint,
+    options = {}
+  ) => {
+    const {
+      method = "GET",
+      body,
+      headers = {},
+      ...restOptions
+    } = options;
 
-export const apiRequest = async (
-  path,
-  options = {}
-) => {
-  const isFormData =
-    options.body instanceof FormData;
+    const isFormData =
+      body instanceof
+      FormData;
 
-  const response = await fetch(
-    `${API_URL}${path}`,
-    {
-      credentials: "include",
+    const requestHeaders = {
+      ...headers,
+    };
 
-      ...options,
-
-      headers: {
-        ...(isFormData
-          ? {}
-          : {
-              "Content-Type":
-                "application/json",
-            }),
-
-        ...(options.headers || {}),
-      },
+    if (
+      body &&
+      !isFormData
+    ) {
+      requestHeaders[
+        "Content-Type"
+      ] =
+        requestHeaders[
+          "Content-Type"
+        ] ||
+        "application/json";
     }
-  );
 
-  const data = await response
-    .json()
-    .catch(() => ({}));
+    const response =
+      await fetch(
+        `${API_URL}${endpoint}`,
+        {
+          method,
 
-  if (!response.ok) {
-    const error = new Error(
-      data.message ||
-        `Request failed with status ${response.status}`
-    );
+          credentials:
+            "include",
 
-    error.status =
-      response.status;
+          headers:
+            requestHeaders,
 
-    error.data = data;
+          body:
+            body
+              ? isFormData
+                ? body
+                : JSON.stringify(
+                    body
+                  )
+              : undefined,
 
-    throw error;
-  }
+          ...restOptions,
+        }
+      );
 
-  return data;
-};
+    const contentType =
+      response.headers.get(
+        "content-type"
+      ) || "";
 
-export function toWebSocketUrl(url) {
-  if (!url) return "";
+    const data =
+      contentType.includes(
+        "application/json"
+      )
+        ? await response.json()
+        : await response.text();
 
-  return url
-    .replace(/^https:/i, "wss:")
-    .replace(/^http:/i, "ws:");
-}
+    if (!response.ok) {
+      const message =
+        typeof data ===
+        "object"
+          ? data?.message ||
+            data?.error
+          : data;
+
+      const error =
+        new Error(
+          message ||
+            "Request failed."
+        );
+
+      error.status =
+        response.status;
+
+      error.data =
+        data;
+
+      throw error;
+    }
+
+    return data;
+  };
