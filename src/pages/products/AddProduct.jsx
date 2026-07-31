@@ -1278,27 +1278,52 @@ const currentError =
               icon={Boxes}
               label="Stock Quantity"
             >
-              <input
-                type="number"
-                min="0"
-                step="1"
-                value={
-                  product.stock
-                }
-                onChange={(
-                  event
-                ) =>
-                  updateField(
-                    "stock",
-                    event.target
-                      .value
-                  )
-                }
-                className={
-                  inputClass
-                }
-                placeholder="100"
-              />
+             <input
+  type="number"
+  min="0"
+  step="1"
+  inputMode="numeric"
+  value={product.stock}
+  onChange={(event) => {
+    const value =
+      event.target.value;
+
+    if (
+      value === "" ||
+      (
+        Number.isInteger(
+          Number(value)
+        ) &&
+        Number(value) >= 0
+      )
+    ) {
+      updateField(
+        "stock",
+        value
+      );
+    }
+  }}
+  onWheel={(event) => {
+    event.currentTarget.blur();
+  }}
+  onKeyDown={(event) => {
+    if (
+      [
+        "e",
+        "E",
+        "+",
+        "-",
+        ".",
+      ].includes(
+        event.key
+      )
+    ) {
+      event.preventDefault();
+    }
+  }}
+  className={inputClass}
+  placeholder="100"
+/>
             </Field>
           </div>
 
