@@ -63,7 +63,7 @@ const SignUp = lazy(() =>
 );
 
 const UserHome = lazy(() =>
-  import("./pages/user/UserHome")
+  import("./pages/user/userHome")
 );
 
 const AppLayout = lazy(() =>
