@@ -539,9 +539,9 @@ function getRedirectForRole(user) {
 
   const redirects = {
     admin: "/admin",
-    manager: "/app",
-    brandcreator: "/app",
-    contentcreator: "/app",
+    manager: "/app/dashboard",
+    brandcreator: "/app/dashboard",
+    contentcreator: "/app/dashboard",
     user: "/user/home",
   };
 
@@ -558,7 +558,7 @@ function RequireAdmin({
   const {
     user,
     loading,
-    initialized,
+    authChecked,
   } = useSelector(
     (state) =>
       state.auth || {}
@@ -566,7 +566,7 @@ function RequireAdmin({
 
   if (
     loading ||
-    !initialized
+    !authChecked
   ) {
     return <PageLoader />;
   }
@@ -605,7 +605,7 @@ function RequireCreatorDashboard({
   const {
     user,
     loading,
-    initialized,
+    authChecked,
   } = useSelector(
     (state) =>
       state.auth || {}
@@ -613,7 +613,7 @@ function RequireCreatorDashboard({
 
   if (
     loading ||
-    !initialized
+    !authChecked
   ) {
     return <PageLoader />;
   }
@@ -664,7 +664,7 @@ function RequireNormalUser({
   const {
     user,
     loading,
-    initialized,
+    authChecked,
   } = useSelector(
     (state) =>
       state.auth || {}
@@ -672,7 +672,7 @@ function RequireNormalUser({
 
   if (
     loading ||
-    !initialized
+    !authChecked
   ) {
     return <PageLoader />;
   }
@@ -715,7 +715,7 @@ function RequireBrandCreator({
   const {
     user,
     loading,
-    initialized,
+    authChecked,
   } = useSelector(
     (state) =>
       state.auth || {}
@@ -724,7 +724,7 @@ function RequireBrandCreator({
   useEffect(() => {
     if (
       user &&
-      initialized &&
+      authChecked &&
       !loading &&
       normalizeRole(
         user.role
@@ -739,14 +739,14 @@ function RequireBrandCreator({
       );
     }
   }, [
-    initialized,
+    authChecked,
     loading,
     user,
   ]);
 
   if (
     loading ||
-    !initialized
+    !authChecked
   ) {
     return <PageLoader />;
   }
@@ -802,7 +802,7 @@ function RequirePermission({
   const {
     user,
     loading,
-    initialized,
+    authChecked,
   } = useSelector(
     (state) =>
       state.auth || {}
@@ -829,14 +829,14 @@ function RequirePermission({
     }
   }, [
     allowed,
-    initialized,
+    authChecked,
     loading,
     message,
     permission,
     user,
   ]);
 
-  if (loading || !initialized) {
+  if (loading || !authChecked) {
     return <PageLoader />;
   }
 
@@ -873,7 +873,7 @@ function RequirePlan({
   const {
     user,
     loading,
-    initialized,
+    authChecked,
   } = useSelector(
     (state) =>
       state.auth || {}
@@ -904,14 +904,14 @@ function RequirePlan({
     }
   }, [
     allowed,
-    initialized,
+    authChecked,
     loading,
     message,
     minimumPlan,
     user,
   ]);
 
-  if (loading || !initialized) {
+  if (loading || !authChecked) {
     return <PageLoader />;
   }
 
@@ -943,7 +943,7 @@ function RequireTwin({
   const {
     user,
     loading,
-    initialized,
+    authChecked,
   } = useSelector(
     (state) =>
       state.auth || {}
@@ -995,14 +995,14 @@ function RequireTwin({
     }
   }, [
     hasTwin,
-    initialized,
+    authChecked,
     isTrained,
     loading,
     requireTrained,
     user,
   ]);
 
-  if (loading || !initialized) {
+  if (loading || !authChecked) {
     return <PageLoader />;
   }
 
@@ -1395,6 +1395,16 @@ export default function App() {
           >
             <Route
               index
+              element={
+                <Navigate
+                  to="dashboard"
+                  replace
+                />
+              }
+            />
+
+            <Route
+              path="dashboard"
               element={
                 <Dashboard />
               }
