@@ -27,6 +27,59 @@ import {
 
 const API = "https://twinn-backend.onrender.com/api";
 
+const normalizeRole = (role = "user") =>
+  String(role || "user")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
+
+const formatRole = (role = "user") => {
+  const labels = {
+    admin: "Admin",
+    manager: "Manager",
+    brandcreator: "Brand Creator",
+    contentcreator: "Content Creator",
+    viewer: "Viewer",
+    user: "User",
+  };
+
+  const normalized = normalizeRole(role);
+  return labels[normalized] || role || "User";
+};
+
+const formatPlan = (plan = "free") => {
+  const normalized = String(plan || "free").trim().toLowerCase();
+  const labels = {
+    free: "Free",
+    starter: "Starter",
+    pro: "Pro",
+    business: "Business",
+    agency: "Agency",
+  };
+
+  return labels[normalized] || plan || "Free";
+};
+
+const formatDateTime = (value, fallback = "—") => {
+  if (!value) return fallback;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? String(value)
+    : date.toLocaleString("en-IN");
+};
+
+const getPermissions = (user) => {
+  if (Array.isArray(user?.permissions)) return user.permissions;
+  if (Array.isArray(user?.effectivePermissions)) return user.effectivePermissions;
+  if (typeof user?.permissions === "string") {
+    return user.permissions
+      .split(/[|,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+};
+
 export default function AdminUsers() {
  const [users, setUsers] = useState([]);
 const [waitlistUsers, setWaitlistUsers] = useState([]);
@@ -34,6 +87,7 @@ const [currentPage, setCurrentPage] = useState(1);
 const [loading, setLoading] = useState(true);
 const [query, setQuery] = useState("");
 const [planFilter, setPlanFilter] = useState("All Plans");
+const [roleFilter, setRoleFilter] = useState("All Roles");
 const [statusFilter, setStatusFilter] = useState("All Status");
 const [selectedUser, setSelectedUser] = useState(null);
 const [activeTab, setActiveTab] = useState("users");
@@ -54,7 +108,7 @@ useEffect(() => {
 // Reset pagination when filters or tabs change
 useEffect(() => {
   setCurrentPage(1);
-}, [activeTab, query, planFilter, statusFilter]);
+}, [activeTab, query, planFilter, roleFilter, statusFilter]);
 
 // ---------------------------------
 // LOAD REGISTERED USERS
@@ -312,6 +366,7 @@ const registeredUsersResult = useMemo(() => {
 
   return users.filter((user) => {
     const searchableText = `
+      ${user._id || user.id || ""}
       ${user.name || ""}
       ${user.fullName || ""}
       ${user.username || ""}
@@ -321,35 +376,32 @@ const registeredUsersResult = useMemo(() => {
       ${user.phoneNumber || ""}
       ${user.brand || ""}
       ${user.brandName || ""}
+      ${user.role || ""}
+      ${user.plan || ""}
+      ${user.status || ""}
+      ${user.subscriptionStatus || ""}
     `.toLowerCase();
 
-    const userPlan = String(
-      user.plan || "free"
-    ).toLowerCase();
-
+    const userPlan = String(user.plan || "free").toLowerCase();
+    const userRole = normalizeRole(user.role || "user");
     const userStatus = String(
-      user.status ||
-        (user.isBlocked ? "Blocked" : "Active")
+      user.status || (user.isBlocked ? "Blocked" : "Active")
     ).toLowerCase();
 
-    const matchesSearch =
-      searchableText.includes(searchText);
-
+    const matchesSearch = searchableText.includes(searchText);
     const matchesPlan =
       planFilter === "All Plans" ||
-      userPlan === planFilter.toLowerCase();
-
+      userPlan === String(planFilter).toLowerCase();
+    const matchesRole =
+      roleFilter === "All Roles" ||
+      userRole === normalizeRole(roleFilter);
     const matchesStatus =
       statusFilter === "All Status" ||
-      userStatus === statusFilter.toLowerCase();
+      userStatus === String(statusFilter).toLowerCase();
 
-    return (
-      matchesSearch &&
-      matchesPlan &&
-      matchesStatus
-    );
+    return matchesSearch && matchesPlan && matchesRole && matchesStatus;
   });
-}, [users, query, planFilter, statusFilter]);
+}, [users, query, planFilter, roleFilter, statusFilter]);
 
 // ---------------------------------
 // FILTER WAITLIST USERS
@@ -429,108 +481,85 @@ const escapeCSVValue = (value) => {
 };
 
 const exportUsers = () => {
-  const isRegisteredUsers =
-    activeTab === "users";
+  const isRegisteredUsers = activeTab === "users";
 
   const rows = isRegisteredUsers
     ? registeredUsersResult.map((user) => {
         const hasTwin =
           user.twinCreated ||
           user.hasTwin ||
-          (Array.isArray(user.twins) &&
-            user.twins.length > 0);
+          (Array.isArray(user.twins) && user.twins.length > 0);
+
+        const permissions = getPermissions(user);
 
         return {
+          "User ID": user._id || user.id || "",
           Name:
             user.name ||
             user.fullName ||
             user.username ||
             user.email?.split("@")[0] ||
             "Unnamed User",
-
+          Username: user.username || "",
           Email: user.email || "",
-
-          Phone:
-            user.phone ||
-            user.mobile ||
-            user.phoneNumber ||
-            "",
-
-          Brand:
-            user.brand ||
-            user.brandName ||
-            "",
-
-          Plan: user.plan || "Free",
-
+          Phone: user.phone || user.mobile || user.phoneNumber || "",
+          Brand: user.brand || user.brandName || "",
+          Role: formatRole(user.role),
+          Plan: formatPlan(user.plan),
           Status:
-            user.status ||
-            (user.isBlocked
-              ? "Blocked"
-              : "Active"),
-
-          "AI Twin": hasTwin
-            ? "Created"
-            : "Pending",
-
+            user.status || (user.isBlocked ? "Blocked" : "Active"),
+          "Subscription Status": user.subscriptionStatus || "Inactive",
+          "Email Verified":
+            user.isEmailVerified === true || user.isVerified === true
+              ? "Yes"
+              : "No",
+          Permissions: permissions.join("|"),
+          "AI Twin Count":
+            user.twinsCount ??
+            user.twinCount ??
+            (Array.isArray(user.twins) ? user.twins.length : 0),
+          "AI Twin Status": hasTwin ? "Created" : "Pending",
           Products:
             user.productsCount ??
             user.productCount ??
-            (Array.isArray(user.products)
-              ? user.products.length
-              : 0),
-
+            (Array.isArray(user.products) ? user.products.length : 0),
           Lives:
             user.livesCount ??
             user.liveCount ??
             user.totalLives ??
-            (Array.isArray(user.lives)
-              ? user.lives.length
-              : 0),
-
+            (Array.isArray(user.lives) ? user.lives.length : 0),
           Revenue:
             user.totalRevenue ??
             user.revenue ??
             user.salesRevenue ??
             0,
-
-          Joined: user.createdAt
-            ? new Date(
-                user.createdAt
-              ).toLocaleDateString("en-IN")
+          "Trial Expires At": user.trialExpiresAt
+            ? new Date(user.trialExpiresAt).toISOString()
             : "",
-
+          "Plan Expires At": user.planExpiresAt
+            ? new Date(user.planExpiresAt).toISOString()
+            : "",
+          Joined: user.createdAt
+            ? new Date(user.createdAt).toISOString()
+            : "",
           "Last Login": user.lastLogin
-            ? new Date(
-                user.lastLogin
-              ).toLocaleString("en-IN")
+            ? new Date(user.lastLogin).toISOString()
             : "Never",
         };
       })
     : waitlistUsersResult.map((user) => ({
+        "User ID": user._id || user.id || "",
         Name:
           user.name ||
           user.fullName ||
           user.username ||
           "Unnamed User",
-
         Email: user.email || "",
-
-        Phone:
-          user.phone ||
-          user.mobile ||
-          user.phoneNumber ||
-          "",
-
-        Brand:
-          user.brand ||
-          user.brandName ||
-          "",
-
+        Phone: user.phone || user.mobile || user.phoneNumber || "",
+        Brand: user.brand || user.brandName || "",
+        Status: "Waitlist",
         Joined: user.createdAt
-          ? new Date(
-              user.createdAt
-            ).toLocaleDateString("en-IN")
+          ? new Date(user.createdAt).toISOString()
           : "",
       }));
 
@@ -540,49 +569,27 @@ const exportUsers = () => {
   }
 
   const headers = Object.keys(rows[0]);
-
   const csvContent = [
     headers.map(escapeCSVValue).join(","),
-
     ...rows.map((row) =>
-      headers
-        .map((header) =>
-          escapeCSVValue(row[header])
-        )
-        .join(",")
+      headers.map((header) => escapeCSVValue(row[header])).join(",")
     ),
   ].join("\n");
 
-  const csvBlob = new Blob(
-    [`\uFEFF${csvContent}`],
-    {
-      type: "text/csv;charset=utf-8;",
-    }
-  );
+  const csvBlob = new Blob([`\uFEFF${csvContent}`], {
+    type: "text/csv;charset=utf-8;",
+  });
 
-  const downloadUrl =
-    URL.createObjectURL(csvBlob);
-
-  const downloadLink =
-    document.createElement("a");
-
+  const downloadUrl = URL.createObjectURL(csvBlob);
+  const downloadLink = document.createElement("a");
   downloadLink.href = downloadUrl;
-
-  downloadLink.download =
-    isRegisteredUsers
-      ? `registered-users-${new Date()
-          .toISOString()
-          .slice(0, 10)}.csv`
-      : `waitlist-users-${new Date()
-          .toISOString()
-          .slice(0, 10)}.csv`;
+  downloadLink.download = isRegisteredUsers
+    ? `registered-users-${new Date().toISOString().slice(0, 10)}.csv`
+    : `waitlist-users-${new Date().toISOString().slice(0, 10)}.csv`;
 
   document.body.appendChild(downloadLink);
-
   downloadLink.click();
-
   document.body.removeChild(downloadLink);
-
   URL.revokeObjectURL(downloadUrl);
 };
 
@@ -952,9 +959,27 @@ return (
                 >
                   <option>All Plans</option>
                   <option>Free</option>
+                  <option>Starter</option>
                   <option>Pro</option>
                   <option>Business</option>
                   <option>Agency</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 rounded-[5px] border border-border bg-background px-4 py-3">
+                <Filter className="h-4 w-4 text-[var(--brand-pink)]" />
+                <select
+                  value={roleFilter}
+                  onChange={(event) => setRoleFilter(event.target.value)}
+                  className="w-full bg-transparent text-sm font-bold text-foreground outline-none"
+                >
+                  <option>All Roles</option>
+                  <option>Admin</option>
+                  <option>Manager</option>
+                  <option>Brand Creator</option>
+                  <option>Content Creator</option>
+                  <option>Viewer</option>
+                  <option>User</option>
                 </select>
               </div>
 
@@ -1248,6 +1273,8 @@ return (
                       plan={normalizedPlan}
                     />
 
+                    <RoleBadge role={formatRole(user.role)} />
+
                     <StatusBadge
                       status={normalizedStatus}
                     />
@@ -1458,6 +1485,7 @@ return (
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <PlanBadge plan={normalizedPlan} />
+                <RoleBadge role={formatRole(user.role)} />
                 <StatusBadge status={normalizedStatus} />
               </div>
             </div>
@@ -1579,8 +1607,7 @@ return (
             <th className="p-5 font-bold">
               Contact Details
             </th>
-
-            <th className="p-5 text-right font-bold">
+ <th className="p-5 text-right font-bold">
               Actions
             </th>
           </tr>
@@ -1963,88 +1990,46 @@ return (
           />
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <Detail
-            icon={Mail}
-            label="Email"
-            value={selectedUser.email || "No email"}
-          />
+        <>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <Detail icon={UserCheck} label="User ID" value={selectedUser._id || selectedUser.id || "—"} />
+            <Detail icon={UserCheck} label="Full Name" value={selectedUser.name || selectedUser.fullName || "—"} />
+            <Detail icon={Mail} label="Email" value={selectedUser.email || "No email"} />
+            <Detail icon={Phone} label="Phone" value={selectedUser.phone || selectedUser.mobile || selectedUser.phoneNumber || "—"} />
+            <Detail icon={Building2} label="Brand" value={selectedUser.brand || selectedUser.brandName || "—"} />
+            <Detail icon={ShieldCheck} label="Role" value={formatRole(selectedUser.role)} />
+            <Detail icon={Crown} label="Plan" value={formatPlan(selectedUser.plan)} />
+            <Detail icon={UserCheck} label="Account Status" value={selectedUser.status || (selectedUser.isBlocked ? "Blocked" : "Active")} />
+            <Detail icon={ShieldCheck} label="Subscription Status" value={selectedUser.subscriptionStatus || "Inactive"} />
+            <Detail icon={Clock} label="Trial Expiry" value={formatDateTime(selectedUser.trialExpiresAt)} />
+            <Detail icon={Clock} label="Plan Expiry" value={formatDateTime(selectedUser.planExpiresAt)} />
+            <Detail icon={Mail} label="Email Verified" value={selectedUser.isEmailVerified === true || selectedUser.isVerified === true ? "Yes" : "No"} />
+            <Detail icon={Bot} label="AI Twins" value={selectedUser.twinsCount ?? selectedUser.twinCount ?? (Array.isArray(selectedUser.twins) ? selectedUser.twins.length : 0)} />
+            <Detail icon={Package} label="Products" value={selectedUser.productsCount ?? selectedUser.productCount ?? selectedUser.products ?? 0} />
+            <Detail icon={Radio} label="Live Sessions" value={selectedUser.livesCount ?? selectedUser.liveCount ?? selectedUser.lives ?? 0} />
+            <Detail icon={IndianRupee} label="Revenue" value={selectedUser.revenue || selectedUser.totalRevenue || "₹0"} />
+            <Detail icon={Clock} label="Joined" value={selectedUser.createdAt ? formatDateTime(selectedUser.createdAt) : selectedUser.joined || "—"} />
+            <Detail icon={Clock} label="Last Login" value={selectedUser.lastLogin ? formatDateTime(selectedUser.lastLogin) : "Never"} />
+          </div>
 
-          <Detail
-            icon={Phone}
-            label="Phone"
-            value={selectedUser.phone || "—"}
-          />
-
-          <Detail
-            icon={Building2}
-            label="Brand"
-            value={
-              selectedUser.brand ||   
-              "—"
-            }
-          />
-
-          <Detail
-            icon={Crown}
-            label="Plan"
-            value={selectedUser.plan || "Free"}
-          />
-
-          <Detail
-            icon={Bot}
-            label="AI Twin"
-            value={selectedUser.twin || "Pending"}
-          />
-
-          <Detail
-            icon={Package}
-            label="Products"
-            value={selectedUser.products ?? 0}
-          />
-
-          <Detail
-            icon={Radio}
-            label="Live Sessions"
-            value={selectedUser.lives ?? 0}
-          />
-
-          <Detail
-            icon={IndianRupee}
-            label="Revenue"
-            value={selectedUser.revenue || "₹0"}
-          />
-
-          <Detail
-            icon={Clock}
-            label="Joined"
-            value={selectedUser.joined || "—"}
-          />
-
-          <Detail
-            icon={UserCheck}
-            label="Last Login"
-            value={selectedUser.lastLogin || "Never"}
-          />
-
-          <Detail
-            icon={ShieldCheck}
-            label="Account Status"
-            value={selectedUser.status || "Active"}
-          />
-
-          <Detail
-            icon={Mail}
-            label="Email Verified"
-            value={
-              selectedUser.isVerified === true
-                ? "Verified"
-                : selectedUser.isVerified === false
-                ? "Not verified"
-                : "—"
-            }
-          />
-        </div>
+          <div className="mt-5 rounded-2xl border border-border bg-background p-4">
+            <p className="text-sm font-black text-foreground">Permissions</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {getPermissions(selectedUser).length > 0 ? (
+                getPermissions(selectedUser).map((permission) => (
+                  <span
+                    key={permission}
+                    className="rounded-full bg-pink-50 px-3 py-1 text-xs font-bold text-[var(--brand-pink)] dark:bg-white/10"
+                  >
+                    {permission}
+                  </span>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Role default permissions</p>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       <div
@@ -2142,6 +2127,9 @@ function PlanBadge({ plan = "Free" }) {
     Free:
       "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300",
 
+    Starter:
+      "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400",
+
     Pro:
       "bg-pink-50 text-[var(--brand-pink)] dark:bg-white/10",
 
@@ -2159,6 +2147,28 @@ function PlanBadge({ plan = "Free" }) {
       }`}
     >
       {normalizedPlan}
+    </span>
+  );
+}
+
+function RoleBadge({ role = "User" }) {
+  const normalized = String(role || "User").toLowerCase();
+
+  const className = normalized === "admin"
+    ? "bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400"
+    : normalized === "manager"
+    ? "bg-purple-50 text-purple-600 dark:bg-purple-500/10 dark:text-purple-400"
+    : normalized === "brand creator"
+    ? "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
+    : normalized === "content creator"
+    ? "bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400"
+    : normalized === "viewer"
+    ? "bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400"
+    : "bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300";
+
+  return (
+    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${className}`}>
+      {role}
     </span>
   );
 }
