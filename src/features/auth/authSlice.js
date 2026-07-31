@@ -407,14 +407,6 @@ export const fetchMe =
           await authApi.get(
             "/auth/me",
             {
-              headers: {
-                "Cache-Control":
-                  "no-cache",
-
-                Pragma:
-                  "no-cache",
-              },
-
               params: {
                 _t:
                   Date.now(),
