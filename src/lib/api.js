@@ -1,9 +1,84 @@
 // src/lib/api.js
 
-const API_URL =
-  import.meta.env
-    .VITE_API_URL ||
-  "https://twinn-backend.onrender.com";
+export const API_URL =
+  String(
+    import.meta.env.VITE_API_URL ||
+      "https://twinn-backend.onrender.com"
+  ).replace(/\/+$/, "");
+
+/* =========================================================
+   CONVERT HTTP URL TO WEBSOCKET URL
+========================================================= */
+
+export const toWebSocketUrl = (
+  value
+) => {
+  if (!value) {
+    return "";
+  }
+
+  const url =
+    String(value).trim();
+
+  if (
+    url.startsWith("ws://") ||
+    url.startsWith("wss://")
+  ) {
+    return url;
+  }
+
+  if (
+    url.startsWith("https://")
+  ) {
+    return url.replace(
+      /^https:\/\//,
+      "wss://"
+    );
+  }
+
+  if (
+    url.startsWith("http://")
+  ) {
+    return url.replace(
+      /^http:\/\//,
+      "ws://"
+    );
+  }
+
+  return url;
+};
+
+/* =========================================================
+   BUILD API ENDPOINT
+========================================================= */
+
+const buildApiUrl = (
+  endpoint = ""
+) => {
+  const normalizedEndpoint =
+    String(endpoint || "");
+
+  if (
+    normalizedEndpoint.startsWith(
+      "http://"
+    ) ||
+    normalizedEndpoint.startsWith(
+      "https://"
+    )
+  ) {
+    return normalizedEndpoint;
+  }
+
+  return `${API_URL}${
+    normalizedEndpoint.startsWith("/")
+      ? normalizedEndpoint
+      : `/${normalizedEndpoint}`
+  }`;
+};
+
+/* =========================================================
+   API REQUEST
+========================================================= */
 
 export const apiRequest =
   async (
@@ -18,15 +93,17 @@ export const apiRequest =
     } = options;
 
     const isFormData =
-      body instanceof
-      FormData;
+      typeof FormData !==
+        "undefined" &&
+      body instanceof FormData;
 
     const requestHeaders = {
       ...headers,
     };
 
     if (
-      body &&
+      body !== undefined &&
+      body !== null &&
       !isFormData
     ) {
       requestHeaders[
@@ -40,7 +117,7 @@ export const apiRequest =
 
     const response =
       await fetch(
-        `${API_URL}${endpoint}`,
+        buildApiUrl(endpoint),
         {
           method,
 
@@ -51,13 +128,17 @@ export const apiRequest =
             requestHeaders,
 
           body:
-            body
-              ? isFormData
+            body === undefined ||
+            body === null
+              ? undefined
+              : isFormData
                 ? body
-                : JSON.stringify(
-                    body
-                  )
-              : undefined,
+                : typeof body ===
+                    "string"
+                  ? body
+                  : JSON.stringify(
+                      body
+                    ),
 
           ...restOptions,
         }
@@ -68,25 +149,37 @@ export const apiRequest =
         "content-type"
       ) || "";
 
-    const data =
+    let data;
+
+    if (
+      response.status === 204
+    ) {
+      data = null;
+    } else if (
       contentType.includes(
         "application/json"
       )
-        ? await response.json()
-        : await response.text();
+    ) {
+      data =
+        await response.json();
+    } else {
+      data =
+        await response.text();
+    }
 
     if (!response.ok) {
       const message =
+        data &&
         typeof data ===
-        "object"
-          ? data?.message ||
-            data?.error
+          "object"
+          ? data.message ||
+            data.error
           : data;
 
       const error =
         new Error(
           message ||
-            "Request failed."
+            `Request failed with status ${response.status}.`
         );
 
       error.status =
