@@ -241,7 +241,7 @@ export const fetchProducts =
 
         const data =
           await apiRequest(
-            `/api/products${
+            `/products${
               queryString
                 ? `?${queryString}`
                 : ""
@@ -306,7 +306,7 @@ export const fetchProductById =
 
         const data =
           await apiRequest(
-            `/api/products/${productId}`
+            `/products/${productId}`
           );
 
         const product =
@@ -355,7 +355,7 @@ export const createProduct =
 
         const data =
           await apiRequest(
-            "/api/products",
+            "/products",
             {
               method: "POST",
               body: productData,
@@ -439,7 +439,7 @@ export const updateProduct =
 
         const data =
           await apiRequest(
-            `/api/products/${productId}`,
+            `/products/${productId}`,
             {
               method: "PUT",
               body: productData,
@@ -491,7 +491,7 @@ export const deleteProduct =
         }
 
         await apiRequest(
-          `/api/products/${productId}`,
+          `/products/${productId}`,
           {
             method: "DELETE",
           }

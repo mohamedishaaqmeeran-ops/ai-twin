@@ -5,10 +5,10 @@ import {
 
 const BASE_URL =
   import.meta.env.VITE_API_URL ||
-  "https://twinn-backend.onrender.com";
+  "https://twinn-backend.onrender.com/api";
 
 const API =
-  `${BASE_URL}/api/realtime`;
+  `${BASE_URL}/realtime`;
 
 const parseResponse =
   async (response) => {
