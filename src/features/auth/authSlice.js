@@ -405,21 +405,25 @@ export const fetchMe =
       try {
         const response =
           await authApi.get(
-            "/auth/me"
+            "/auth/me",
+            {
+              headers: {
+                "Cache-Control":
+                  "no-cache",
+
+                Pragma:
+                  "no-cache",
+              },
+
+              params: {
+                _t:
+                  Date.now(),
+              },
+            }
           );
 
         return response.data;
       } catch (error) {
-        const status =
-          error.response?.status;
-
-        if (
-          status === 401 ||
-          status === 403
-        ) {
-          removeAccessToken();
-        }
-
         return rejectWithValue(
           getErrorPayload(
             error,
@@ -429,7 +433,6 @@ export const fetchMe =
       }
     }
   );
-
 /* =========================================================
    UPDATE PROFILE
 ========================================================= */
@@ -680,12 +683,16 @@ export const logoutUser =
 ========================================================= */
 
 const initialState = {
-  user: null,
+  user:
+    null,
 
   isAuthenticated:
     false,
 
   authChecked:
+    false,
+
+  authLoading:
     false,
 
   loading:
@@ -1082,67 +1089,86 @@ const authSlice =
 
           /* FETCH ME */
 
-          .addCase(
-            fetchMe.pending,
-            (state) => {
-              state.loading =
-                true;
+         /* ===============================================
+   FETCH CURRENT USER
+=============================================== */
 
-              state.authChecked =
-                false;
-            }
-          )
+.addCase(
+  fetchMe.pending,
+  (state) => {
+    state.authLoading =
+      true;
 
-          .addCase(
-            fetchMe.fulfilled,
-            (
-              state,
-              action
-            ) => {
-              state.loading =
-                false;
+    state.authChecked =
+      false;
+  }
+)
 
-              applyAuthenticatedUser(
-                state,
-                action.payload
-              );
-            }
-          )
+.addCase(
+  fetchMe.fulfilled,
+  (
+    state,
+    action
+  ) => {
+    state.authLoading =
+      false;
 
-          .addCase(
-            fetchMe.rejected,
-            (
-              state,
-              action
-            ) => {
-              state.loading =
-                false;
+    state.authChecked =
+      true;
 
-              state.user =
-                null;
+    state.user =
+      action.payload
+        ?.user ||
+      null;
 
-              state.isAuthenticated =
-                false;
+    state.isAuthenticated =
+      Boolean(
+        action.payload
+          ?.user
+      );
 
-              state.authChecked =
-                true;
+    state.error =
+      null;
 
-              const status =
-                action.payload
-                  ?.status;
+    state.errorCode =
+      null;
+  }
+)
 
-              if (
-                status !== 401 &&
-                status !== 403
-              ) {
-                applyRejectedState(
-                  state,
-                  action,
-                  "Unable to fetch user."
-                );
-              }
-            }
-          )
+.addCase(
+  fetchMe.rejected,
+  (
+    state,
+    action
+  ) => {
+    state.authLoading =
+      false;
+
+    state.authChecked =
+      true;
+
+    state.user =
+      null;
+
+    state.isAuthenticated =
+      false;
+
+    const status =
+      action.payload
+        ?.status;
+
+    if (
+      status !== 401 &&
+      status !== 403
+    ) {
+      applyRejectedState(
+        state,
+        action,
+        "Unable to fetch user."
+      );
+    }
+  }
+)
 
           /* UPDATE PROFILE */
 

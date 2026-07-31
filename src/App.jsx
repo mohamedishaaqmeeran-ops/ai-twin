@@ -2,6 +2,7 @@ import {
   lazy,
   Suspense,
   useEffect,
+  useRef,
 } from "react";
 
 import {
@@ -1110,9 +1111,24 @@ export default function App() {
   const dispatch =
     useDispatch();
 
+  const authRequested =
+    useRef(false);
+
   useEffect(() => {
     applySavedTheme();
-    dispatch(fetchMe());
+
+    if (
+      authRequested.current
+    ) {
+      return;
+    }
+
+    authRequested.current =
+      true;
+
+    dispatch(
+      fetchMe()
+    );
   }, [dispatch]);
 
   return (

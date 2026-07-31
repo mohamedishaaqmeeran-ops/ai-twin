@@ -1,13 +1,34 @@
-import { Navigate, useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
+import {
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 
-export default function ProtectedRoute({ children }) {
-  const location = useLocation();
-  const { user, loading, initialized } = useSelector((state) => state.auth);
+import {
+  useSelector,
+} from "react-redux";
 
-  if (loading || !initialized) {
+export default function ProtectedRoute({
+  children,
+}) {
+  const location =
+    useLocation();
+
+  const {
+    user,
+    isAuthenticated,
+    authChecked,
+  } = useSelector(
+    (state) =>
+      state.auth || {}
+  );
+
+  /*
+   Wait only until the initial /auth/me
+   request finishes.
+  */
+  if (!authChecked) {
     return (
-      <div className="grid min-h-screen place-items-center bg-background text-foreground">
+      <div className="grid min-h-dvh place-items-center bg-background">
         <p className="text-sm font-bold text-[var(--brand-pink)]">
           Checking login...
         </p>
@@ -15,8 +36,20 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/signin" replace state={{ from: location }} />;
+  if (
+    !user ||
+    !isAuthenticated
+  ) {
+    return (
+      <Navigate
+        to="/signin"
+        replace
+        state={{
+          from:
+            location.pathname,
+        }}
+      />
+    );
   }
 
   return children;
