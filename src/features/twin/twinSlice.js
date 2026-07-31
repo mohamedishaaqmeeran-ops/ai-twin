@@ -8,7 +8,7 @@ export const createTwinBasicInfo = createAsyncThunk(
   async (payload, { rejectWithValue }) => {
     try {
       const data = await apiRequest(
-        "/api/twin/basic-info",
+        "/twin/basic-info",
         {
           method: "POST",
           body: JSON.stringify(payload),
@@ -25,7 +25,7 @@ export const fetchTwins = createAsyncThunk(
   "twin/fetchTwins",
   async (_, { rejectWithValue }) => {
     try {
-      const data = await apiRequest("/api/twin");
+      const data = await apiRequest("/twin");
       return data.twins || data.data || [];
     } catch (error) {
       return rejectWithValue(error.message);
@@ -82,7 +82,7 @@ export const saveTwinAppearance = createAsyncThunk(
       }
 
       return await apiRequest(
-        "/api/twin/appearance",
+        "/twin/appearance",
         {
           method: "POST",
           body: formData,
@@ -152,7 +152,7 @@ export const saveTwinVoice = createAsyncThunk(
       }
 
       return await apiRequest(
-        "/api/twin/voice",
+        "/twin/voice",
         {
           method: "POST",
           body: formData,
@@ -227,7 +227,7 @@ export const saveTwinKnowledge =
         }
 
         return await apiRequest(
-          "/api/twin/knowledge",
+          "/twin/knowledge",
           {
             method: "POST",
             body: formData,

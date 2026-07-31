@@ -52,6 +52,48 @@ import {
    SOCIAL PLATFORM CONFIGURATION
 ========================================================= */
 
+
+/* =========================================================
+   PLAN CONFIGURATION
+========================================================= */
+
+const PLAN_RANK = Object.freeze({
+  free: 0,
+  starter: 1,
+  pro: 2,
+  business: 3,
+  agency: 4,
+});
+
+const PLAN_PLATFORM_LIMITS = Object.freeze({
+  free: 1,
+  starter: 2,
+  pro: 4,
+  business: 5,
+  agency: 9,
+});
+
+const normalizePlan = (plan = "free") =>
+  String(plan || "free")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]/g, "");
+
+const hasRequiredPlan = (
+  currentPlan,
+  minimumPlan = "free"
+) => {
+  const currentRank =
+    PLAN_RANK[normalizePlan(currentPlan)] ??
+    PLAN_RANK.free;
+
+  const requiredRank =
+    PLAN_RANK[normalizePlan(minimumPlan)] ??
+    PLAN_RANK.free;
+
+  return currentRank >= requiredRank;
+};
+
 const socialData = [
   {
     id: "instagram",
@@ -61,7 +103,7 @@ const socialData = [
     icon: Instagram,
     defaultUsername:
       "@instagram",
-    pro: false,
+    minimumPlan: "free",
     connectionType:
       "rtmp",
     dashboardUrl:
@@ -76,7 +118,7 @@ const socialData = [
     icon: Facebook,
     defaultUsername:
       "Facebook Page",
-    pro: true,
+    minimumPlan: "starter",
     connectionType:
       "rtmp",
     dashboardUrl:
@@ -91,7 +133,7 @@ const socialData = [
     icon: Youtube,
     defaultUsername:
       "YouTube Channel",
-    pro: true,
+    minimumPlan: "pro",
     connectionType:
       "rtmp",
     dashboardUrl:
@@ -114,8 +156,7 @@ const socialData = [
   defaultUsername:
     "@tiktok",
 
-  pro:
-    true,
+  minimumPlan: "pro",
 
   connectionType:
     "rtmp",
@@ -134,7 +175,7 @@ const socialData = [
     icon: Linkedin,
     defaultUsername:
       "LinkedIn Profile",
-    pro: true,
+    minimumPlan: "business",
     connectionType:
       "rtmp",
     dashboardUrl:
@@ -149,7 +190,7 @@ const socialData = [
     icon: RadioTower,
     defaultUsername:
       "Rumble Channel",
-    pro: true,
+    minimumPlan: "agency",
     connectionType:
       "rtmp",
     dashboardUrl:
@@ -165,7 +206,7 @@ const socialData = [
     icon: Twitter,
     defaultUsername:
       "@twitter",
-    pro: true,
+    minimumPlan: "agency",
     connectionType:
       "rtmp",
     dashboardUrl:
@@ -180,7 +221,7 @@ const socialData = [
     icon: Twitch,
     defaultUsername:
       "Twitch Channel",
-    pro: true,
+    minimumPlan: "agency",
     connectionType:
       "rtmp",
     dashboardUrl:
@@ -196,7 +237,7 @@ const socialData = [
     icon: Zap,
     defaultUsername:
       "Kick Channel",
-    pro: true,
+    minimumPlan: "agency",
     connectionType:
       "rtmp",
     dashboardUrl:
@@ -388,14 +429,21 @@ const [
   setShowStreamKey,
 ] = useState(false);
   const plan =
-    user?.plan || "free";
-
-  const isPro =
-    plan === "pro" ||
-    plan === "business";
+    normalizePlan(
+      user?.plan ||
+        user?.subscription?.plan ||
+        "free"
+    );
 
   const maxPlatforms =
-    isPro ? 9 : 1;
+    PLAN_PLATFORM_LIMITS[plan] ??
+    PLAN_PLATFORM_LIMITS.free;
+
+  const isPro =
+    hasRequiredPlan(
+      plan,
+      "pro"
+    );
 
   /* =========================================================
      NORMALIZED CONNECTIONS
@@ -527,7 +575,7 @@ const [
      UPGRADE
   ========================================================= */
 
-  const upgradeToPro =
+  const openPricing =
     () => {
       navigate("/pricing");
     };
@@ -624,11 +672,13 @@ const openRTMPModal =
       Boolean(account);
 
     if (
-      platformItem.pro &&
-      !isPro &&
+      !hasRequiredPlan(
+        plan,
+        platformItem.minimumPlan
+      ) &&
       !alreadyConnected
     ) {
-      upgradeToPro();
+      openPricing();
       return;
     }
 
@@ -689,11 +739,10 @@ const openRTMPModal =
     }
 
     if (
-      !isPro &&
       connectedPlatforms.length >=
         maxPlatforms
     ) {
-      upgradeToPro();
+      openPricing();
       return;
     }
 
@@ -855,7 +904,7 @@ const handleSaveRTMP =
     locked
   ) => {
     if (locked) {
-      upgradeToPro();
+      openPricing();
       return;
     }
 
@@ -910,7 +959,7 @@ const handleSaveRTMP =
 
             {isPro
               ? "PRO SOCIAL CONNECTIONS"
-              : "CONNECT SOCIAL MEDIA"}
+              : `${plan.toUpperCase()} SOCIAL CONNECTIONS`}
           </span>
 
           <span
@@ -926,9 +975,7 @@ const handleSaveRTMP =
               <Lock className="h-4 w-4" />
             )}
 
-            {isPro
-              ? "PRO PLAN ACTIVE"
-              : "FREE PLAN"}
+            {`${plan.toUpperCase()} PLAN`}
           </span>
         </div>
 
@@ -942,9 +989,7 @@ const handleSaveRTMP =
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-muted-foreground">
-  {isPro
-    ? "Connect Instagram, Facebook, YouTube, TikTok, LinkedIn, Rumble, Twitter/X, Twitch and Kick."
-    : "The Free plan allows one platform. Upgrade to Pro to unlock all supported platforms."}
+  {`Your ${plan} plan supports up to ${maxPlatforms} connected platform${maxPlatforms === 1 ? "" : "s"}.`}
 </p>
       </section>
 
@@ -968,7 +1013,7 @@ const handleSaveRTMP =
         <Stat
           title="Available"
           value={
-            isPro ? "9" : "1"
+            String(maxPlatforms)
           }
           icon={
             ShieldCheck
@@ -1009,7 +1054,7 @@ const handleSaveRTMP =
             icon: Icon,
             color,
             defaultUsername,
-            pro,
+            minimumPlan,
           }) => {
             const active =
               connectedPlatforms.includes(
@@ -1017,7 +1062,10 @@ const handleSaveRTMP =
               );
 
             const locked =
-              pro && !isPro;
+              !hasRequiredPlan(
+                plan,
+                minimumPlan
+              );
 
             const account =
               normalizedConnections.find(
@@ -1059,7 +1107,7 @@ const handleSaveRTMP =
               >
                 {locked && (
                   <span className="absolute right-4 top-4 rounded-full bg-pink-500 px-3 py-1 text-xs font-black text-white">
-                    PRO
+                    {minimumPlan.toUpperCase()}
                   </span>
                 )}
 
@@ -1118,7 +1166,7 @@ const handleSaveRTMP =
                       {active
                         ? "Connected"
                         : locked
-                        ? "Pro Only"
+                        ? `${minimumPlan} plan`
                         : "Not Connected"}
                     </span>
                   </div>
@@ -1163,7 +1211,7 @@ const handleSaveRTMP =
                       className="rounded-[5px] border border-border bg-background py-3 text-sm font-bold tracking-wide text-foreground transition hover:border-[var(--brand-pink)] hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {locked
-                        ? "Pro Account"
+                        ? "View Required Plan"
                         : "View Account"}
                     </button>
                   </div>
