@@ -40,6 +40,8 @@ import {
   RefreshCw,
   Upload,
   CheckCircle2,
+  Gamepad2,
+  Joystick,
 } from "lucide-react";
 
 import {
@@ -130,6 +132,20 @@ const platforms = [
     pro: true,
     liveSupported: true,
   },
+  {
+    id: "loco",
+    name: "Loco",
+    icon: Gamepad2,
+    pro: true,
+    liveSupported: true,
+  },
+  {
+    id: "nimo",
+    name: "Nimo TV",
+    icon: Joystick,
+    pro: true,
+    liveSupported: true,
+  },
 ];
 
 const livePlatformIds =
@@ -155,9 +171,29 @@ const normalizePlatform = (
       .trim()
       .toLowerCase();
 
-  return value === "x"
-    ? "twitter"
-    : value;
+  if (
+    value === "x" ||
+    value === "twitter/x" ||
+    value === "x/twitter"
+  ) {
+    return "twitter";
+  }
+
+  if (
+    value === "loco tv" ||
+    value === "locotv"
+  ) {
+    return "loco";
+  }
+
+  if (
+    value === "nimo tv" ||
+    value === "nimotv"
+  ) {
+    return "nimo";
+  }
+
+  return value;
 };
 
 const getTwinDisplayName = (
@@ -308,8 +344,15 @@ export default function GoLive() {
     user?.plan || "free";
 
   const isPro =
-    plan === "pro" ||
-    plan === "business";
+    [
+      "pro",
+      "business",
+      "agency",
+    ].includes(
+      String(plan || "")
+        .trim()
+        .toLowerCase()
+    );
 
   const maxPlatforms =
     isPro ? livePlatformIds.length : 1;

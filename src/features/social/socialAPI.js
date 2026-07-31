@@ -52,6 +52,8 @@ export const MANUAL_RTMP_PLATFORMS = [
   "twitter",
   "twitch",
   "kick",
+  "loco",
+  "nimo",
 ];
 
 export const LIVE_PLATFORMS = [
@@ -64,6 +66,8 @@ export const LIVE_PLATFORMS = [
   "twitter",
   "twitch",
   "kick",
+  "loco",
+  "nimo",
 ];
 
 /* =========================================================
@@ -79,9 +83,25 @@ export const normalizePlatform = (
       .toLowerCase();
 
   if (
-    normalized === "x"
+    normalized === "x" ||
+    normalized === "twitter/x" ||
+    normalized === "x/twitter"
   ) {
     return "twitter";
+  }
+
+  if (
+    normalized === "loco tv" ||
+    normalized === "locotv"
+  ) {
+    return "loco";
+  }
+
+  if (
+    normalized === "nimo tv" ||
+    normalized === "nimotv"
+  ) {
+    return "nimo";
   }
 
   return normalized;

@@ -1650,9 +1650,9 @@ export default function App() {
                   permission="live:start"
                   message="Your role cannot start live sessions."
                 >
-                  <RequireTwin requireTrained>
+                 
                     <GoLive />
-                  </RequireTwin>
+                
                 </RequirePermission>
               }
             />

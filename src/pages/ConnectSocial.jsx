@@ -26,6 +26,8 @@ import {
   Zap,
   Eye,
   EyeOff,
+  Gamepad2,
+  Joystick,
 } from "lucide-react";
 
 import {
@@ -70,7 +72,7 @@ const PLAN_PLATFORM_LIMITS = Object.freeze({
   starter: 2,
   pro: 4,
   business: 5,
-  agency: 9,
+  agency: 11,
 });
 
 const normalizePlan = (plan = "free") =>
@@ -244,6 +246,36 @@ const socialData = [
       "https://kick.com/dashboard/settings/stream",
     defaultRtmpUrl: "",
   },
+  {
+    id: "loco",
+    name: "Loco",
+    color:
+      "bg-yellow-50 dark:bg-white/10",
+    icon: Gamepad2,
+    defaultUsername:
+      "Loco Channel",
+    minimumPlan: "agency",
+    connectionType:
+      "rtmp",
+    dashboardUrl:
+      "https://loco.gg/",
+    defaultRtmpUrl: "",
+  },
+  {
+    id: "nimo",
+    name: "Nimo TV",
+    color:
+      "bg-orange-50 dark:bg-white/10",
+    icon: Joystick,
+    defaultUsername:
+      "Nimo TV Channel",
+    minimumPlan: "agency",
+    connectionType:
+      "rtmp",
+    dashboardUrl:
+      "https://www.nimo.tv/",
+    defaultRtmpUrl: "",
+  },
 ];
 
 /* =========================================================
@@ -253,9 +285,33 @@ const socialData = [
 const normalizePlatform = (
   platform = ""
 ) => {
-  return String(platform)
+  const value = String(platform)
     .trim()
     .toLowerCase();
+
+  if (
+    value === "x" ||
+    value === "twitter/x" ||
+    value === "x/twitter"
+  ) {
+    return "twitter";
+  }
+
+  if (
+    value === "loco tv" ||
+    value === "locotv"
+  ) {
+    return "loco";
+  }
+
+  if (
+    value === "nimo tv" ||
+    value === "nimotv"
+  ) {
+    return "nimo";
+  }
+
+  return value;
 };
 
 /* =========================================================
@@ -330,6 +386,8 @@ const getAccountDisplayName = (
       "twitter",
       "twitch",
       "kick",
+      "loco",
+      "nimo",
     ].includes(platform)
   ) {
     return (
@@ -597,6 +655,8 @@ const openRTMPModal =
 
     setRtmpForm({
      rtmpUrl:
+  existingConnection?.locoRtmpUrl ||
+  existingConnection?.nimoRtmpUrl ||
   existingConnection?.tiktokRtmpUrl ||
   existingConnection?.rumbleRtmpUrl ||
   existingConnection?.twitchRtmpUrl ||
@@ -609,6 +669,8 @@ const openRTMPModal =
       streamKey: "",
 
       channelUrl:
+  existingConnection?.locoChannelUrl ||
+  existingConnection?.nimoChannelUrl ||
   existingConnection?.tiktokChannelUrl ||
   existingConnection?.rumbleChannelUrl ||
   existingConnection?.twitchChannelUrl ||
@@ -1573,6 +1635,8 @@ function AccountModal({
   "twitter",
   "twitch",
   "kick",
+  "loco",
+  "nimo",
 ].includes(
   platform
 ) && (
@@ -1591,11 +1655,13 @@ function AccountModal({
       label="RTMP Configured"
       value={
         account.rtmpConfigured ||
-account.tiktokRtmpConfigured ||
-account.rumbleRtmpConfigured ||
-account.twitchRtmpConfigured ||
-account.kickRtmpConfigured ||
-account.twitterRtmpConfigured
+        account.locoRtmpConfigured ||
+        account.nimoRtmpConfigured ||
+        account.tiktokRtmpConfigured ||
+        account.rumbleRtmpConfigured ||
+        account.twitchRtmpConfigured ||
+        account.kickRtmpConfigured ||
+        account.twitterRtmpConfigured
           ? "Yes"
           : "No"
       }
@@ -1604,23 +1670,27 @@ account.twitterRtmpConfigured
     <AccountRow
       label="Live Status"
       value={
-       account.liveStatus ||
-account.tiktokLiveStatus ||
-account.rumbleLiveStatus ||
-account.twitchLiveStatus ||
-account.kickLiveStatus ||
-account.twitterLiveStatus ||
-"Idle"
+        account.liveStatus ||
+        account.locoLiveStatus ||
+        account.nimoLiveStatus ||
+        account.tiktokLiveStatus ||
+        account.rumbleLiveStatus ||
+        account.twitchLiveStatus ||
+        account.kickLiveStatus ||
+        account.twitterLiveStatus ||
+        "Idle"
       }
     />
 
     {(
-     account.channelUrl ||
-account.tiktokChannelUrl ||
-account.rumbleChannelUrl ||
-account.twitchChannelUrl ||
-account.kickChannelUrl ||
-account.twitterChannelUrl
+      account.channelUrl ||
+      account.locoChannelUrl ||
+      account.nimoChannelUrl ||
+      account.tiktokChannelUrl ||
+      account.rumbleChannelUrl ||
+      account.twitchChannelUrl ||
+      account.kickChannelUrl ||
+      account.twitterChannelUrl
     ) && (
       <a
         href={
