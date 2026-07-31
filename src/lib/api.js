@@ -1,195 +1,170 @@
-// src/lib/api.js
+/* =========================================================
+   API CONFIGURATION
+========================================================= */
 
 export const API_URL =
-  String(
+  (
     import.meta.env.VITE_API_URL ||
-      "https://twinn-backend.onrender.com"
+    "https://twinn-backend.onrender.com/api"
   ).replace(/\/+$/, "");
 
 /* =========================================================
-   CONVERT HTTP URL TO WEBSOCKET URL
+   BUILD API URL
 ========================================================= */
 
-export const toWebSocketUrl = (
-  value
-) => {
-  if (!value) {
-    return "";
-  }
-
-  const url =
-    String(value).trim();
-
-  if (
-    url.startsWith("ws://") ||
-    url.startsWith("wss://")
-  ) {
-    return url;
-  }
-
-  if (
-    url.startsWith("https://")
-  ) {
-    return url.replace(
-      /^https:\/\//,
-      "wss://"
-    );
-  }
-
-  if (
-    url.startsWith("http://")
-  ) {
-    return url.replace(
-      /^http:\/\//,
-      "ws://"
-    );
-  }
-
-  return url;
-};
-
-/* =========================================================
-   BUILD API ENDPOINT
-========================================================= */
-
-const buildApiUrl = (
+export const buildApiUrl = (
   endpoint = ""
 ) => {
   const normalizedEndpoint =
-    String(endpoint || "");
+    String(endpoint || "").startsWith("/")
+      ? String(endpoint)
+      : `/${String(endpoint || "")}`;
 
-  if (
-    normalizedEndpoint.startsWith(
-      "http://"
-    ) ||
-    normalizedEndpoint.startsWith(
-      "https://"
-    )
-  ) {
-    return normalizedEndpoint;
-  }
-
-  return `${API_URL}${
-    normalizedEndpoint.startsWith("/")
-      ? normalizedEndpoint
-      : `/${normalizedEndpoint}`
-  }`;
+  return `${API_URL}${normalizedEndpoint}`;
 };
 
 /* =========================================================
    API REQUEST
 ========================================================= */
 
-export const apiRequest =
-  async (
-    endpoint,
-    options = {}
-  ) => {
-    const {
-      method = "GET",
-      body,
-      headers = {},
-      ...restOptions
-    } = options;
+export const apiRequest = async (
+  endpoint,
+  options = {}
+) => {
+  const {
+    method = "GET",
+    body,
+    headers = {},
+    signal,
+    ...remainingOptions
+  } = options;
 
-    const isFormData =
-      typeof FormData !==
-        "undefined" &&
-      body instanceof FormData;
+  const isFormData =
+    body instanceof FormData;
 
-    const requestHeaders = {
-      ...headers,
-    };
+  const requestHeaders = {
+    Accept: "application/json",
+    ...headers,
+  };
 
-    if (
-      body !== undefined &&
-      body !== null &&
-      !isFormData
-    ) {
-      requestHeaders[
-        "Content-Type"
-      ] =
-        requestHeaders[
-          "Content-Type"
-        ] ||
-        "application/json";
+  if (
+    body !== undefined &&
+    body !== null &&
+    !isFormData
+  ) {
+    requestHeaders[
+      "Content-Type"
+    ] = "application/json";
+  }
+
+  const response = await fetch(
+    buildApiUrl(endpoint),
+    {
+      method,
+
+      /*
+       Required for cookies between
+       twinn.live and the backend.
+      */
+      credentials: "include",
+
+      headers:
+        requestHeaders,
+
+      body:
+        body === undefined ||
+        body === null
+          ? undefined
+          : isFormData
+            ? body
+            : JSON.stringify(
+                body
+              ),
+
+      signal,
+
+      ...remainingOptions,
     }
+  );
 
-    const response =
-      await fetch(
-        buildApiUrl(endpoint),
-        {
-          method,
+  const contentType =
+    response.headers.get(
+      "content-type"
+    ) || "";
 
-          credentials:
-            "include",
+  let data = null;
 
-          headers:
-            requestHeaders,
+  if (
+    contentType.includes(
+      "application/json"
+    )
+  ) {
+    data =
+      await response.json();
+  } else {
+    const text =
+      await response.text();
 
-          body:
-            body === undefined ||
-            body === null
-              ? undefined
-              : isFormData
-                ? body
-                : typeof body ===
-                    "string"
-                  ? body
-                  : JSON.stringify(
-                      body
-                    ),
-
-          ...restOptions,
+    data = text
+      ? {
+          message: text,
         }
+      : null;
+  }
+
+  if (!response.ok) {
+    const error =
+      new Error(
+        data?.message ||
+          `Request failed with status ${response.status}`
       );
 
-    const contentType =
-      response.headers.get(
-        "content-type"
-      ) || "";
+    error.status =
+      response.status;
 
-    let data;
+    error.code =
+      data?.code;
 
-    if (
-      response.status === 204
-    ) {
-      data = null;
-    } else if (
-      contentType.includes(
-        "application/json"
-      )
-    ) {
-      data =
-        await response.json();
-    } else {
-      data =
-        await response.text();
-    }
+    error.data =
+      data;
 
-    if (!response.ok) {
-      const message =
-        data &&
-        typeof data ===
-          "object"
-          ? data.message ||
-            data.error
-          : data;
+    throw error;
+  }
 
-      const error =
-        new Error(
-          message ||
-            `Request failed with status ${response.status}.`
-        );
+  return data;
+};
 
-      error.status =
-        response.status;
+/* =========================================================
+   WEBSOCKET URL
+========================================================= */
 
-      error.data =
-        data;
+export const toWebSocketUrl = (
+  value
+) => {
+  const url =
+    String(value || "");
 
-      throw error;
-    }
+  if (
+    url.startsWith(
+      "https://"
+    )
+  ) {
+    return url.replace(
+      "https://",
+      "wss://"
+    );
+  }
 
-    return data;
-  };
+  if (
+    url.startsWith(
+      "http://"
+    )
+  ) {
+    return url.replace(
+      "http://",
+      "ws://"
+    );
+  }
+
+  return url;
+};

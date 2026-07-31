@@ -18,10 +18,71 @@ const API_URL =
     .trim()
     .replace(/\/+$/, "");
 
+const ACCESS_TOKEN_KEY =
+  "twinn_access_token";
+
+/* =========================================================
+   TOKEN HELPERS
+========================================================= */
+
+const getStoredAccessToken =
+  () => {
+    try {
+      return (
+        localStorage.getItem(
+          ACCESS_TOKEN_KEY
+        ) || ""
+      );
+    } catch {
+      return "";
+    }
+  };
+
+const storeAccessToken = (
+  token
+) => {
+  try {
+    if (token) {
+      localStorage.setItem(
+        ACCESS_TOKEN_KEY,
+        token
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Unable to store access token:",
+      error
+    );
+  }
+};
+
+const removeAccessToken =
+  () => {
+    try {
+      localStorage.removeItem(
+        ACCESS_TOKEN_KEY
+      );
+    } catch (error) {
+      console.error(
+        "Unable to remove access token:",
+        error
+      );
+    }
+  };
+
+/* =========================================================
+   AXIOS INSTANCE
+========================================================= */
+
 export const authApi =
   axios.create({
-    baseURL: API_URL,
+    baseURL:
+      API_URL,
 
+    /*
+     Use the HttpOnly cookie whenever the
+     browser allows it.
+    */
     withCredentials:
       true,
 
@@ -29,13 +90,41 @@ export const authApi =
       30000,
 
     headers: {
-      "Content-Type":
+      Accept:
         "application/json",
 
-      Accept:
+      "Content-Type":
         "application/json",
     },
   });
+
+/* =========================================================
+   AUTHORIZATION INTERCEPTOR
+========================================================= */
+
+authApi.interceptors
+  .request.use(
+    (config) => {
+      const accessToken =
+        getStoredAccessToken();
+
+      if (accessToken) {
+        config.headers =
+          config.headers || {};
+
+        config.headers
+          .Authorization =
+          `Bearer ${accessToken}`;
+      }
+
+      return config;
+    },
+
+    (error) =>
+      Promise.reject(
+        error
+      )
+  );
 
 /* =========================================================
    ERROR NORMALIZER
@@ -82,6 +171,11 @@ const getErrorPayload = (
     return {
       success: false,
 
+      status:
+        error.response
+          ?.status ||
+        null,
+
       code:
         "REQUEST_FAILED",
 
@@ -92,8 +186,7 @@ const getErrorPayload = (
   }
 
   return {
-    success:
-      false,
+    success: false,
 
     status:
       error.response?.status ||
@@ -138,6 +231,25 @@ const getErrorPayload = (
       null,
   };
 };
+
+/* =========================================================
+   SAVE AUTH RESPONSE
+========================================================= */
+
+const saveAuthentication =
+  (data) => {
+    const accessToken =
+      data?.accessToken ||
+      data?.token;
+
+    if (accessToken) {
+      storeAccessToken(
+        accessToken
+      );
+    }
+
+    return data;
+  };
 
 /* =========================================================
    REGISTER WITH EMAIL
@@ -205,8 +317,12 @@ export const loginUser =
             }
           );
 
-        return response.data;
+        return saveAuthentication(
+          response.data
+        );
       } catch (error) {
+        removeAccessToken();
+
         return rejectWithValue(
           getErrorPayload(
             error,
@@ -240,14 +356,6 @@ export const googleLoginUser =
           credential,
         };
 
-        /*
-         Role and mode should be sent only
-         during Google signup.
-
-         Existing Google users signing in do not
-         need to select their role again.
-        */
-
         if (role) {
           body.role =
             role;
@@ -264,8 +372,12 @@ export const googleLoginUser =
             body
           );
 
-        return response.data;
+        return saveAuthentication(
+          response.data
+        );
       } catch (error) {
+        removeAccessToken();
+
         return rejectWithValue(
           getErrorPayload(
             error,
@@ -298,6 +410,16 @@ export const fetchMe =
 
         return response.data;
       } catch (error) {
+        const status =
+          error.response?.status;
+
+        if (
+          status === 401 ||
+          status === 403
+        ) {
+          removeAccessToken();
+        }
+
         return rejectWithValue(
           getErrorPayload(
             error,
@@ -342,7 +464,7 @@ export const updateProfile =
   );
 
 /* =========================================================
-   RESEND VERIFICATION EMAIL
+   RESEND VERIFICATION
 ========================================================= */
 
 export const resendVerificationEmail =
@@ -489,6 +611,8 @@ export const resetPassword =
             }
           );
 
+        removeAccessToken();
+
         return response.data;
       } catch (error) {
         return rejectWithValue(
@@ -521,18 +645,17 @@ export const logoutUser =
             "/auth/logout"
           );
 
+        removeAccessToken();
+
         return response.data;
       } catch (error) {
-        /*
-         Clear frontend authentication state even
-         when the backend session has already expired.
-        */
+        removeAccessToken();
 
         if (
-          error.response?.status ===
-            401 ||
-          error.response?.status ===
-            403
+          error.response
+            ?.status === 401 ||
+          error.response
+            ?.status === 403
         ) {
           return {
             success: true,
@@ -562,10 +685,6 @@ const initialState = {
   isAuthenticated:
     false,
 
-  /*
-   authChecked prevents protected routes from
-   redirecting before /auth/me finishes.
-  */
   authChecked:
     false,
 
@@ -607,7 +726,7 @@ const initialState = {
 };
 
 /* =========================================================
-   SHARED REDUCER HELPERS
+   SHARED HELPERS
 ========================================================= */
 
 const clearRequestError = (
@@ -702,6 +821,8 @@ const authSlice =
 
       clearAuthState:
         (state) => {
+          removeAccessToken();
+
           state.user =
             null;
 
@@ -768,9 +889,7 @@ const authSlice =
       (builder) => {
         builder
 
-          /* ===============================================
-             REGISTER
-          =============================================== */
+          /* REGISTER */
 
           .addCase(
             registerUser.pending,
@@ -799,10 +918,6 @@ const authSlice =
               state.registerLoading =
                 false;
 
-              /*
-               Email registration usually requires
-               verification before authentication.
-              */
               state.user =
                 action.payload
                   ?.user ||
@@ -841,9 +956,7 @@ const authSlice =
             }
           )
 
-          /* ===============================================
-             EMAIL LOGIN
-          =============================================== */
+          /* EMAIL LOGIN */
 
           .addCase(
             loginUser.pending,
@@ -891,6 +1004,9 @@ const authSlice =
               state.loginLoading =
                 false;
 
+              state.user =
+                null;
+
               state.isAuthenticated =
                 false;
 
@@ -902,9 +1018,7 @@ const authSlice =
             }
           )
 
-          /* ===============================================
-             GOOGLE AUTHENTICATION
-          =============================================== */
+          /* GOOGLE LOGIN */
 
           .addCase(
             googleLoginUser.pending,
@@ -952,6 +1066,9 @@ const authSlice =
               state.googleLoading =
                 false;
 
+              state.user =
+                null;
+
               state.isAuthenticated =
                 false;
 
@@ -963,9 +1080,7 @@ const authSlice =
             }
           )
 
-          /* ===============================================
-             FETCH CURRENT USER
-          =============================================== */
+          /* FETCH ME */
 
           .addCase(
             fetchMe.pending,
@@ -1012,11 +1127,6 @@ const authSlice =
               state.authChecked =
                 true;
 
-              /*
-               Do not display an error for an expected
-               unauthenticated /auth/me request.
-              */
-
               const status =
                 action.payload
                   ?.status;
@@ -1034,9 +1144,7 @@ const authSlice =
             }
           )
 
-          /* ===============================================
-             UPDATE PROFILE
-          =============================================== */
+          /* UPDATE PROFILE */
 
           .addCase(
             updateProfile.pending,
@@ -1095,12 +1203,11 @@ const authSlice =
             }
           )
 
-          /* ===============================================
-             RESEND VERIFICATION
-          =============================================== */
+          /* RESEND VERIFICATION */
 
           .addCase(
-            resendVerificationEmail.pending,
+            resendVerificationEmail
+              .pending,
             (state) => {
               clearRequestError(
                 state
@@ -1112,7 +1219,8 @@ const authSlice =
           )
 
           .addCase(
-            resendVerificationEmail.fulfilled,
+            resendVerificationEmail
+              .fulfilled,
             (
               state,
               action
@@ -1128,7 +1236,8 @@ const authSlice =
           )
 
           .addCase(
-            resendVerificationEmail.rejected,
+            resendVerificationEmail
+              .rejected,
             (
               state,
               action
@@ -1144,9 +1253,7 @@ const authSlice =
             }
           )
 
-          /* ===============================================
-             VERIFY EMAIL
-          =============================================== */
+          /* VERIFY EMAIL */
 
           .addCase(
             verifyEmail.pending,
@@ -1201,9 +1308,7 @@ const authSlice =
             }
           )
 
-          /* ===============================================
-             FORGOT PASSWORD
-          =============================================== */
+          /* FORGOT PASSWORD */
 
           .addCase(
             forgotPassword.pending,
@@ -1250,9 +1355,7 @@ const authSlice =
             }
           )
 
-          /* ===============================================
-             RESET PASSWORD
-          =============================================== */
+          /* RESET PASSWORD */
 
           .addCase(
             resetPassword.pending,
@@ -1299,9 +1402,7 @@ const authSlice =
             }
           )
 
-          /* ===============================================
-             LOGOUT
-          =============================================== */
+          /* LOGOUT */
 
           .addCase(
             logoutUser.pending,
@@ -1366,7 +1467,7 @@ const authSlice =
   });
 
 /* =========================================================
-   ACTION EXPORTS
+   ACTIONS
 ========================================================= */
 
 export const {
@@ -1420,9 +1521,5 @@ export const selectAuthError = (
 ) =>
   state.auth?.error ||
   null;
-
-/* =========================================================
-   REDUCER EXPORT
-========================================================= */
 
 export default authSlice.reducer;

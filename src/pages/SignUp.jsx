@@ -1,4 +1,7 @@
-import { useState } from "react";
+import {
+  useState,
+} from "react";
+
 import {
   Link,
   useNavigate,
@@ -19,25 +22,39 @@ import {
   UserRound,
   CheckCircle2,
 } from "lucide-react";
+
 import {
   GoogleLogin,
 } from "@react-oauth/google";
+
 import Logo from "../components/Logo";
 import ButtonLoader from "../components/ButtonLoader";
 
 import {
   registerUser,
   googleLoginUser,
+  fetchMe,
   clearAuthError,
 } from "../features/auth/authSlice";
 
+/* =========================================================
+   ACCOUNT TYPES
+========================================================= */
+
 const ACCOUNT_TYPES = [
   {
-    id: "brandcreator",
-    title: "Brand Creator",
+    id:
+      "brandcreator",
+
+    title:
+      "Brand Creator",
+
     description:
       "Create AI Twins, add products, go live and manage your brand.",
-    icon: Store,
+
+    icon:
+      Store,
+
     features: [
       "Create and train AI Twins",
       "Manage products",
@@ -45,12 +62,20 @@ const ACCOUNT_TYPES = [
       "Access subscription plans",
     ],
   },
+
   {
-    id: "user",
-    title: "Normal User",
+    id:
+      "user",
+
+    title:
+      "Normal User",
+
     description:
       "Watch live sessions, chat with AI Twins and explore products.",
-    icon: UserRound,
+
+    icon:
+      UserRound,
+
     features: [
       "Watch live sessions",
       "Chat with AI Twins",
@@ -65,37 +90,60 @@ const ALLOWED_PUBLIC_ROLES = [
   "brandcreator",
 ];
 
+/* =========================================================
+   COMPONENT
+========================================================= */
+
 export default function SignUp() {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const navigate =
+    useNavigate();
+
+  const dispatch =
+    useDispatch();
 
   const {
     loading,
-    error: reduxError,
+    error:
+      reduxError,
   } = useSelector(
-    (state) => state.auth || {}
+    (state) =>
+      state.auth || {}
   );
 
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [
+    showPassword,
+    setShowPassword,
+  ] = useState(false);
 
   const [
     showConfirmPassword,
     setShowConfirmPassword,
   ] = useState(false);
 
-  const [error, setError] = useState("");
+  const [
+    acceptedTerms,
+    setAcceptedTerms,
+  ] = useState(false);
 
-  const [form, setForm] = useState({
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  const [
+    form,
+    setForm,
+  ] = useState({
     role: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-const [
-  acceptedTerms,
-  setAcceptedTerms,
-] = useState(false);
+
+  /* =======================================================
+     CHANGE HANDLER
+  ======================================================= */
+
   const handleChange = (
     key,
     value
@@ -103,14 +151,23 @@ const [
     setError("");
 
     if (reduxError) {
-      dispatch(clearAuthError());
+      dispatch(
+        clearAuthError()
+      );
     }
 
-    setForm((previous) => ({
-      ...previous,
-      [key]: value,
-    }));
+    setForm(
+      (previous) => ({
+        ...previous,
+        [key]:
+          value,
+      })
+    );
   };
+
+  /* =======================================================
+     PASSWORD VALIDATION
+  ======================================================= */
 
   const validatePassword = (
     password
@@ -123,27 +180,37 @@ const [
     );
   };
 
+  /* =======================================================
+     EMAIL REGISTRATION
+  ======================================================= */
+
   const handleSignup = async (
     event
   ) => {
     event.preventDefault();
-if (loading) {
-  return;
-}
+
+    if (loading) {
+      return;
+    }
+
     setError("");
-    dispatch(clearAuthError());
+
+    dispatch(
+      clearAuthError()
+    );
 
     if (
-  !ALLOWED_PUBLIC_ROLES.includes(
-    form.role
-  )
-) {
-  setError(
-    "Please select a valid account type."
-  );
+      !ALLOWED_PUBLIC_ROLES
+        .includes(
+          form.role
+        )
+    ) {
+      setError(
+        "Please select a valid account type."
+      );
 
-  return;
-}
+      return;
+    }
 
     if (
       !form.email.trim() ||
@@ -153,6 +220,7 @@ if (loading) {
       setError(
         "Please fill in all fields."
       );
+
       return;
     }
 
@@ -164,6 +232,7 @@ if (loading) {
       setError(
         "Password must contain at least 8 characters, one uppercase letter, one lowercase letter, one number and one special character."
       );
+
       return;
     }
 
@@ -174,153 +243,58 @@ if (loading) {
       setError(
         "Passwords do not match."
       );
-      return;
-    }
-if (!acceptedTerms) {
-  setError(
-    "Please accept the Terms and Privacy Policy."
-  );
 
-  return;
-}
-    const result = await dispatch(
-      registerUser({
-        email: form.email
-          .trim()
-          .toLowerCase(),
-
-        password:
-          form.password,
-
-        confirmPassword:
-          form.confirmPassword,
-
-        role:
-          form.role,
-      })
-    );
-
-    if (
-      registerUser.fulfilled.match(
-        result
-      )
-    ) {
-      navigate(
-        "/verify-email-notice",
-        {
-          replace: true,
-          state: {
-            email: form.email
-              .trim()
-              .toLowerCase(),
-
-            role:
-              form.role,
-          },
-        }
-      );
       return;
     }
 
-    if (
-      registerUser.rejected.match(
-        result
-      )
-    ) {
-     setError(
-  result.payload?.message ||
-    result.payload ||
-    "Registration failed."
-);
-    }
-  };
-
-  const handleGoogleSignup =
-  async (
-    credentialResponse
-  ) => {
-    setError("");
-    dispatch(clearAuthError());
-
-    if (
-      loading
-    ) {
-      return;
-    }
-
-  if (
-  !ALLOWED_PUBLIC_ROLES.includes(
-    form.role
-  )
-) {
-  setError(
-    "Please select Brand Creator or Normal User before continuing with Google."
-  );
-
-  return;
-}
-
-if (!acceptedTerms) {
-  setError(
-    "Please accept the Terms and Privacy Policy before continuing with Google."
-  );
-
-  return;
-}
-
-    const credential =
-      credentialResponse
-        ?.credential;
-
-    if (!credential) {
+    if (!acceptedTerms) {
       setError(
-        "Google did not return a valid credential."
+        "Please accept the Terms and Privacy Policy."
       );
 
       return;
     }
+
+    const normalizedEmail =
+      form.email
+        .trim()
+        .toLowerCase();
 
     const result =
       await dispatch(
-        googleLoginUser({
-          credential,
+        registerUser({
+          email:
+            normalizedEmail,
+
+          password:
+            form.password,
+
+          confirmPassword:
+            form.confirmPassword,
+
           role:
             form.role,
-          mode:
-            "signup",
         })
       );
 
     if (
-      googleLoginUser
+      registerUser
         .fulfilled
         .match(result)
     ) {
-      const user =
-        result.payload
-          ?.user;
-
-      const storedRole =
-        user?.role;
-
-      if (
-        storedRole ===
-        "brandcreator"
-      ) {
-        navigate(
-          "/app/dashboard",
-          {
-            replace: true,
-          }
-        );
-
-        return;
-      }
-
       navigate(
-        "/app/explore",
+        "/verify-email-notice",
         {
-          replace: true,
+          replace:
+            true,
+
+          state: {
+            email:
+              normalizedEmail,
+
+            role:
+              form.role,
+          },
         }
       );
 
@@ -331,9 +305,155 @@ if (!acceptedTerms) {
       result.payload
         ?.message ||
         result.payload ||
-        "Google signup failed."
+        "Registration failed."
     );
   };
+
+  /* =======================================================
+     GOOGLE SIGNUP
+  ======================================================= */
+
+  const handleGoogleSignup =
+    async (
+      credentialResponse
+    ) => {
+      if (loading) {
+        return;
+      }
+
+      setError("");
+
+      dispatch(
+        clearAuthError()
+      );
+
+      if (
+        !ALLOWED_PUBLIC_ROLES
+          .includes(
+            form.role
+          )
+      ) {
+        setError(
+          "Please select Brand Creator or Normal User before continuing with Google."
+        );
+
+        return;
+      }
+
+      if (!acceptedTerms) {
+        setError(
+          "Please accept the Terms and Privacy Policy before continuing with Google."
+        );
+
+        return;
+      }
+
+      const credential =
+        credentialResponse
+          ?.credential;
+
+      if (!credential) {
+        setError(
+          "Google did not return a valid credential."
+        );
+
+        return;
+      }
+
+      const result =
+        await dispatch(
+          googleLoginUser({
+            credential,
+
+            role:
+              form.role,
+
+            mode:
+              "signup",
+          })
+        );
+
+      if (
+        googleLoginUser
+          .rejected
+          .match(result)
+      ) {
+        setError(
+          result.payload
+            ?.message ||
+          result.payload ||
+          "Google signup failed."
+        );
+
+        return;
+      }
+
+      /*
+       Verify that the cookie or Bearer token
+       can authenticate /auth/me.
+      */
+
+      const meResult =
+        await dispatch(
+          fetchMe()
+        );
+
+      if (
+        fetchMe
+          .rejected
+          .match(meResult)
+      ) {
+        setError(
+          meResult.payload
+            ?.message ||
+          "Your account was created, but the authentication session could not be verified."
+        );
+
+        return;
+      }
+
+      const authenticatedUser =
+        meResult.payload
+          ?.user ||
+        result.payload
+          ?.user;
+
+      const storedRole =
+        String(
+          authenticatedUser
+            ?.role ||
+          ""
+        )
+          .trim()
+          .toLowerCase();
+
+      if (
+        storedRole ===
+        "brandcreator"
+      ) {
+        navigate(
+          "/app/dashboard",
+          {
+            replace:
+              true,
+          }
+        );
+
+        return;
+      }
+
+      navigate(
+        "/app/explore",
+        {
+          replace:
+            true,
+        }
+      );
+    };
+
+  /* =======================================================
+     CLASSES
+  ======================================================= */
 
   const inputClass =
     "flex items-center gap-3 rounded-[5px] border border-border bg-background px-4 py-3 transition focus-within:border-[var(--brand-pink)] focus-within:ring-2 focus-within:ring-pink-200 dark:focus-within:ring-pink-500/20";
@@ -342,13 +462,16 @@ if (!acceptedTerms) {
     "w-full bg-transparent text-base font-medium text-foreground outline-none placeholder:text-muted-foreground";
 
   const displayError =
-    error || reduxError;
+    error ||
+    reduxError;
+
+  /* =======================================================
+     UI
+  ======================================================= */
 
   return (
     <div className="min-h-dvh overflow-x-hidden bg-background text-foreground">
       <div className="mx-auto grid min-h-dvh max-w-7xl gap-10 px-4 py-6 sm:py-10 lg:grid-cols-2 lg:items-stretch">
-        {/* LEFT SECTION */}
-
         <section className="hidden h-full flex-col rounded-[40px] border border-border bg-card p-8 shadow-sm lg:flex">
           <div className="brand-gradient flex-1 overflow-hidden rounded-[32px]">
             <img
@@ -376,8 +499,6 @@ if (!acceptedTerms) {
           </div>
         </section>
 
-        {/* RIGHT SECTION */}
-
         <section className="mx-auto flex h-full w-full max-w-xl flex-col rounded-3xl border border-border bg-card p-6 shadow-xl sm:p-8">
           <Logo />
 
@@ -392,348 +513,386 @@ if (!acceptedTerms) {
             Select the type of account you
             want to create.
           </p>
-       
 
-<div
-  className={
-    !form.role ||
-    loading
-      ? "pointer-events-none opacity-50"
-      : ""
-  }
->
-  <GoogleLogin
-    onSuccess={
-      handleGoogleSignup
-    }
-    onError={() => {
-      setError(
-        "Google signup was cancelled or failed."
-      );
-    }}
-    text="signup_with"
-    shape="rectangular"
-    size="large"
-    width="100%"
-    theme="outline"
-  />
-</div>
+          {/* ACCOUNT TYPE */}
 
-{!form.role && (
-  <p className="mt-2 text-center text-xs font-semibold text-amber-600 dark:text-amber-400">
-    Select an account type before
-    using Google signup.
-  </p>
-)}
+          <div className="mt-6">
+            <p className="mb-3 text-sm font-bold text-foreground">
+              Choose account type
+            </p>
 
-          <div className="my-6 h-px w-full bg-border" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {ACCOUNT_TYPES.map(
+                (account) => {
+                  const Icon =
+                    account.icon;
 
-          <form
-            onSubmit={handleSignup}
-            className="flex flex-1 flex-col justify-between"
-          >
-            <div className="space-y-5">
-              {/* ACCOUNT TYPE */}
+                  const isSelected =
+                    form.role ===
+                    account.id;
 
-              <div>
-                <p className="mb-3 text-sm font-bold text-foreground">
-                  Choose account type
-                </p>
+                  return (
+                    <button
+                      key={
+                        account.id
+                      }
+                      type="button"
+                      aria-pressed={
+                        isSelected
+                      }
+                      onClick={() =>
+                        handleChange(
+                          "role",
+                          account.id
+                        )
+                      }
+                      className={`relative rounded-xl border p-4 text-left transition ${
+                        isSelected
+                          ? "border-[var(--brand-pink)] bg-pink-50 ring-2 ring-pink-200 dark:bg-pink-500/10 dark:ring-pink-500/20"
+                          : "border-border bg-background hover:border-pink-300"
+                      }`}
+                    >
+                      {isSelected && (
+                        <CheckCircle2 className="absolute right-3 top-3 h-5 w-5 text-[var(--brand-pink)]" />
+                      )}
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {ACCOUNT_TYPES.map(
-                    (account) => {
-                      const Icon =
-                        account.icon;
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pink-100 text-[var(--brand-pink)] dark:bg-pink-500/10">
+                        <Icon className="h-5 w-5" />
+                      </div>
 
-                      const isSelected =
-                        form.role ===
-                        account.id;
+                      <h2 className="mt-3 text-base font-black">
+                        {
+                          account.title
+                        }
+                      </h2>
 
-                      return (
-                        <button
-  key={account.id}
-  type="button"
-  aria-pressed={isSelected}
-  onClick={() =>
-    handleChange(
-      "role",
-      account.id
-    )
-  }
-  className={`relative rounded-xl border p-4 text-left transition ${
-    isSelected
-      ? "border-[var(--brand-pink)] bg-pink-50 ring-2 ring-pink-200 dark:bg-pink-500/10 dark:ring-pink-500/20"
-      : "border-border bg-background hover:border-pink-300"
-  }`}
->
-                          {isSelected && (
-                            <CheckCircle2 className="absolute right-3 top-3 h-5 w-5 text-[var(--brand-pink)]" />
-                          )}
+                      <p className="mt-2 text-xs font-medium leading-5 text-muted-foreground">
+                        {
+                          account.description
+                        }
+                      </p>
 
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pink-100 text-[var(--brand-pink)] dark:bg-pink-500/10">
-                            <Icon className="h-5 w-5" />
-                          </div>
-
-                          <h2 className="mt-3 text-base font-black">
-                            {account.title}
-                          </h2>
-
-                          <p className="mt-2 text-xs font-medium leading-5 text-muted-foreground">
-                            {
-                              account.description
-                            }
-                          </p>
-
-                          <ul className="mt-3 space-y-2">
-                            {account.features.map(
-                              (
+                      <ul className="mt-3 space-y-2">
+                        {account.features.map(
+                          (
+                            feature
+                          ) => (
+                            <li
+                              key={
                                 feature
-                              ) => (
-                                <li
-                                  key={
-                                    feature
-                                  }
-                                  className="flex items-start gap-2 text-xs font-medium text-muted-foreground"
-                                >
-                                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-500" />
+                              }
+                              className="flex items-start gap-2 text-xs font-medium text-muted-foreground"
+                            >
+                              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-green-500" />
 
-                                  <span>
-                                    {
-                                      feature
-                                    }
-                                  </span>
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        </button>
-                      );
-                    }
-                  )}
-                </div>
-              </div>
-
-              {/* EMAIL */}
-
-              <div className={inputClass}>
-                <Mail className="h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
-
-               <input
-  placeholder="Email"
-  type="email"
-  name="email"
-  required
-  maxLength={255}
-  autoComplete="email"
-  className={inputFieldClass}
-  value={form.email}
-  onChange={(event) =>
-    handleChange(
-      "email",
-      event.target.value
-    )
-  }
-/>
-              </div>
-
-              {/* PASSWORD */}
-
-              <div className={inputClass}>
-                <Lock className="h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
-
-                <input
-  placeholder="Password"
-  type={
-    showPassword
-      ? "text"
-      : "password"
-  }
-  name="password"
-  required
-  minLength={8}
-  maxLength={128}
-  autoComplete="new-password"
-  className={inputFieldClass}
-  value={form.password}
-  onChange={(event) =>
-    handleChange(
-      "password",
-      event.target.value
-    )
-  }
-/>
-
-                <button
-                  type="button"
-                  aria-label={
-                    showPassword
-                      ? "Hide password"
-                      : "Show password"
-                  }
-                  onClick={() =>
-                    setShowPassword(
-                      (previous) =>
-                        !previous
-                    )
-                  }
-                  className="text-muted-foreground transition hover:text-foreground"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-
-              {/* CONFIRM PASSWORD */}
-
-              <div className={inputClass}>
-                <Lock className="h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
-
-                <input
-  placeholder="Confirm Password"
-  type={
-    showConfirmPassword
-      ? "text"
-      : "password"
-  }
-  name="confirmPassword"
-  required
-  minLength={8}
-  maxLength={128}
-  autoComplete="new-password"
-  className={inputFieldClass}
-  value={form.confirmPassword}
-  onChange={(event) =>
-    handleChange(
-      "confirmPassword",
-      event.target.value
-    )
-  }
-/>
-
-                <button
-                  type="button"
-                  aria-label={
-                    showConfirmPassword
-                      ? "Hide confirm password"
-                      : "Show confirm password"
-                  }
-                  onClick={() =>
-                    setShowConfirmPassword(
-                      (previous) =>
-                        !previous
-                    )
-                  }
-                  className="text-muted-foreground transition hover:text-foreground"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-
-              {displayError && (
-                <div className="rounded-[5px] bg-red-50 p-3 text-sm font-semibold text-red-600 dark:bg-red-500/10 dark:text-red-400">
-                  {displayError}
-                </div>
+                              <span>
+                                {
+                                  feature
+                                }
+                              </span>
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </button>
+                  );
+                }
               )}
             </div>
+          </div>
 
-            <div className="mt-6">
-              <label className="flex items-start gap-2 text-sm font-medium leading-5 text-muted-foreground">
-               <input
-  type="checkbox"
-  checked={acceptedTerms}
-  onChange={(event) => {
-    setAcceptedTerms(
-      event.target.checked
-    );
+          {/* TERMS */}
 
-    setError("");
+          <label className="mt-5 flex items-start gap-2 text-sm font-medium leading-5 text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={
+                acceptedTerms
+              }
+              onChange={(
+                event
+              ) => {
+                setAcceptedTerms(
+                  event.target
+                    .checked
+                );
 
-    if (reduxError) {
-      dispatch(
-        clearAuthError()
-      );
-    }
-  }}
-  className="mt-1 accent-pink-500"
-/>
+                setError("");
 
-                <span>
-                  I agree to the{" "}
-                  <Link
-                    to="/terms-and-conditions"
-                    className="font-bold text-[var(--brand-pink)] hover:underline"
-                  >
-                    Terms
-                  </Link>{" "}
-                  and{" "}
-                  <Link
-                    to="/privacy-policy"
-                    className="font-bold text-[var(--brand-pink)] hover:underline"
-                  >
-                    Privacy Policy
-                  </Link>
-                </span>
-              </label>
+                if (reduxError) {
+                  dispatch(
+                    clearAuthError()
+                  );
+                }
+              }}
+              className="mt-1 accent-pink-500"
+            />
+
+            <span>
+              I agree to the{" "}
+              <Link
+                to="/terms-and-conditions"
+                className="font-bold text-[var(--brand-pink)] hover:underline"
+              >
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link
+                to="/privacy-policy"
+                className="font-bold text-[var(--brand-pink)] hover:underline"
+              >
+                Privacy Policy
+              </Link>
+            </span>
+          </label>
+
+          {/* GOOGLE */}
+
+          <div
+            className={`mt-5 ${
+              !form.role ||
+              !acceptedTerms ||
+              loading
+                ? "pointer-events-none opacity-50"
+                : ""
+            }`}
+          >
+            <GoogleLogin
+              onSuccess={
+                handleGoogleSignup
+              }
+              onError={() => {
+                setError(
+                  "Google signup was cancelled or failed."
+                );
+              }}
+              text="signup_with"
+              shape="rectangular"
+              size="large"
+              width="100%"
+              theme="outline"
+            />
+          </div>
+
+          {!form.role && (
+            <p className="mt-2 text-center text-xs font-semibold text-amber-600 dark:text-amber-400">
+              Select an account type before
+              using Google signup.
+            </p>
+          )}
+
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Or
+            </span>
+
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          {/* EMAIL FORM */}
+
+          <form
+            onSubmit={
+              handleSignup
+            }
+            className="space-y-5"
+          >
+            <div className={inputClass}>
+              <Mail className="h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
+
+              <input
+                placeholder="Email"
+                type="email"
+                name="email"
+                required
+                maxLength={255}
+                autoComplete="email"
+                className={
+                  inputFieldClass
+                }
+                value={
+                  form.email
+                }
+                onChange={(
+                  event
+                ) =>
+                  handleChange(
+                    "email",
+                    event.target
+                      .value
+                  )
+                }
+              />
+            </div>
+
+            <div className={inputClass}>
+              <Lock className="h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
+
+              <input
+                placeholder="Password"
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
+                name="password"
+                required
+                minLength={8}
+                maxLength={128}
+                autoComplete="new-password"
+                className={
+                  inputFieldClass
+                }
+                value={
+                  form.password
+                }
+                onChange={(
+                  event
+                ) =>
+                  handleChange(
+                    "password",
+                    event.target
+                      .value
+                  )
+                }
+              />
 
               <button
-                type="submit"
-           disabled={
-  loading ||
-  !form.role ||
-  !form.email.trim() ||
-  !form.password ||
-  !form.confirmPassword ||
-  !acceptedTerms
-}
-                className="brand-gradient mt-5 flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                aria-label={
+                  showPassword
+                    ? "Hide password"
+                    : "Show password"
+                }
+                onClick={() =>
+                  setShowPassword(
+                    (
+                      previous
+                    ) =>
+                      !previous
+                  )
+                }
+                className="text-muted-foreground transition hover:text-foreground"
               >
-                {loading ? (
-                  <ButtonLoader text="Creating Account..." />
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
                 ) : (
-                  <>
-                    Create{" "}
-                    {form.role ===
-                    "brandcreator"
-                      ? "Brand Creator"
-                      : form.role ===
-                          "user"
-                        ? "User"
-                        : ""}{" "}
-                    Account
-                    <ArrowRight className="h-4 w-4" />
-                  </>
+                  <Eye className="h-5 w-5" />
                 )}
               </button>
-                 <div className="my-5 flex items-center gap-3">
-  <div className="h-px flex-1 bg-border" />
-
-  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-    Or
-  </span>
-
-  <div className="h-px flex-1 bg-border" />
-</div>
-
-              <div className="mt-8 text-center text-sm text-muted-foreground">
-                Already have an account?
-
-                <Link
-                  to="/signin"
-                  className="ml-2 font-bold text-[var(--brand-pink)] hover:underline"
-                >
-                  Sign In
-                </Link>
-              </div>
             </div>
+
+            <div className={inputClass}>
+              <Lock className="h-5 w-5 shrink-0 text-[var(--brand-pink)]" />
+
+              <input
+                placeholder="Confirm Password"
+                type={
+                  showConfirmPassword
+                    ? "text"
+                    : "password"
+                }
+                name="confirmPassword"
+                required
+                minLength={8}
+                maxLength={128}
+                autoComplete="new-password"
+                className={
+                  inputFieldClass
+                }
+                value={
+                  form.confirmPassword
+                }
+                onChange={(
+                  event
+                ) =>
+                  handleChange(
+                    "confirmPassword",
+                    event.target
+                      .value
+                  )
+                }
+              />
+
+              <button
+                type="button"
+                aria-label={
+                  showConfirmPassword
+                    ? "Hide confirm password"
+                    : "Show confirm password"
+                }
+                onClick={() =>
+                  setShowConfirmPassword(
+                    (
+                      previous
+                    ) =>
+                      !previous
+                  )
+                }
+                className="text-muted-foreground transition hover:text-foreground"
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
+              </button>
+            </div>
+
+            {displayError && (
+              <div className="rounded-[5px] bg-red-50 p-3 text-sm font-semibold text-red-600 dark:bg-red-500/10 dark:text-red-400">
+                {
+                  displayError
+                }
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={
+                loading ||
+                !form.role ||
+                !form.email
+                  .trim() ||
+                !form.password ||
+                !form
+                  .confirmPassword ||
+                !acceptedTerms
+              }
+              className="brand-gradient flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] text-sm font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? (
+                <ButtonLoader text="Creating Account..." />
+              ) : (
+                <>
+                  Create{" "}
+                  {form.role ===
+                  "brandcreator"
+                    ? "Brand Creator"
+                    : form.role ===
+                        "user"
+                      ? "User"
+                      : ""}{" "}
+                  Account
+
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
           </form>
+
+          <div className="mt-8 text-center text-sm text-muted-foreground">
+            Already have an account?
+
+            <Link
+              to="/signin"
+              className="ml-2 font-bold text-[var(--brand-pink)] hover:underline"
+            >
+              Sign In
+            </Link>
+          </div>
         </section>
       </div>
     </div>
