@@ -49,7 +49,7 @@ import {
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "https://twinn-backend.onrender.com";
+  "https://twinn-backend.onrender.com/api";
 
 const normalizeBaseUrl = (url) => {
   return String(url || "")
