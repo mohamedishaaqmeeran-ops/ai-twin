@@ -52,12 +52,16 @@ import {
 } from "lucide-react";
 
 import {
-  fetchMe,
   logoutUser,
 } from "../features/auth/authSlice";
 
 const API =
-  "https://twinn-backend.onrender.com/api";
+  String(
+    import.meta.env.VITE_API_URL ||
+      "https://twinn-backend.onrender.com/api"
+  )
+    .trim()
+    .replace(/\/+$/, "");
 
 /* =========================================================
    HELPERS
@@ -94,9 +98,9 @@ const normalizePlan = (plan) =>
 
 const ROLE_HOME = {
   admin: "/admin",
-  manager: "/app",
-  brandcreator: "/app",
-  contentcreator: "/app",
+  manager: "/app/dashboard",
+  brandcreator: "/app/dashboard",
+  contentcreator: "/app/dashboard",
   user: "/user/home",
 };
 
@@ -132,26 +136,11 @@ export default function AppLayout() {
     useState(false);
 
   const {
-  user,
-  loading: authLoading,
-  checkingSession,
-  initialized,
-} = useSelector(
-  (state) => state.auth || {}
-);
-
-useEffect(() => {
-  if (
-    !initialized &&
-    !checkingSession
-  ) {
-    dispatch(fetchMe());
-  }
-}, [
-  dispatch,
-  initialized,
-  checkingSession,
-]);
+    user,
+    authChecked,
+  } = useSelector(
+    (state) => state.auth || {}
+  );
 
   const role =
     normalizeRole(
@@ -535,78 +524,94 @@ useEffect(() => {
 
   useEffect(() => {
     if (
+      !authChecked ||
       !user ||
       !isCreatorDashboardRole
     ) {
       setTwin(null);
+      setLoadingTwin(false);
       return;
     }
 
-    let cancelled =
-      false;
+    let cancelled = false;
 
-    const loadTwin =
-      async () => {
-        try {
-          setLoadingTwin(
-            true
+    const loadTwin = async () => {
+      try {
+        setLoadingTwin(true);
+
+        const accessToken =
+          localStorage.getItem(
+            "twinn_access_token"
           );
 
-          const res =
-            await fetch(
-              `${API}/twin/me`,
-              {
-                credentials:
-                  "include",
-              }
-            );
-
-          const data =
-            await res
-              .json()
-              .catch(
-                () => ({})
-              );
-
-          if (
-            cancelled
-          ) {
-            return;
-          }
-
-          if (!res.ok) {
-            setTwin(null);
-            return;
-          }
-
-          const result =
-            data?.twin ||
-            data?.data ||
-            data;
-
-          setTwin(
-            result &&
-              typeof result ===
-                "object"
-              ? result
-              : null
+        const response =
+          await fetch(
+            `${API}/twin`,
+            {
+              method: "GET",
+              credentials: "include",
+              headers: {
+                Accept: "application/json",
+                ...(accessToken
+                  ? {
+                      Authorization:
+                        `Bearer ${accessToken}`,
+                    }
+                  : {}),
+              },
+            }
           );
-        } catch {
-          if (
-            !cancelled
-          ) {
-            setTwin(null);
-          }
-        } finally {
-          if (
-            !cancelled
-          ) {
-            setLoadingTwin(
-              false
-            );
-          }
+
+        const data =
+          await response
+            .json()
+            .catch(() => ({}));
+
+        if (cancelled) {
+          return;
         }
-      };
+
+        if (!response.ok) {
+          console.error(
+            "LOAD TWIN ERROR:",
+            {
+              status: response.status,
+              code: data?.code,
+              message: data?.message,
+            }
+          );
+
+          setTwin(null);
+          return;
+        }
+
+        const twins =
+          Array.isArray(data)
+            ? data
+            : Array.isArray(data?.twins)
+              ? data.twins
+              : Array.isArray(data?.data)
+                ? data.data
+                : data?.twin
+                  ? [data.twin]
+                  : [];
+
+        setTwin(twins[0] || null);
+      } catch (error) {
+        if (!cancelled) {
+          console.error(
+            "LOAD TWIN REQUEST ERROR:",
+            error
+          );
+
+          setTwin(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingTwin(false);
+        }
+      }
+    };
 
     loadTwin();
 
@@ -614,6 +619,7 @@ useEffect(() => {
       cancelled = true;
     };
   }, [
+    authChecked,
     user?._id,
     user?.id,
     isCreatorDashboardRole,
@@ -726,6 +732,16 @@ useEffect(() => {
           : isAdmin
             ? "Admin Operations"
             : `${isPro ? "Pro " : ""}AI Twin Dashboard`;
+
+  if (!authChecked) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-background text-foreground">
+        <p className="text-sm font-bold text-[var(--brand-pink)]">
+          Checking login...
+        </p>
+      </div>
+    );
+  }
 
   const headerSubtitle =
     isNormalUser
